@@ -16,6 +16,9 @@ EXPORTS
     LdrRegisterDllNotification@16           EXPORTAS LdrRegisterDllNotification
     LdrUnregisterDllNotification@4          EXPORTAS LdrUnregisterDllNotification
 
+    ; NLS conversion (__stdcall)
+    RtlUpcaseUnicodeStringToAnsiString@12   EXPORTAS RtlUpcaseUnicodeStringToAnsiString
+
     ; Compiler helpers (64-bit arithmetic, stack probe, float conversion)
     _alldiv
     _allmul

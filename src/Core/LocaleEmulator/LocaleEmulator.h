@@ -527,6 +527,10 @@ public:
     PVOID CodePageMapView;
     ULONG_PTR AnsiCodePageOffset, OemCodePageOffset, UnicodeCaseTableOffset;
 
+    // Emulated ANSI/OEM code pages, used by the ntdll conversion hooks (NtdllHook.cpp).
+    // Valid only when CodePageMapView != nullptr.
+    CPTABLEINFO AnsiTableInfo, OemTableInfo;
+
 protected:
     PVOID DllNotificationCookie;
 

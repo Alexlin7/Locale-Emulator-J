@@ -298,7 +298,13 @@ NTSTATUS LeGlobalData::Initialize()
             &NlsTableInfo
         );
 
+        // On recent Windows builds RtlInitNlsTables / RtlResetRtlTranslations are no-op
+        // stubs, so ntdll keeps converting with the system code page. Keep our own tables
+        // for the ntdll conversion hooks installed by HookNtdllRoutines.
         RtlResetRtlTranslations(&NlsTableInfo);
+
+        RtlInitCodePageTable((PUSHORT)PtrAdd(CodePageMapView, AnsiCodePageOffset), &AnsiTableInfo);
+        RtlInitCodePageTable((PUSHORT)PtrAdd(CodePageMapView, OemCodePageOffset), &OemTableInfo);
 
         WriteLog(L"reset nls");
 
