@@ -27,7 +27,7 @@ public class CharacterizationTests
     }
 
     [Fact]
-    public void CompareWithBaseline_ICUMode()
+    public void CompareWithBaseline_NlsMode()
     {
         var baselinePath = Path.Combine(
             AppContext.BaseDirectory, "TestData", "locale-baseline-netfx40.json");
@@ -61,24 +61,16 @@ public class CharacterizationTests
                 differences.Add($"{locale}: LCID expected={expectedLcid} actual={ci.TextInfo.LCID}");
         }
 
-        if (differences.Count > 0)
-        {
-            var report = "ICU mode differences from .NET Framework 4.0 baseline:\n"
-                + string.Join("\n", differences);
+        // UseNls (Directory.Build.props) makes .NET 10 return the same values as the
+        // .NET Framework 4.0 build of Locale Emulator, so any difference is a regression,
+        // except: ka-GE reports OEMCodePage 1 (437 in the baseline) even under NLS, so
+        // the value comes from the current Windows locale data, not from ICU.
+        var unexpected = differences
+            .Where(d => !d.StartsWith("ka-GE: OEMCodePage"))
+            .ToList();
 
-            // ka-GE OEMCodePage (437 vs 1) is a known ICU/NLS difference.
-            // Filter out known acceptable differences.
-            var critical = differences
-                .Where(d => !d.StartsWith("ka-GE: OEMCodePage"))
-                .ToList();
-
-            if (critical.Count > 0)
-                Assert.Fail(report);
-
-            // Non-critical differences are logged but do not fail the test.
-            // Output for manual review:
-            // Console.WriteLine(report);
-        }
+        Assert.True(unexpected.Count == 0,
+            "Differences from .NET Framework 4.0 baseline:\n" + string.Join("\n", unexpected));
     }
 
     [Theory]

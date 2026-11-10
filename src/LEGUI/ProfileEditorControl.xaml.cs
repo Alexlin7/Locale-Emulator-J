@@ -12,9 +12,8 @@ public partial class ProfileEditorControl : UserControl
     // Static cache: both lists are OS-wide and stable for the process lifetime.
     // CultureInfo.GetCultures(AllCultures) returns 800+ entries and is noticeably
     // expensive; rebuilding it per control instance (two windows × reopens) was
-    // wasteful.
-    private static readonly List<CultureInfo> s_cultureInfos =
-        CultureInfo.GetCultures(CultureTypes.AllCultures).OrderBy(i => i.DisplayName).ToList();
+    // wasteful. Only regions Core can emulate are listed (see RegionSupport).
+    private static readonly List<CultureInfo> s_cultureInfos = RegionSupport.GetSupportedCultures();
     private static readonly List<TimeZoneInfo> s_timezones =
         TimeZoneInfo.GetSystemTimeZones().ToList();
 
@@ -40,7 +39,11 @@ public partial class ProfileEditorControl : UserControl
 
     public void LoadProfile(LEProfile source)
     {
-        cbRegion.SelectedIndex = s_cultureInfos.FindIndex(ci => ci.Name == source.Region);
+        // Match by the resolved culture so names saved by older builds (e.g. zh-Hans-CN,
+        // which resolves to zh-CN) still select the right entry.
+        cbRegion.SelectedIndex = RegionSupport.TryGetSupportedCulture(source.Region, out var region)
+            ? s_cultureInfos.FindIndex(ci => ci.Name == region.Name)
+            : -1;
         cbTimezone.SelectedIndex = s_timezones.FindIndex(tz => tz.Id == source.Timezone);
         cbStartAsAdmin.IsChecked = source.RunAsAdmin;
         cbRedirectRegistry.IsChecked = source.RedirectRegistry;
