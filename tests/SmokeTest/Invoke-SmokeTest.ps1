@@ -58,6 +58,15 @@ $TestMatrix = @(
         LCID   = "0804"
     },
     @{
+        # LEGUI 在 ICU 全球化模式下曾存成 zh-Hant-TW（LCID 0x1000，無法模擬）；
+        # 啟用 UseNls 後應解析為 zh-TW。
+        Name   = "Traditional Chinese (legacy name zh-Hant-TW)"
+        Region = "zh-Hant-TW"
+        ACP    = 950
+        OEMCP  = 950
+        LCID   = "0404"
+    },
+    @{
         Name   = "Korean (ko-KR)"
         Region = "ko-KR"
         ACP    = 949

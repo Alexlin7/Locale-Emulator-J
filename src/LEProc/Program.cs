@@ -219,7 +219,21 @@ internal static class Program
             }
 
             var currentDirectory = Path.GetDirectoryName(absPath);
-            var cultureInfo = CultureInfo.GetCultureInfo(profile.Region);
+
+            // Core needs a real LCID and ANSI code page; without them the target fails
+            // to start without any message (see RegionSupport).
+            if (!RegionSupport.TryGetSupportedCulture(profile.Region, out var cultureInfo))
+            {
+                MessageBox.Show(
+                    $"The region \"{profile.Region}\" in profile \"{profile.Name}\" cannot be emulated " +
+                    "(no Windows locale ID or ANSI code page).\r\n" +
+                    "Please choose another region in the profile settings (e.g. zh-CN, zh-TW, ja-JP).",
+                    "Locale Emulator Version " + GlobalHelper.GetVersionString(),
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+
             var textInfo = cultureInfo.TextInfo;
             var ansiCodePage = (uint) textInfo.ANSICodePage;
             var oemCodePage = (uint) textInfo.OEMCodePage;
