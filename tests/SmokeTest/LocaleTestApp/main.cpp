@@ -305,6 +305,60 @@ static void CheckConversions()
         }
     }
 
+    // File APIs with a non-ASCII file name passed as ANSI (code page bytes).
+    // The file is created with the Unicode API, then opened through the *A APIs.
+    {
+        WCHAR nameChars[16];
+        int nameLen = 0;
+        for (int i = 0; i < wideChars && nameLen < 6; ++i)
+            if (wide[i] >= 0x80) nameChars[nameLen++] = wide[i];
+        nameChars[nameLen] = 0;
+
+        WCHAR tempDir[MAX_PATH];
+        GetTempPathW(MAX_PATH, tempDir);
+        WCHAR dirW[MAX_PATH], fileW[MAX_PATH];
+        swprintf_s(dirW, L"%sLETest_%lu", tempDir, GetCurrentProcessId());
+        swprintf_s(fileW, L"%s\\le_%s.tmp", dirW, nameChars);
+        CreateDirectoryW(dirW, NULL);
+        HANDLE h = CreateFileW(fileW, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (h != INVALID_HANDLE_VALUE) CloseHandle(h);
+
+        char dirA[MAX_PATH * 2], fileA[MAX_PATH * 2], nameA[64];
+        WideCharToMultiByte(acp, 0, dirW, -1, dirA, sizeof(dirA), NULL, NULL);
+        WideCharToMultiByte(acp, 0, fileW, -1, fileA, sizeof(fileA), NULL, NULL);
+        WCHAR nameW[32];
+        swprintf_s(nameW, L"le_%s.tmp", nameChars);
+        WideCharToMultiByte(acp, 0, nameW, -1, nameA, sizeof(nameA), NULL, NULL);
+
+        HANDLE hA = CreateFileA(fileA, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+        sprintf_s(detail, "cp=%u error=%lu", acp, hA == INVALID_HANDLE_VALUE ? GetLastError() : 0);
+        Check("FILEAPI_CREATEFILE_A", hA != INVALID_HANDLE_VALUE, detail);
+        if (hA != INVALID_HANDLE_VALUE) CloseHandle(hA);
+
+        DWORD attr = GetFileAttributesA(fileA);
+        sprintf_s(detail, "cp=%u error=%lu", acp, attr == INVALID_FILE_ATTRIBUTES ? GetLastError() : 0);
+        Check("FILEAPI_GETFILEATTRIBUTES_A", attr != INVALID_FILE_ATTRIBUTES, detail);
+
+        char pattern[MAX_PATH * 2];
+        sprintf_s(pattern, "%s\\*.tmp", dirA);
+        WIN32_FIND_DATAA fd;
+        HANDLE hf = FindFirstFileA(pattern, &fd);
+        bool found = hf != INVALID_HANDLE_VALUE && strcmp(fd.cFileName, nameA) == 0;
+        Hex(hf != INVALID_HANDLE_VALUE ? fd.cFileName : "", hf != INVALID_HANDLE_VALUE ? (int)strlen(fd.cFileName) : 0, hex, sizeof(hex));
+        sprintf_s(detail, "cp=%u got=%s", acp, hex);
+        Check("FILEAPI_FINDFIRSTFILE_A", found, detail);
+        if (hf != INVALID_HANDLE_VALUE) FindClose(hf);
+
+        FILE *fp = NULL;
+        fopen_s(&fp, fileA, "rb");
+        sprintf_s(detail, "cp=%u", acp);
+        Check("FILEAPI_FOPEN", fp != NULL, detail);
+        if (fp) fclose(fp);
+
+        DeleteFileW(fileW);
+        RemoveDirectoryW(dirW);
+    }
+
     // kernelbase CP_ACP (reads the code page LE installs through the PEB)
     {
         WCHAR back[256] = {};
