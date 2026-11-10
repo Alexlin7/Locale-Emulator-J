@@ -33,15 +33,3 @@
 *.dll       binary
 *.exe       binary
 *.7z        binary
-
-###############################################################################
-# Git LFS 追蹤（視需要啟用）
-#
-# Core 的 _Libs、_WDK 解壓後可能包含大型二進位檔（合計約數十 MB）。
-# 若 repo 膨脹成為問題，取消以下註解啟用 LFS。
-# 啟用前須先執行：git lfs install
-###############################################################################
-# src/Core/_Libs/**/*.lib filter=lfs diff=lfs merge=lfs -text
-# src/Core/_Compilers/**/*.exe filter=lfs diff=lfs merge=lfs -text
-# src/Core/_Compilers/**/*.dll filter=lfs diff=lfs merge=lfs -text
-# src/Core/**/*.7z filter=lfs diff=lfs merge=lfs -text

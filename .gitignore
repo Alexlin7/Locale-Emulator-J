@@ -64,10 +64,3 @@ _tmp_*/
 CLAUDE.local.md
 .superpowers/
 .playwright-mcp/
-
-## ----- 例外：Core 解壓後的二進位檔需要追蹤 -----
-## _Compilers、_Libs、_WDK 中的 .lib / .exe 等二進位檔
-## 是建置依賴，必須 commit。以下例外規則取消 *.lib 的忽略：
-!src/Core/_Libs/**/*.lib
-!src/Core/_Compilers/**
-!src/Core/_WDK/**

@@ -67,6 +67,7 @@ Note: Core only has Release. CI uses `dotnet build` for .NET projects and `msbui
 - .NET 10 SDK
 - .NET 10 Windows Desktop Runtime x86 (for LEProc.Tests `--arch x86`)
 - MSVC Build Tools 2026 (v145) -- via VS 2026 or standalone Build Tools
+- Windows 10/11 SDK (Core no longer needs the bundled VS2015 toolchain or WDK; see `src/Core/README.md`)
 - All assemblies are strong-name signed with `key.snk`
 - Shared build properties defined in `Directory.Build.props`
 
@@ -172,6 +173,8 @@ Verifies end-to-end locale hooking by launching a Win32 test app through LEProc 
 - **License**: LGPL-3.0 (Core portion: LGPL-3.0/GPL-3.0)
 - **LEProc must remain x86**: Core's syscall hooking engine (`HookSysCall_x86`) only has x86 implementation. It pattern-matches `KiFastSystemCall` opcodes, which are x86-only.
 - **Shell Extension requires x86 + x64**: x64 for 64-bit Explorer.exe, x86 for 32-bit Explorer on 32-bit Windows.
+- **Core is CRT-less**: Core binaries statically import only `ntdll.dll`; C runtime functions come from ntdll exports via `src/Core/ImportLibs/*.def`, runtime support from `src/Core/Runtime/CoreRuntime.cpp`. Shared settings are in `src/Core/Core.props`.
+- **LocaleEmulator.dll must not import kernel32 statically**: it is injected on the target's first `LdrLoadDll` call, before kernel32 is loaded. Resolve kernel32 routines at run time (`KERNEL32_API` in `Hooks/User32Hook.cpp`); the build fails on a static kernel32 import.
 - **`[Core]` commit prefix**: All modifications to files under `src/Core/` must use the `[Core]` prefix in commit messages, to distinguish from upstream code.
 - **NLS mode pending verification**: `System.Globalization.UseNls` setting needs characterization test validation before enabling. Core itself directly manipulates NLS tables and is unaffected by this .NET setting.
 - **Minimum Windows version**: Windows 10 1607+ (.NET 10 requirement)
