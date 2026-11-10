@@ -25,15 +25,13 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+    <Import Project="..\Core.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>.\Release\</OutDir>
     <IntDir>.\Release\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <ExecutablePath>..\_Compilers;$(ExecutablePath)</ExecutablePath>
-    <LibraryPath>..\_Libs;..\_WDK\WIN7\lib\win7\i386;..\_WDK\WIN7\lib\Mfc\i386;..\_WDK\WIN7\lib\Crt\i386;..\_WDK\WIN7\lib\ATL\i386</LibraryPath>
-    <IncludePath>..\_WDK\WIN8\Include\shared;..\_WDK\WIN8\Include\um;..\_WDK\WIN8\Include\km;..\_WDK\WIN7\inc\api;..\_WDK\WIN7\inc\crt;..\_WDK\WIN7\inc\ddk;..\_WDK\WIN7\inc\mfc42;..\_WDK\WIN7\inc\atl71;..\_WDK\WIN7\inc\api\crt\stl60;..\_Headers;..\LocaleEmulator</IncludePath>
     <GenerateManifest>false</GenerateManifest>
     <ReferencePath>$(VC_ReferencesPath_x86)</ReferencePath>
   </PropertyGroup>
@@ -51,7 +49,8 @@
       <PrecompiledHeaderOutputFile>.\Release\LoaderDll.pch</PrecompiledHeaderOutputFile>
       <ObjectFileName>.\Release\</ObjectFileName>
       <ProgramDataBaseFileName>.\Release\</ProgramDataBaseFileName>
-      <AdditionalOptions>/Zc:templateScope- /GL /GS- /arch:SSE /MP </AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
       <CallingConvention>FastCall</CallingConvention>
     </ClCompile>
     <Midl>
@@ -75,8 +74,8 @@
       <SubSystem>NotSet</SubSystem>
       <ImportLibrary>.\Release\LoaderDll.lib</ImportLibrary>
       <NoEntryPoint>true</NoEntryPoint>
-      <AdditionalDependencies>undoc_ntdll.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/ltcg /ignore:4254</AdditionalOptions>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ltcg %(AdditionalOptions)</AdditionalOptions>
       <ModuleDefinitionFile>.\LoaderDll.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OptimizeReferences>true</OptimizeReferences>
@@ -86,9 +85,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="LoaderDll.cpp">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/Zc:templateScope- /GL /GS- /arch:SSE /MP   /GL /GS- /arch:SSE /MP </AdditionalOptions>
-    </ClCompile>
+    <ClCompile Include="LoaderDll.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="LoaderDll.def" />

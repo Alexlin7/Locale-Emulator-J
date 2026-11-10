@@ -25,15 +25,13 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+    <Import Project="..\Core.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>.\Release\</OutDir>
     <IntDir>.\Release\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>..\_Libs;..\_WDK\WIN7\lib\win7\i386;..\_WDK\WIN7\lib\Mfc\i386;..\_WDK\WIN7\lib\Crt\i386;..\_WDK\WIN7\lib\ATL\i386;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>..\_Compilers;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>..\_WDK\WIN8\Include\shared;..\_WDK\WIN8\Include\um;..\_WDK\WIN8\Include\km;..\_WDK\WIN7\inc\api;..\_WDK\WIN7\inc\crt;..\_WDK\WIN7\inc\ddk;..\_WDK\WIN7\inc\mfc42;..\_WDK\WIN7\inc\atl71;..\_WDK\WIN7\inc\api\crt\stl60;..\_Headers;..\LocaleEmulator</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -49,7 +47,6 @@
       <PrecompiledHeaderOutputFile>.\Release\Loader.pch</PrecompiledHeaderOutputFile>
       <ObjectFileName>.\Release\</ObjectFileName>
       <ProgramDataBaseFileName>.\Release\</ProgramDataBaseFileName>
-      <AdditionalOptions>/Zc:templateScope- /arch:SSE</AdditionalOptions>
       <CallingConvention>FastCall</CallingConvention>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -71,8 +68,8 @@
     <Link>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <SubSystem>Console</SubSystem>
-      <AdditionalOptions> /FIXED</AdditionalOptions>
-      <AdditionalDependencies>undoc_ntdll.lib;ntdll.lib;msvcrt.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/FIXED %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <DataExecutionPrevention>false</DataExecutionPrevention>
@@ -80,9 +77,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Loader.cpp">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/Zc:templateScope- /GS- /GL /arch:SSE /MP   /GS- /GL /arch:SSE /MP </AdditionalOptions>
-    </ClCompile>
+    <ClCompile Include="Loader.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shared build settings for the native Core projects (Loader, LoaderDll, LocaleEmulator).
+
+  Replaces the toolchain, headers and libraries the original project bundled in
+  _Compilers (VS2015), _WDK (WDK 7.1/8.0) and _Libs. Core is built with the
+  standard PlatformToolset and Windows SDK.
+
+  Core binaries do not use the C runtime: they statically import only ntdll.dll
+  (the CRT helpers come from ntdll's exports) and delay-load the other system
+  DLLs through the helper in Runtime\CoreRuntime.cpp, which also provides the
+  SEH frame handlers.
+
+  LocaleEmulator.dll must never import kernel32.dll statically: it is injected
+  before kernel32 is loaded (see the KERNEL32_API comment in User32Hook.cpp).
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <LeCoreDir>$(MSBuildThisFileDirectory)</LeCoreDir>
+    <LeImportLibDir>$(IntDir)ImportLibs\</LeImportLibDir>
+    <IncludePath>$(LeCoreDir)LocaleEmulator;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LeImportLibDir);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <!-- ml.h predates standard conformance; keep legacy parsing rules. -->
+      <ConformanceMode>false</ConformanceMode>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <!--
+        No CRT: keep UCRT headers from emitting inline stdio wrappers
+        (__stdio_common_*) so printf-family calls resolve to ntdll's exports,
+        and keep the STL from calling its vectorized helpers (__std_find_*).
+        ML_DISABLE_THIRD_LIB stops ml.h from requesting the prebuilt libraries
+        that used to live in _Libs (undoc_k32.lib, undoc_apphelp.lib, ...).
+      -->
+      <PreprocessorDefinitions>ML_DISABLE_THIRD_LIB=1;_NO_CRT_STDIO_INLINE;_USE_STD_VECTOR_ALGORITHMS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/Zc:templateScope- /Zc:strictStrings- /Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <ControlFlowGuard>false</ControlFlowGuard>
+      <SDLCheck>false</SDLCheck>
+      <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <Link>
+      <!--
+        No CRT: drop the CRT libraries the compiler requests by default; CRT
+        functions come from ntdll (ntdll_ex.lib) and Runtime\CoreRuntime.cpp.
+        Other #pragma comment(lib) requests in ml.h/ml.cpp (dbghelp, shlwapi)
+        are kept; /OPT:REF drops them when nothing references them.
+      -->
+      <IgnoreSpecificDefaultLibraries>msvcrt.lib;msvcrtd.lib;libcmt.lib;libcmtd.lib;vcruntime.lib;vcruntimed.lib;libvcruntime.lib;libvcruntimed.lib;ucrt.lib;ucrtd.lib;libucrt.lib;libucrtd.lib;msvcprt.lib;msvcprtd.lib;libcpmt.lib;libcpmtd.lib;oldnames.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <AdditionalDependencies>ntdll_ex.lib;kernel32_ex.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4254 %(AdditionalOptions)</AdditionalOptions>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!--
+    Import libraries for ntdll/kernel32 exports that the Windows SDK's import
+    libraries do not cover (CRT helpers exported by ntdll, undocumented Ldr*
+    APIs, CreateProcessInternalW). Generated from the .def files on each build.
+  -->
+  <ItemGroup>
+    <LeImportDef Include="$(LeCoreDir)ImportLibs\*.def" />
+  </ItemGroup>
+
+  <!-- Delay-load helper and SEH handler that replace the CRT (see the file header). -->
+  <ItemGroup>
+    <!-- Defines compiler helper routines, which cannot be compiled with /GL (C2268). -->
+    <ClCompile Include="$(LeCoreDir)Runtime\CoreRuntime.cpp">
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+    </ClCompile>
+  </ItemGroup>
+
+  <!--
+    Guard for projects that set LeForbidStaticKernel32=true (LocaleEmulator):
+    fail the build if the linked image statically depends on kernel32.dll.
+    "dumpbin /dependents" lists delay-load dependencies first, then
+    "Image has the following dependencies:" (static), then "Summary".
+  -->
+  <Target Name="LeCheckNoStaticKernel32" AfterTargets="Link" Condition="'$(LeForbidStaticKernel32)' == 'true'">
+    <Exec Command="dumpbin.exe /nologo /dependents &quot;$(TargetPath)&quot;" ConsoleToMSBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_LeDependents" />
+    </Exec>
+    <PropertyGroup>
+      <_LeStaticStart>$(_LeDependents.IndexOf('Image has the following dependencies:'))</_LeStaticStart>
+      <_LeStaticDependents Condition="'$(_LeStaticStart)' != '-1'">$(_LeDependents.Substring($(_LeStaticStart)))</_LeStaticDependents>
+      <_LeSummaryStart Condition="'$(_LeStaticStart)' != '-1'">$(_LeStaticDependents.IndexOf('Summary'))</_LeSummaryStart>
+      <_LeStaticDependents Condition="'$(_LeStaticStart)' != '-1' and '$(_LeSummaryStart)' != '-1'">$(_LeStaticDependents.Substring(0, $(_LeSummaryStart)))</_LeStaticDependents>
+    </PropertyGroup>
+    <Error Condition="'$(_LeStaticStart)' != '-1' and $(_LeStaticDependents.ToLowerInvariant().Contains('kernel32.dll'))"
+           Text="$(TargetFileName) statically imports kernel32.dll, but it is injected before kernel32 is loaded. Resolve kernel32 routines at run time instead (see KERNEL32_API in Hooks\User32Hook.cpp). Static dependencies: $(_LeStaticDependents)" />
+  </Target>
+
+  <Target Name="LeBuildImportLibs"
+          BeforeTargets="ClCompile"
+          DependsOnTargets="PrepareForBuild"
+          Inputs="@(LeImportDef)"
+          Outputs="@(LeImportDef->'$(LeImportLibDir)%(Filename).lib')">
+    <MakeDir Directories="$(LeImportLibDir)" />
+    <Exec Command="lib.exe /nologo /machine:x86 /def:&quot;%(LeImportDef.FullPath)&quot; /out:&quot;$(LeImportLibDir)%(LeImportDef.Filename).lib&quot;" />
+  </Target>
+</Project>
