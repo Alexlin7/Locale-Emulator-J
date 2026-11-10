@@ -7,7 +7,7 @@
     <system:String x:Key="AboutLicense">Licenza: LGPL-3.0</system:String>
     <system:String x:Key="AboutOriginalProject">Progetto originale (archiviato 2022-04)</system:String>
     <system:String x:Key="AboutThisFork">Questo fork</system:String>
-    <system:String x:Key="AboutTitle">Locale Emulator (ooxxTaiwan fork)</system:String>
+    <system:String x:Key="AboutTitle">Locale Emulator (Alexlin7 fork)</system:String>
     <system:String x:Key="AboutVersion">Versione </system:String>
     <system:String x:Key="AdvancedOptions">Opzioni avanzate</system:String>
     <system:String x:Key="AppConfigTitle">LEGUI - </system:String>

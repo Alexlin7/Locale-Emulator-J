@@ -176,6 +176,7 @@ Core 只有 Release 組態。
 - commit 訊息用中文，格式 `type(scope): 摘要`（例如 `fix:`、`test(smoke-test):`、`chore:`）；`src/Core/` 的修改一律用 `[Core]` 前綴。
 - 一個功能一個分支（例如 `feature/...`、`fix/...`），一個 commit 只做一件事，方便日後拆開回饋給上游。
 - 語系檔：LEGUI 的 i18n 是 `src/LEGUI/Lang/` 的 XAML resource dictionary（22 種語言）；Shell Extension 是 `src/ShellExtension/Lang/` 的 XML（22 種語言）。新增或修改字串時要一併處理所有語系。
+- **對外連結只放可信來源**（GitHub、微軟、gnu.org 等）。原作者的 `pooi.moe` 與圖示來源 `graphicex.com` 已成為停放網域、會轉址到不明網站，不得再加回 README、程式或語系檔；新增連結前先確認網域現況。
 - 測試或除錯時**不要擅自執行或掃描使用者的遊戲／應用程式資料夾**；需要時先問，只碰使用者指定的路徑。
 - 改動牽涉設計決策時，同步更新本檔與必要的 `README.md` / `src/Core/README.md`。
 

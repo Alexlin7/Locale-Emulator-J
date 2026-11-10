@@ -22,9 +22,9 @@
         </TextBlock>
         <TextBlock Margin="0,8,0,0" FontWeight="Bold" Text="{DynamicResource AboutThisFork}" />
         <TextBlock>
-            <Hyperlink NavigateUri="https://github.com/ooxxTaiwan/Locale-Emulator-J"
+            <Hyperlink NavigateUri="https://github.com/Alexlin7/Locale-Emulator-J"
                        RequestNavigate="Hyperlink_RequestNavigate">
-                github.com/ooxxTaiwan/Locale-Emulator-J
+                github.com/Alexlin7/Locale-Emulator-J
             </Hyperlink>
         </TextBlock>
         <TextBlock Margin="0,16,0,0" Text="{DynamicResource AboutLicense}" />
