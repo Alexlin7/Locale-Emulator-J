@@ -21507,6 +21507,67 @@ RtlUnicodeToOemN(
     IN  ULONG   BytesInUnicodeString
 );
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlOemToUnicodeN(
+    OUT PWSTR   UnicodeString,
+    IN  ULONG   MaxBytesInUnicodeString,
+    OUT PULONG  BytesInUnicodeString OPTIONAL,
+    IN  PCSTR   OemString,
+    IN  ULONG   BytesInOemString
+);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpcaseUnicodeToCustomCPN(
+    IN  PCPTABLEINFO    CustomCP,
+    OUT PCHAR           CustomCPString,
+    IN  ULONG           MaxBytesInCustomCPString,
+    OUT PULONG          BytesInCustomCPString OPTIONAL,
+    IN  PCWSTR          UnicodeString,
+    IN  ULONG           BytesInUnicodeString
+);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpcaseUnicodeToMultiByteN(
+    OUT PCHAR   MultiByteString,
+    IN  ULONG   MaxBytesInMultiByteString,
+    OUT PULONG  BytesInMultiByteString OPTIONAL,
+    IN  PCWSTR  UnicodeString,
+    IN  ULONG   BytesInUnicodeString
+);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpcaseUnicodeToOemN(
+    OUT PCHAR   OemString,
+    IN  ULONG   MaxBytesInOemString,
+    OUT PULONG  BytesInOemString OPTIONAL,
+    IN  PCWSTR  UnicodeString,
+    IN  ULONG   BytesInUnicodeString
+);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpcaseUnicodeStringToAnsiString(
+    IN OUT  PANSI_STRING        DestinationString,
+    IN      PCUNICODE_STRING    SourceString,
+    IN      BOOLEAN             AllocateDestinationString
+);
+
+NTSYSAPI
+WCHAR
+NTAPI
+RtlAnsiCharToUnicodeChar(
+    IN OUT PUCHAR *SourceCharacter
+);
+
 #endif // _NTNLS_H_66774c20_dc28_4a7e_9714_c1f39fdb5d5f_
 #ifndef _NTGDI_H_5cbb7a71_7f51_4a8a_bb90_038b762c3ed7_
 #define _NTGDI_H_5cbb7a71_7f51_4a8a_bb90_038b762c3ed7_

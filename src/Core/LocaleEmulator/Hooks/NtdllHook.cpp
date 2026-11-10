@@ -890,7 +890,201 @@ NTSTATUS NTAPI LeCustomCPToUnicodeN(IN PCPTABLEINFO CustomCP,
     }
 
     return GlobalData->HookStub.StubRtlCustomCPToUnicodeN(CustomCP, UnicodeString,
-        UnicodeSize, ResultSize, CustomString, CustomSize); 
+        UnicodeSize, ResultSize, CustomString, CustomSize);
+}
+
+/************************************************************************
+  ANSI / OEM <-> Unicode conversion
+
+  On recent Windows builds RtlInitNlsTables / RtlResetRtlTranslations are no-op
+  stubs, so swapping ntdll's NLS tables (LeGlobalData::Initialize) no longer
+  changes how ntdll converts: Rtl*MultiByte* / Rtl*Oem* keep using the system
+  code page (or UTF-8 when "Beta: Use Unicode UTF-8" is on). user32, kernelbase
+  and many *A APIs convert through these exports, so route them through the
+  emulated code page tables (AnsiTableInfo / OemTableInfo).
+
+  Conversions go through the original RtlCustomCPToUnicodeN (the stub), not the
+  exported one: LeCustomCPToUnicodeN would overwrite a non-ANSI table such as
+  OemTableInfo with the ANSI one.
+************************************************************************/
+
+static ULONG CustomCPToUnicodeBytes(PCPTABLEINFO Table, PCSTR String, ULONG Bytes)
+{
+    ULONG Chars;
+
+    if (!Table->DBCSCodePage)
+        return Bytes * sizeof(WCHAR);
+
+    // A lead byte at the end of the input still produces one character.
+    Chars = 0;
+    for (ULONG Index = 0; Index < Bytes; ++Index, ++Chars)
+    {
+        if (Table->DBCSOffsets[(UCHAR)String[Index]] != 0 && Index + 1 < Bytes)
+            ++Index;
+    }
+
+    return Chars * sizeof(WCHAR);
+}
+
+static ULONG UnicodeToCustomCPBytes(PCPTABLEINFO Table, PCWSTR String, ULONG Bytes)
+{
+    ULONG Chars = Bytes / sizeof(WCHAR);
+    ULONG Length;
+    PUSHORT WideCharTable;
+
+    if (!Table->DBCSCodePage)
+        return Chars;
+
+    // DBCS WideCharTable entries hold the lead byte in the high byte.
+    WideCharTable = (PUSHORT)Table->WideCharTable;
+    Length = 0;
+    for (ULONG Index = 0; Index < Chars; ++Index)
+        Length += (WideCharTable[String[Index]] & 0xFF00) ? 2 : 1;
+
+    return Length;
+}
+
+NTSTATUS NTAPI LeRtlMultiByteToUnicodeN(PWSTR UnicodeString, ULONG MaxBytesInUnicodeString, PULONG BytesInUnicodeString, PCSTR MultiByteString, ULONG BytesInMultiByteString)
+{
+    PLeGlobalData GlobalData = LeGetGlobalData();
+
+    return GlobalData->HookStub.StubRtlCustomCPToUnicodeN(&GlobalData->AnsiTableInfo, UnicodeString, MaxBytesInUnicodeString, BytesInUnicodeString, (PCHAR)MultiByteString, BytesInMultiByteString);
+}
+
+NTSTATUS NTAPI LeRtlUnicodeToMultiByteN(PSTR MultiByteString, ULONG MaxBytesInMultiByteString, PULONG BytesInMultiByteString, PCWSTR UnicodeString, ULONG BytesInUnicodeString)
+{
+    return RtlUnicodeToCustomCPN(&LeGetGlobalData()->AnsiTableInfo, MultiByteString, MaxBytesInMultiByteString, BytesInMultiByteString, UnicodeString, BytesInUnicodeString);
+}
+
+NTSTATUS NTAPI LeRtlMultiByteToUnicodeSize(PULONG BytesInUnicodeString, PCSTR MultiByteString, ULONG BytesInMultiByteString)
+{
+    *BytesInUnicodeString = CustomCPToUnicodeBytes(&LeGetGlobalData()->AnsiTableInfo, MultiByteString, BytesInMultiByteString);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI LeRtlUnicodeToMultiByteSize(PULONG BytesInMultiByteString, PCWSTR UnicodeString, ULONG BytesInUnicodeString)
+{
+    *BytesInMultiByteString = UnicodeToCustomCPBytes(&LeGetGlobalData()->AnsiTableInfo, UnicodeString, BytesInUnicodeString);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI LeRtlOemToUnicodeN(PWSTR UnicodeString, ULONG MaxBytesInUnicodeString, PULONG BytesInUnicodeString, PCSTR OemString, ULONG BytesInOemString)
+{
+    PLeGlobalData GlobalData = LeGetGlobalData();
+
+    return GlobalData->HookStub.StubRtlCustomCPToUnicodeN(&GlobalData->OemTableInfo, UnicodeString, MaxBytesInUnicodeString, BytesInUnicodeString, (PCHAR)OemString, BytesInOemString);
+}
+
+NTSTATUS NTAPI LeRtlUnicodeToOemN(PSTR OemString, ULONG MaxBytesInOemString, PULONG BytesInOemString, PCWSTR UnicodeString, ULONG BytesInUnicodeString)
+{
+    return RtlUnicodeToCustomCPN(&LeGetGlobalData()->OemTableInfo, OemString, MaxBytesInOemString, BytesInOemString, UnicodeString, BytesInUnicodeString);
+}
+
+NTSTATUS NTAPI LeRtlUpcaseUnicodeToMultiByteN(PCHAR MultiByteString, ULONG MaxBytesInMultiByteString, PULONG BytesInMultiByteString, PCWSTR UnicodeString, ULONG BytesInUnicodeString)
+{
+    return RtlUpcaseUnicodeToCustomCPN(&LeGetGlobalData()->AnsiTableInfo, MultiByteString, MaxBytesInMultiByteString, BytesInMultiByteString, UnicodeString, BytesInUnicodeString);
+}
+
+NTSTATUS NTAPI LeRtlUpcaseUnicodeToOemN(PCHAR OemString, ULONG MaxBytesInOemString, PULONG BytesInOemString, PCWSTR UnicodeString, ULONG BytesInUnicodeString)
+{
+    return RtlUpcaseUnicodeToCustomCPN(&LeGetGlobalData()->OemTableInfo, OemString, MaxBytesInOemString, BytesInOemString, UnicodeString, BytesInUnicodeString);
+}
+
+// The *String functions below call ntdll-internal converters directly instead of the
+// exports hooked above, so they are reimplemented on top of them. Buffers come from the
+// process heap, which is what RtlFreeUnicodeString / RtlFreeAnsiString release.
+
+NTSTATUS NTAPI LeRtlAnsiStringToUnicodeString(PUNICODE_STRING DestinationString, PANSI_STRING SourceString, BOOLEAN AllocateDestinationString)
+{
+    NTSTATUS    Status;
+    ULONG       Length, BytesWritten;
+
+    Length = CustomCPToUnicodeBytes(&LeGetGlobalData()->AnsiTableInfo, SourceString->Buffer, SourceString->Length) + sizeof(WCHAR);
+    if (Length > USHRT_MAX)
+        return STATUS_INVALID_PARAMETER_2;
+
+    DestinationString->Length = (USHORT)(Length - sizeof(WCHAR));
+
+    if (AllocateDestinationString)
+    {
+        DestinationString->Buffer = (PWSTR)RtlAllocateHeap(CurrentPeb()->ProcessHeap, 0, Length);
+        if (DestinationString->Buffer == nullptr)
+            return STATUS_NO_MEMORY;
+
+        DestinationString->MaximumLength = (USHORT)Length;
+    }
+    else if (DestinationString->Length >= DestinationString->MaximumLength)
+    {
+        return STATUS_BUFFER_OVERFLOW;
+    }
+
+    Status = LeRtlMultiByteToUnicodeN(DestinationString->Buffer, DestinationString->Length, &BytesWritten, SourceString->Buffer, SourceString->Length);
+    if (!NT_SUCCESS(Status))
+    {
+        if (AllocateDestinationString)
+        {
+            RtlFreeHeap(CurrentPeb()->ProcessHeap, 0, DestinationString->Buffer);
+            DestinationString->Buffer = nullptr;
+        }
+
+        return Status;
+    }
+
+    DestinationString->Buffer[BytesWritten / sizeof(WCHAR)] = 0;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI LeRtlUpcaseUnicodeStringToAnsiString(PANSI_STRING DestinationString, PCUNICODE_STRING SourceString, BOOLEAN AllocateDestinationString)
+{
+    NTSTATUS    Status;
+    ULONG       Length, BytesWritten;
+
+    Length = UnicodeToCustomCPBytes(&LeGetGlobalData()->AnsiTableInfo, SourceString->Buffer, SourceString->Length) + sizeof(CHAR);
+    if (Length > USHRT_MAX)
+        return STATUS_INVALID_PARAMETER_2;
+
+    DestinationString->Length = (USHORT)(Length - sizeof(CHAR));
+
+    if (AllocateDestinationString)
+    {
+        DestinationString->Buffer = (PCHAR)RtlAllocateHeap(CurrentPeb()->ProcessHeap, 0, Length);
+        if (DestinationString->Buffer == nullptr)
+            return STATUS_NO_MEMORY;
+
+        DestinationString->MaximumLength = (USHORT)Length;
+    }
+    else if (DestinationString->Length >= DestinationString->MaximumLength)
+    {
+        return STATUS_BUFFER_OVERFLOW;
+    }
+
+    Status = LeRtlUpcaseUnicodeToMultiByteN(DestinationString->Buffer, DestinationString->Length, &BytesWritten, SourceString->Buffer, SourceString->Length);
+    if (!NT_SUCCESS(Status))
+    {
+        if (AllocateDestinationString)
+        {
+            RtlFreeHeap(CurrentPeb()->ProcessHeap, 0, DestinationString->Buffer);
+            DestinationString->Buffer = nullptr;
+        }
+
+        return Status;
+    }
+
+    DestinationString->Buffer[BytesWritten] = 0;
+    return STATUS_SUCCESS;
+}
+
+WCHAR NTAPI LeRtlAnsiCharToUnicodeChar(PUCHAR *SourceCharacter)
+{
+    PCPTABLEINFO    Table = &LeGetGlobalData()->AnsiTableInfo;
+    ULONG           Size;
+    WCHAR           UnicodeChar = L' ';
+
+    Size = (Table->DBCSCodePage && Table->DBCSOffsets[**SourceCharacter] != 0) ? 2 : 1;
+    LeRtlMultiByteToUnicodeN(&UnicodeChar, sizeof(UnicodeChar), nullptr, (PCSTR)*SourceCharacter, Size);
+    *SourceCharacter += Size;
+
+    return UnicodeChar;
 }
 
 NTSTATUS LeGlobalData::HookNtdllRoutines(PVOID Ntdll)
@@ -937,6 +1131,27 @@ NTSTATUS LeGlobalData::HookNtdllRoutines(PVOID Ntdll)
     };
 
     Mp::PatchMemory(p, countof(p));
+
+    // Must come after the batch above: the hooks call HookStub.StubRtlCustomCPToUnicodeN.
+    if (this->CodePageMapView != nullptr)
+    {
+        Mp::PATCH_MEMORY_DATA Conversion[] =
+        {
+            Mp::FunctionJumpVa(::RtlMultiByteToUnicodeN,     LeRtlMultiByteToUnicodeN),
+            Mp::FunctionJumpVa(::RtlUnicodeToMultiByteN,     LeRtlUnicodeToMultiByteN),
+            Mp::FunctionJumpVa(::RtlMultiByteToUnicodeSize,  LeRtlMultiByteToUnicodeSize),
+            Mp::FunctionJumpVa(::RtlUnicodeToMultiByteSize,  LeRtlUnicodeToMultiByteSize),
+            Mp::FunctionJumpVa(::RtlOemToUnicodeN,           LeRtlOemToUnicodeN),
+            Mp::FunctionJumpVa(::RtlUnicodeToOemN,           LeRtlUnicodeToOemN),
+            Mp::FunctionJumpVa(::RtlUpcaseUnicodeToMultiByteN, LeRtlUpcaseUnicodeToMultiByteN),
+            Mp::FunctionJumpVa(::RtlUpcaseUnicodeToOemN,     LeRtlUpcaseUnicodeToOemN),
+            Mp::FunctionJumpVa(::RtlAnsiStringToUnicodeString, LeRtlAnsiStringToUnicodeString),
+            Mp::FunctionJumpVa(::RtlUpcaseUnicodeStringToAnsiString, LeRtlUpcaseUnicodeStringToAnsiString),
+            Mp::FunctionJumpVa(::RtlAnsiCharToUnicodeChar,   LeRtlAnsiCharToUnicodeChar),
+        };
+
+        Mp::PatchMemory(Conversion, countof(Conversion));
+    }
 
     RtlInitializeCriticalSectionAndSpinCount(&HookRoutineData.Ntdll.NtLock, 4000);
 
