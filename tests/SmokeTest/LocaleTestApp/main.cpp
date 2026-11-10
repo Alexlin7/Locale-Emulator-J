@@ -6,9 +6,327 @@
 //
 // 用法：LocaleTestApp.exe <output-file-path>
 // 輸出格式為 KEY=VALUE，每行一個，便於 PowerShell 解析。
+//
+// CHECK_* 行：驗證各層 ANSI/OEM <-> Unicode 轉換是否使用程序的 code page
+// （GetACP()/GetOEMCP()，在 LE 下即為 profile 的 code page）。
+// 值為 OK 或 FAIL <說明>；smoke test 要求所有 CHECK_* 皆為 OK。
+// 參考答案一律用 kernelbase 的 MultiByteToWideChar/WideCharToMultiByte 搭配
+// 明確的 code page 編號計算（不受 LE 影響，永遠正確）。
 
 #include <windows.h>
 #include <stdio.h>
+#include <string.h>
+
+typedef LONG NTSTATUS_;
+
+typedef struct _UNICODE_STRING_ { USHORT Length, MaximumLength; PWSTR Buffer; } UNICODE_STRING_;
+typedef struct _ANSI_STRING_ { USHORT Length, MaximumLength; PSTR Buffer; } ANSI_STRING_;
+
+typedef NTSTATUS_ (NTAPI *MbToUnicodeN_t)(PWCH, ULONG, PULONG, const CHAR *, ULONG);
+typedef NTSTATUS_ (NTAPI *UnicodeToMbN_t)(PCHAR, ULONG, PULONG, PCWCH, ULONG);
+typedef NTSTATUS_ (NTAPI *MbToUnicodeSize_t)(PULONG, const CHAR *, ULONG);
+typedef NTSTATUS_ (NTAPI *UnicodeToMbSize_t)(PULONG, PCWCH, ULONG);
+typedef NTSTATUS_ (NTAPI *AnsiToUnicodeString_t)(UNICODE_STRING_ *, const ANSI_STRING_ *, BOOLEAN);
+typedef NTSTATUS_ (NTAPI *UnicodeToAnsiString_t)(ANSI_STRING_ *, const UNICODE_STRING_ *, BOOLEAN);
+typedef VOID (NTAPI *FreeUnicodeString_t)(UNICODE_STRING_ *);
+typedef VOID (NTAPI *FreeAnsiString_t)(ANSI_STRING_ *);
+
+// Sample characters from several scripts; each check keeps only those that the
+// code page under test can represent exactly.
+static const WCHAR kSample[] =
+    L"ABC xyz 123 "
+    L"日本語 "              // 日本語
+    L"テストｱｲ "   // テスト + half-width katakana
+    L"繁體中文 "         // 繁體中文
+    L"简体中文 "         // 简体中文
+    L"한국어 "               // 한국어
+    L"éüß€£ "   // éüß€£
+    L"ЖΩ";                     // ЖΩ
+
+static FILE *g_Out;
+
+static void Check(const char *name, bool ok, const char *detail)
+{
+    if (ok)
+        fprintf(g_Out, "CHECK_%s=OK\n", name);
+    else
+        fprintf(g_Out, "CHECK_%s=FAIL %s\n", name, detail);
+}
+
+// Characters of kSample that code page `cp` maps exactly (no best fit, no default char).
+static int RepresentableSample(UINT cp, WCHAR *out, int capacity)
+{
+    int n = 0;
+    for (const WCHAR *p = kSample; *p && n < capacity - 1; ++p)
+    {
+        char buf[8];
+        BOOL usedDefault = FALSE;
+        BOOL *pUsedDefault = (cp == CP_UTF8) ? NULL : &usedDefault;
+        int len = WideCharToMultiByte(cp, WC_NO_BEST_FIT_CHARS, p, 1, buf, sizeof(buf), NULL, pUsedDefault);
+        if (len > 0 && !usedDefault)
+            out[n++] = *p;
+    }
+    out[n] = 0;
+    return n;
+}
+
+static void Hex(const void *data, int bytes, char *out, int capacity)
+{
+    const unsigned char *b = (const unsigned char *)data;
+    int pos = 0;
+    for (int i = 0; i < bytes && pos + 3 < capacity; ++i)
+        pos += sprintf_s(out + pos, capacity - pos, "%02X", b[i]);
+    out[pos] = 0;
+}
+
+// Verifies ntdll's conversion routines for one code page (ANSI or OEM).
+static void CheckRtl(const char *prefix, UINT cp, MbToUnicodeN_t mbToU, UnicodeToMbN_t uToMb,
+                     MbToUnicodeSize_t mbToUSize, UnicodeToMbSize_t uToMbSize)
+{
+    WCHAR wide[128];
+    int wideChars = RepresentableSample(cp, wide, 128);
+
+    char expectedMb[512];
+    int expectedMbLen = WideCharToMultiByte(cp, 0, wide, wideChars, expectedMb, sizeof(expectedMb), NULL, NULL);
+
+    char name[64], detail[600], hex[520];
+
+    // Unicode -> multibyte
+    if (uToMb)
+    {
+        char mb[512] = {};
+        ULONG mbLen = 0;
+        uToMb(mb, sizeof(mb), &mbLen, wide, wideChars * sizeof(WCHAR));
+        bool ok = (int)mbLen == expectedMbLen && memcmp(mb, expectedMb, mbLen) == 0;
+        Hex(mb, mbLen, hex, sizeof(hex));
+        sprintf_s(detail, "cp=%u got=%s", cp, hex);
+        sprintf_s(name, "%s_U2MB", prefix);
+        Check(name, ok, detail);
+    }
+
+    // multibyte -> Unicode
+    if (mbToU)
+    {
+        WCHAR back[256] = {};
+        ULONG backBytes = 0;
+        mbToU(back, sizeof(back), &backBytes, expectedMb, expectedMbLen);
+        bool ok = backBytes == wideChars * sizeof(WCHAR) && memcmp(back, wide, backBytes) == 0;
+        Hex(back, backBytes, hex, sizeof(hex));
+        sprintf_s(detail, "cp=%u got=%s", cp, hex);
+        sprintf_s(name, "%s_MB2U", prefix);
+        Check(name, ok, detail);
+    }
+
+    // size queries
+    if (mbToUSize)
+    {
+        ULONG bytes = 0;
+        mbToUSize(&bytes, expectedMb, expectedMbLen);
+        sprintf_s(detail, "cp=%u expected=%u got=%lu", cp, (unsigned)(wideChars * sizeof(WCHAR)), bytes);
+        sprintf_s(name, "%s_MB2U_SIZE", prefix);
+        Check(name, bytes == wideChars * sizeof(WCHAR), detail);
+    }
+    if (uToMbSize)
+    {
+        ULONG bytes = 0;
+        uToMbSize(&bytes, wide, wideChars * sizeof(WCHAR));
+        sprintf_s(detail, "cp=%u expected=%d got=%lu", cp, expectedMbLen, bytes);
+        sprintf_s(name, "%s_U2MB_SIZE", prefix);
+        Check(name, (int)bytes == expectedMbLen, detail);
+    }
+}
+
+static void CheckConversions()
+{
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    UINT acp = GetACP();
+    UINT oemcp = GetOEMCP();
+
+    CheckRtl("RTL_ANSI", acp,
+             (MbToUnicodeN_t)GetProcAddress(ntdll, "RtlMultiByteToUnicodeN"),
+             (UnicodeToMbN_t)GetProcAddress(ntdll, "RtlUnicodeToMultiByteN"),
+             (MbToUnicodeSize_t)GetProcAddress(ntdll, "RtlMultiByteToUnicodeSize"),
+             (UnicodeToMbSize_t)GetProcAddress(ntdll, "RtlUnicodeToMultiByteSize"));
+
+    CheckRtl("RTL_OEM", oemcp,
+             (MbToUnicodeN_t)GetProcAddress(ntdll, "RtlOemToUnicodeN"),
+             (UnicodeToMbN_t)GetProcAddress(ntdll, "RtlUnicodeToOemN"),
+             NULL, NULL);
+
+    WCHAR wide[128];
+    int wideChars = RepresentableSample(acp, wide, 128);
+    char expectedMb[512];
+    int expectedMbLen = WideCharToMultiByte(acp, 0, wide, wideChars, expectedMb, sizeof(expectedMb), NULL, NULL);
+    expectedMb[expectedMbLen] = 0;
+    char detail[600], hex[520];
+
+    // RtlAnsiStringToUnicodeString / RtlUnicodeStringToAnsiString (used by kernelbase *A APIs)
+    auto ansiToU = (AnsiToUnicodeString_t)GetProcAddress(ntdll, "RtlAnsiStringToUnicodeString");
+    auto uToAnsi = (UnicodeToAnsiString_t)GetProcAddress(ntdll, "RtlUnicodeStringToAnsiString");
+    auto freeU = (FreeUnicodeString_t)GetProcAddress(ntdll, "RtlFreeUnicodeString");
+    auto freeA = (FreeAnsiString_t)GetProcAddress(ntdll, "RtlFreeAnsiString");
+    {
+        ANSI_STRING_ a = { (USHORT)expectedMbLen, (USHORT)(expectedMbLen + 1), expectedMb };
+        UNICODE_STRING_ u = {};
+        ansiToU(&u, &a, TRUE);
+        bool ok = u.Length == wideChars * sizeof(WCHAR) && memcmp(u.Buffer, wide, u.Length) == 0;
+        Hex(u.Buffer, u.Length, hex, sizeof(hex));
+        sprintf_s(detail, "cp=%u got=%s", acp, hex);
+        Check("RTL_ANSI_STRING_TO_UNICODE", ok, detail);
+        freeU(&u);
+    }
+    {
+        UNICODE_STRING_ u = { (USHORT)(wideChars * sizeof(WCHAR)), (USHORT)(wideChars * sizeof(WCHAR)), wide };
+        ANSI_STRING_ a = {};
+        uToAnsi(&a, &u, TRUE);
+        bool ok = a.Length == expectedMbLen && memcmp(a.Buffer, expectedMb, a.Length) == 0;
+        Hex(a.Buffer, a.Length, hex, sizeof(hex));
+        sprintf_s(detail, "cp=%u got=%s", acp, hex);
+        Check("RTL_UNICODE_TO_ANSI_STRING", ok, detail);
+        freeA(&a);
+    }
+
+    // Other ntdll string helpers that may convert internally without going through
+    // RtlMultiByteToUnicodeN & co.
+    {
+        typedef NTSTATUS_ (NTAPI *OemToUnicodeString_t)(UNICODE_STRING_ *, const ANSI_STRING_ *, BOOLEAN);
+        typedef NTSTATUS_ (NTAPI *UnicodeToOemString_t)(ANSI_STRING_ *, const UNICODE_STRING_ *, BOOLEAN);
+        typedef ULONG (NTAPI *AnsiStringToUnicodeSize_t)(const ANSI_STRING_ *);
+        typedef ULONG (NTAPI *UnicodeStringToAnsiSize_t)(const UNICODE_STRING_ *);
+        typedef NTSTATUS_ (NTAPI *UpcaseToMbN_t)(PCHAR, ULONG, PULONG, PCWCH, ULONG);
+        typedef NTSTATUS_ (NTAPI *UpcaseStringToAnsi_t)(ANSI_STRING_ *, const UNICODE_STRING_ *, BOOLEAN);
+        typedef WCHAR (NTAPI *AnsiCharToUnicodeChar_t)(PUCHAR *);
+
+        UINT oemcp = GetOEMCP();
+        WCHAR oemWide[128];
+        int oemChars = RepresentableSample(oemcp, oemWide, 128);
+        char oemMb[512];
+        int oemMbLen = WideCharToMultiByte(oemcp, 0, oemWide, oemChars, oemMb, sizeof(oemMb), NULL, NULL);
+        oemMb[oemMbLen] = 0;
+
+        auto oemToU = (OemToUnicodeString_t)GetProcAddress(ntdll, "RtlOemStringToUnicodeString");
+        {
+            ANSI_STRING_ a = { (USHORT)oemMbLen, (USHORT)(oemMbLen + 1), oemMb };
+            UNICODE_STRING_ u = {};
+            oemToU(&u, &a, TRUE);
+            bool ok = u.Length == oemChars * sizeof(WCHAR) && memcmp(u.Buffer, oemWide, u.Length) == 0;
+            Hex(u.Buffer, u.Length, hex, sizeof(hex));
+            sprintf_s(detail, "cp=%u got=%s", oemcp, hex);
+            Check("RTL_OEM_STRING_TO_UNICODE", ok, detail);
+            freeU(&u);
+        }
+        auto uToOem = (UnicodeToOemString_t)GetProcAddress(ntdll, "RtlUnicodeStringToOemString");
+        {
+            UNICODE_STRING_ u = { (USHORT)(oemChars * sizeof(WCHAR)), (USHORT)(oemChars * sizeof(WCHAR)), oemWide };
+            ANSI_STRING_ a = {};
+            uToOem(&a, &u, TRUE);
+            bool ok = a.Length == oemMbLen && memcmp(a.Buffer, oemMb, a.Length) == 0;
+            Hex(a.Buffer, a.Length, hex, sizeof(hex));
+            sprintf_s(detail, "cp=%u got=%s", oemcp, hex);
+            Check("RTL_UNICODE_TO_OEM_STRING", ok, detail);
+            freeA(&a);
+        }
+
+        auto ansiSize = (AnsiStringToUnicodeSize_t)GetProcAddress(ntdll, "RtlxAnsiStringToUnicodeSize");
+        {
+            ANSI_STRING_ a = { (USHORT)expectedMbLen, (USHORT)(expectedMbLen + 1), expectedMb };
+            ULONG got = ansiSize(&a);
+            sprintf_s(detail, "cp=%u expected=%u got=%lu", acp, (unsigned)((wideChars + 1) * sizeof(WCHAR)), got);
+            Check("RTL_X_ANSI_STRING_TO_UNICODE_SIZE", got == (wideChars + 1) * sizeof(WCHAR), detail);
+        }
+        auto uniSize = (UnicodeStringToAnsiSize_t)GetProcAddress(ntdll, "RtlxUnicodeStringToAnsiSize");
+        {
+            UNICODE_STRING_ u = { (USHORT)(wideChars * sizeof(WCHAR)), (USHORT)(wideChars * sizeof(WCHAR)), wide };
+            ULONG got = uniSize(&u);
+            sprintf_s(detail, "cp=%u expected=%d got=%lu", acp, expectedMbLen + 1, got);
+            Check("RTL_X_UNICODE_STRING_TO_ANSI_SIZE", (int)got == expectedMbLen + 1, detail);
+        }
+
+        // Upcase variants: compare against converting the upcased string.
+        WCHAR upper[128];
+        memcpy(upper, wide, (wideChars + 1) * sizeof(WCHAR));
+        CharUpperBuffW(upper, wideChars);
+        char upperMb[512];
+        int upperMbLen = WideCharToMultiByte(acp, 0, upper, wideChars, upperMb, sizeof(upperMb), NULL, NULL);
+
+        auto upToMb = (UpcaseToMbN_t)GetProcAddress(ntdll, "RtlUpcaseUnicodeToMultiByteN");
+        {
+            char mb[512] = {};
+            ULONG mbLen = 0;
+            upToMb(mb, sizeof(mb), &mbLen, wide, wideChars * sizeof(WCHAR));
+            bool ok = (int)mbLen == upperMbLen && memcmp(mb, upperMb, mbLen) == 0;
+            Hex(mb, mbLen, hex, sizeof(hex));
+            sprintf_s(detail, "cp=%u got=%s", acp, hex);
+            Check("RTL_UPCASE_U2MB", ok, detail);
+        }
+        auto upToOem = (UpcaseToMbN_t)GetProcAddress(ntdll, "RtlUpcaseUnicodeToOemN");
+        {
+            WCHAR oemUpper[128];
+            memcpy(oemUpper, oemWide, (oemChars + 1) * sizeof(WCHAR));
+            CharUpperBuffW(oemUpper, oemChars);
+            char oemUpperMb[512];
+            int oemUpperMbLen = WideCharToMultiByte(oemcp, 0, oemUpper, oemChars, oemUpperMb, sizeof(oemUpperMb), NULL, NULL);
+
+            char mb[512] = {};
+            ULONG mbLen = 0;
+            upToOem(mb, sizeof(mb), &mbLen, oemWide, oemChars * sizeof(WCHAR));
+            bool ok = (int)mbLen == oemUpperMbLen && memcmp(mb, oemUpperMb, mbLen) == 0;
+            Hex(mb, mbLen, hex, sizeof(hex));
+            sprintf_s(detail, "cp=%u got=%s", oemcp, hex);
+            Check("RTL_UPCASE_U2OEM", ok, detail);
+        }
+
+        auto upToAnsi = (UpcaseStringToAnsi_t)GetProcAddress(ntdll, "RtlUpcaseUnicodeStringToAnsiString");
+        {
+            UNICODE_STRING_ u = { (USHORT)(wideChars * sizeof(WCHAR)), (USHORT)(wideChars * sizeof(WCHAR)), wide };
+            ANSI_STRING_ a = {};
+            upToAnsi(&a, &u, TRUE);
+            bool ok = a.Length == upperMbLen && memcmp(a.Buffer, upperMb, a.Length) == 0;
+            Hex(a.Buffer, a.Length, hex, sizeof(hex));
+            sprintf_s(detail, "cp=%u got=%s", acp, hex);
+            Check("RTL_UPCASE_UNICODE_TO_ANSI_STRING", ok, detail);
+            freeA(&a);
+        }
+
+        auto charToU = (AnsiCharToUnicodeChar_t)GetProcAddress(ntdll, "RtlAnsiCharToUnicodeChar");
+        {
+            // Convert the first non-ASCII character of the sample one character at a time.
+            int i = 0;
+            while (i < wideChars && wide[i] < 0x80) ++i;
+            if (i < wideChars)
+            {
+                char one[8];
+                int oneLen = WideCharToMultiByte(acp, 0, &wide[i], 1, one, sizeof(one), NULL, NULL);
+                PUCHAR p = (PUCHAR)one;
+                WCHAR got = charToU(&p);
+                sprintf_s(detail, "cp=%u expected=%04X got=%04X consumed=%d", acp, wide[i], got, (int)(p - (PUCHAR)one));
+                Check("RTL_ANSI_CHAR_TO_UNICODE_CHAR", got == wide[i] && (p - (PUCHAR)one) == oneLen, detail);
+            }
+        }
+    }
+
+    // kernelbase CP_ACP (reads the code page LE installs through the PEB)
+    {
+        WCHAR back[256] = {};
+        int n = MultiByteToWideChar(CP_ACP, 0, expectedMb, expectedMbLen, back, 256);
+        bool ok = n == wideChars && memcmp(back, wide, n * sizeof(WCHAR)) == 0;
+        Hex(back, n * sizeof(WCHAR), hex, sizeof(hex));
+        sprintf_s(detail, "cp=%u got=%s", acp, hex);
+        Check("KERNELBASE_CP_ACP", ok, detail);
+    }
+
+    // user32: window title set through an ANSI API, read back as Unicode
+    {
+        HWND w = CreateWindowExA(0, "STATIC", expectedMb, 0, 0, 0, 10, 10, NULL, NULL, NULL, NULL);
+        WCHAR title[256] = {};
+        int n = GetWindowTextW(w, title, 256);
+        bool ok = w != NULL && n == wideChars && memcmp(title, wide, n * sizeof(WCHAR)) == 0;
+        Hex(title, n * sizeof(WCHAR), hex, sizeof(hex));
+        sprintf_s(detail, "cp=%u got=%s", acp, hex);
+        Check("USER32_WINDOW_TEXT_A", ok, detail);
+        if (w) DestroyWindow(w);
+    }
+}
 
 int main(int argc, char* argv[])
 {
@@ -31,12 +349,15 @@ int main(int argc, char* argv[])
     }
 
     if (!out) return 1;
+    g_Out = out;
 
     fprintf(out, "ACP=%u\n", GetACP());
     fprintf(out, "OEMCP=%u\n", GetOEMCP());
     fprintf(out, "LCID=0x%04X\n", GetUserDefaultLCID());
     fprintf(out, "UILANG=0x%04X\n", GetUserDefaultUILanguage());
     fprintf(out, "THREADLOCALE=0x%04X\n", GetThreadLocale());
+
+    CheckConversions();
 
     fclose(out);
     return 0;

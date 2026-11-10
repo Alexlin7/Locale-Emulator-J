@@ -270,6 +270,21 @@ foreach ($test in $TestMatrix) {
             Write-Verbose "  LCID=0x$actualLCID (expected 0x$expectedLCID) OK"
         }
 
+        # 比對 CHECK_*：各層 ANSI/OEM <-> Unicode 轉換必須使用 profile 的 code page
+        $checkKeys = @($parsed.Keys | Where-Object { $_ -like 'CHECK_*' } | Sort-Object)
+        if ($checkKeys.Count -eq 0) {
+            $testPassed = $false
+            $details += "no CHECK_* lines in output"
+        }
+        foreach ($key in $checkKeys) {
+            if ($parsed[$key] -ne 'OK') {
+                $testPassed = $false
+                $details += "$($key -replace '^CHECK_', ''): $($parsed[$key])"
+            } else {
+                Write-Verbose "  $key OK"
+            }
+        }
+
         if ($testPassed) {
             $passedTests++
             Write-TestResult -TestName $test.Name -Passed $true

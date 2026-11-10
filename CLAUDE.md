@@ -166,7 +166,7 @@ XML files (`LEConfig.xml` and `*.le.config`) share the same schema:
 
 ### Smoke Test
 
-Verifies end-to-end locale hooking by launching a Win32 test app through LEProc with different locale profiles (ja-JP, zh-TW, zh-CN, ko-KR, en-US) and checking `GetACP()`, `GetOEMCP()`, `GetUserDefaultLCID()` return values.
+Verifies end-to-end locale hooking by launching a Win32 test app through LEProc with different locale profiles (ja-JP, zh-TW, zh-CN, ko-KR, en-US) and checking `GetACP()`, `GetOEMCP()`, `GetUserDefaultLCID()` return values. The test app also writes `CHECK_*=OK|FAIL` lines verifying that ANSI/OEM <-> Unicode conversions (ntdll `Rtl*` routines, kernelbase `CP_ACP`, user32 ANSI window text) use the profile's code page; every `CHECK_*` must be `OK`.
 
 ## Conventions
 
@@ -175,6 +175,7 @@ Verifies end-to-end locale hooking by launching a Win32 test app through LEProc 
 - **Shell Extension requires x86 + x64**: x64 for 64-bit Explorer.exe, x86 for 32-bit Explorer on 32-bit Windows.
 - **Core is CRT-less**: Core binaries statically import only `ntdll.dll`; C runtime functions come from ntdll exports via `src/Core/ImportLibs/*.def`, runtime support from `src/Core/Runtime/CoreRuntime.cpp`. Shared settings are in `src/Core/Core.props`.
 - **LocaleEmulator.dll must not import kernel32 statically**: it is injected on the target's first `LdrLoadDll` call, before kernel32 is loaded. Resolve kernel32 routines at run time (`KERNEL32_API` in `Hooks/User32Hook.cpp`); the build fails on a static kernel32 import.
+- **ntdll NLS table swap is dead on recent Windows**: `RtlInitNlsTables` / `RtlResetRtlTranslations` are no-op stubs (verified on build 26300), so Core hooks ntdll's ANSI/OEM conversion exports (`Hooks/NtdllHook.cpp`, `LeRtl*`) to use the profile's code page tables.
 - **`[Core]` commit prefix**: All modifications to files under `src/Core/` must use the `[Core]` prefix in commit messages, to distinguish from upstream code.
 - **NLS mode pending verification**: `System.Globalization.UseNls` setting needs characterization test validation before enabling. Core itself directly manipulates NLS tables and is unaffected by this .NET setting.
 - **Minimum Windows version**: Windows 10 1607+ (.NET 10 requirement)
