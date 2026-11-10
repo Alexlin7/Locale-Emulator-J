@@ -1,0 +1,5 @@
+; kernel32.dll exports that the Windows SDK's kernel32.lib does not provide.
+; Built into kernel32_ex.lib by Core.props (x86 only). See ntdll_ex.def for syntax notes.
+LIBRARY kernel32.dll
+EXPORTS
+    CreateProcessInternalW@48               EXPORTAS CreateProcessInternalW

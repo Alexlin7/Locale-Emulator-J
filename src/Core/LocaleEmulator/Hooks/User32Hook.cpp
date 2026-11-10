@@ -959,6 +959,14 @@ BOOL NTAPI LeIsWindowUnicode(HWND hWnd)
     return GlobalData->GetWindowDataA(hWnd) == nullptr ? GlobalData->IsWindowUnicode(hWnd) : FALSE;
 }
 
+/*
+  kernel32.dll is not loaded yet when LocaleEmulator.dll is injected: LoaderDll injects it
+  on the target's first LdrLoadDll call, which is the one that loads kernel32. So this DLL
+  must not import kernel32 statically. The original toolchain delay-loaded kernel32; current
+  linkers refuse that (LNK4194), so the clipboard hooks look these routines up at call time.
+*/
+#define KERNEL32_API(Name) ((decltype(&::Name))LookupExportTable(GetKernel32Handle(), KERNEL32_##Name))
+
 HANDLE NTAPI LeSetClipboardData(UINT Format, HANDLE Memory)
 {
     HGLOBAL             Data;
@@ -972,7 +980,7 @@ HANDLE NTAPI LeSetClipboardData(UINT Format, HANDLE Memory)
     {
         case CF_TEXT:
 
-            Ansi = (PSTR)GlobalLock(Memory);
+            Ansi = (PSTR)KERNEL32_API(GlobalLock)(Memory);
             if (Ansi == nullptr)
                 break;
 
@@ -981,24 +989,24 @@ HANDLE NTAPI LeSetClipboardData(UINT Format, HANDLE Memory)
                 break;
 
             ++Length;
-            Data = GlobalAlloc(GHND, Length * sizeof(WCHAR));
+            Data = KERNEL32_API(GlobalAlloc)(GHND, Length * sizeof(WCHAR));
             if (Data == nullptr)
                 break;
 
-            Unicode = (PWSTR)GlobalLock(Data);
+            Unicode = (PWSTR)KERNEL32_API(GlobalLock)(Data);
             AnsiToUnicode(Unicode, Length, Ansi, Length - 1);
-            GlobalUnlock(Data);
+            KERNEL32_API(GlobalUnlock)(Data);
 
             if (GlobalData->SetClipboardData(CF_UNICODETEXT, Data) == nullptr)
             {
-                GlobalFree(Data);
+                KERNEL32_API(GlobalFree)(Data);
             }
 
             break;
     }
 
     if (Ansi != nullptr)
-        GlobalUnlock(Memory);
+        KERNEL32_API(GlobalUnlock)(Memory);
 
     return GlobalData->SetClipboardData(Format, Memory);
 }
@@ -1018,33 +1026,33 @@ HANDLE NTAPI LeGetClipboardData(UINT Format)
             if (Data == nullptr)
                 break;
 
-            Flags = GlobalFlags(Data);
+            Flags = KERNEL32_API(GlobalFlags)(Data);
             if (FLAG_ON(Flags, GMEM_INVALID_HANDLE))
                 break;
 
-            Unicode = (PWSTR)GlobalLock(Data);
+            Unicode = (PWSTR)KERNEL32_API(GlobalLock)(Data);
             if (Unicode == nullptr)
                 break;
 
             Length = StrLengthW(Unicode);
-            AnsiData = GlobalAlloc(GHND, Length * sizeof(WCHAR) + 1);
+            AnsiData = KERNEL32_API(GlobalAlloc)(GHND, Length * sizeof(WCHAR) + 1);
             if (AnsiData == nullptr)
             {
-                GlobalUnlock(Data);
+                KERNEL32_API(GlobalUnlock)(Data);
                 break;
             }
 
-            Ansi = (PSTR)GlobalLock(AnsiData);
+            Ansi = (PSTR)KERNEL32_API(GlobalLock)(AnsiData);
 
             UnicodeToAnsi(Ansi, Length * sizeof(WCHAR) + 1, Unicode, Length);
 
-            GlobalUnlock(AnsiData);
-            GlobalUnlock(Data);
+            KERNEL32_API(GlobalUnlock)(AnsiData);
+            KERNEL32_API(GlobalUnlock)(Data);
 
             Data = SetClipboardData(CF_TEXT, AnsiData);
             if (Data == nullptr)
             {
-                GlobalFree(AnsiData);
+                KERNEL32_API(GlobalFree)(AnsiData);
             }
 
             break;

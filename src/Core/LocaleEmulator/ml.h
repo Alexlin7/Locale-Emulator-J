@@ -9955,7 +9955,7 @@ long            __cdecl _InterlockedDecrement(long volatile * lpAddend);
 long            __cdecl _InterlockedCompareExchange(long volatile * Destination, long Exchange, long Comperand);
 long            __cdecl _InterlockedExchangeAdd(long volatile * Addend, long Value);
 long            __cdecl _InterlockedExchange(volatile long * Target, long Value);
-char            __cdecl _InterlockedExchange8(char volatile *Destination, char ExChange);
+char                    _InterlockedExchange8(char volatile *Destination, char ExChange);
 
 long            _InterlockedAnd(long volatile *Destination, long Value);
 long            _InterlockedOr(long volatile *Destination, long Value);
@@ -9988,7 +9988,7 @@ long            __cdecl _InterlockedCompareExchange_rel(long volatile * Destinat
 short                   _InterlockedCompareExchange16(short volatile * Destination, short Exchange, short Comperand);
 short           __cdecl _InterlockedCompareExchange16_acq(short volatile * Destination, short Exchange, short Comperand);
 short           __cdecl _InterlockedCompareExchange16_rel(short volatile * Destination, short Exchange, short Comperand);
-__int64         __cdecl _InterlockedCompareExchange64(__int64 volatile * Destination, __int64 Exchange, __int64 Comperand);
+__int64                 _InterlockedCompareExchange64(__int64 volatile * Destination, __int64 Exchange, __int64 Comperand);
 __int64         __cdecl _InterlockedCompareExchange64_acq(__int64 volatile * Destination, __int64 Exchange, __int64 Comperand);
 __int64         __cdecl _InterlockedCompareExchange64_rel(__int64 volatile * Destination, __int64 Exchange, __int64 Comperand);
 unsigned char   __cdecl _InterlockedCompareExchange128(__int64 volatile * Destination, __int64 ExchangeHigh, __int64 ExchangeLow, __int64 * Comparand);
@@ -12440,7 +12440,7 @@ KiUserExceptionDispatcher(
 );
 
 NATIVE_API
-NTSTATUS
+VOID
 NTAPI
 RtlRaiseException(
     PEXCEPTION_RECORD ExceptionRecord
@@ -21291,7 +21291,35 @@ RtlCaptureStackBackTrace(
 #ifndef _NTNLS_H_66774c20_dc28_4a7e_9714_c1f39fdb5d5f_
 #define _NTNLS_H_66774c20_dc28_4a7e_9714_c1f39fdb5d5f_
 
-#include <ntnls.h>
+// ntnls.h (WDK) is not part of the Windows SDK; these are its only definitions.
+#ifndef _NTNLS_
+#define _NTNLS_
+
+#define MAXIMUM_LEADBYTES   12
+
+typedef struct _CPTABLEINFO {
+    USHORT  CodePage;                       // code page number
+    USHORT  MaximumCharacterSize;           // max length (bytes) of a char
+    USHORT  DefaultChar;                    // default character (MB)
+    USHORT  UniDefaultChar;                 // default character (Unicode)
+    USHORT  TransDefaultChar;               // translation of default char (Unicode)
+    USHORT  TransUniDefaultChar;            // translation of Unic default char (MB)
+    USHORT  DBCSCodePage;                   // Non 0 for DBCS code pages
+    UCHAR   LeadByte[MAXIMUM_LEADBYTES];    // lead byte ranges
+    PUSHORT MultiByteTable;                 // pointer to MB translation table
+    PVOID   WideCharTable;                  // pointer to WC translation table
+    PUSHORT DBCSRanges;                     // pointer to DBCS ranges
+    PUSHORT DBCSOffsets;                    // pointer to DBCS offsets
+} CPTABLEINFO, *PCPTABLEINFO;
+
+typedef struct _NLSTABLEINFO {
+    CPTABLEINFO OemTableInfo;
+    CPTABLEINFO AnsiTableInfo;
+    PUSHORT     UpperCaseTable;             // 844 format upcase table
+    PUSHORT     LowerCaseTable;             // 844 format lower case table
+} NLSTABLEINFO, *PNLSTABLEINFO;
+
+#endif // _NTNLS_
 
 NATIVE_API
 VOID
@@ -21370,7 +21398,7 @@ NtQueryInstallUILanguage(
 
 #if defined(_INC_SDKDDKVER) && _WIN32_WINNT_WIN7 >= 0x600
 
-#include <ntnls.h>
+// CPTABLEINFO / NLSTABLEINFO are defined in the ntnls.h replacement above.
 
 NATIVE_API
 VOID

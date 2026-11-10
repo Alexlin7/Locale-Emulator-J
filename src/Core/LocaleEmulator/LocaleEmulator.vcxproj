@@ -54,16 +54,16 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+    <Import Project="..\Core.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>.\Release\</OutDir>
     <IntDir>.\Release\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>..\_Libs;..\_WDK\WIN7\lib\win7\i386;..\_WDK\WIN7\lib\Crt\i386</LibraryPath>
-    <ExecutablePath>..\_Compilers;$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(PATH)</ExecutablePath>
     <GenerateManifest>false</GenerateManifest>
-    <IncludePath>..\_WDK\WIN8\Include\shared;..\_WDK\WIN8\Include\um;..\_WDK\WIN8\Include\km;..\_WDK\WIN7\inc\api;..\_WDK\WIN7\inc\crt;..\_WDK\WIN7\inc\api\crt\stl60;..\_Headers;$(ProjectDir)</IncludePath>
+    <!-- Injected before kernel32.dll is loaded; see Core.props (LeCheckNoStaticKernel32). -->
+    <LeForbidStaticKernel32>true</LeForbidStaticKernel32>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -74,12 +74,11 @@
       <Optimization>MaxSpeed</Optimization>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>WIN32;NDEBUG;USE_NT_VER=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;USE_NT_VER=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\Release\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>.\Release\LocaleEmulator.pch</PrecompiledHeaderOutputFile>
       <ObjectFileName>.\Release\</ObjectFileName>
       <ProgramDataBaseFileName>.\Release\</ProgramDataBaseFileName>
-      <AdditionalOptions>/Zc:templateScope- /arch:SSE </AdditionalOptions>
       <CallingConvention>FastCall</CallingConvention>
       <ExceptionHandling>false</ExceptionHandling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -108,9 +107,8 @@
       <SubSystem>NotSet</SubSystem>
       <OutputFile>.\Release\LocaleEmulator.dll</OutputFile>
       <ImportLibrary>.\Release\LocaleEmulator.lib</ImportLibrary>
-      <DelayLoadDLLs>USER32.dll;DBGHELP.dll;GDI32.dll;KERNEL32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-      <AdditionalDependencies>MyLib.lib;undoc_ntdll.lib;undoc_k32.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/ignore:4254</AdditionalOptions>
+      <DelayLoadDLLs>USER32.dll;DBGHELP.dll;GDI32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
