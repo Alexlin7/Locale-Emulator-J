@@ -7,7 +7,7 @@
     <system:String x:Key="AboutLicense">Licencija: LGPL-3.0</system:String>
     <system:String x:Key="AboutOriginalProject">Originalus projektas (archyvuotas 2022-04)</system:String>
     <system:String x:Key="AboutThisFork">Ši fork atšaka</system:String>
-    <system:String x:Key="AboutTitle">Locale Emulator (ooxxTaiwan fork)</system:String>
+    <system:String x:Key="AboutTitle">Locale Emulator (Alexlin7 fork)</system:String>
     <system:String x:Key="AboutVersion">Versija </system:String>
     <system:String x:Key="AdvancedOptions">Sudėtingesnės parinktys</system:String>
     <system:String x:Key="AppConfigTitle">LEGUI - </system:String>

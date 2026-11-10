@@ -23,7 +23,7 @@ public static class GlobalHelper
             + "If this window still shows, try go to Safe Mode and drag the application "
             + "executable onto LEProc.exe.\r\n"
             + "If you have tried all above but none of them works, feel free to submit an issue at\r\n"
-            + "https://github.com/ooxxTaiwan/Locale-Emulator-J/issues.\r\n" + "\r\n" + "\r\n"
+            + "https://github.com/Alexlin7/Locale-Emulator-J/issues.\r\n" + "\r\n" + "\r\n"
             + "You can press CTRL+C to copy this message to your clipboard.\r\n",
             "Locale Emulator Version " + GetVersionString());
     }
