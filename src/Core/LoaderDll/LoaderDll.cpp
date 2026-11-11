@@ -45,6 +45,11 @@ LeCreateProcess2(
 	CopyMemory(DllFullPath, Module->FullDllName.Buffer, Length);
 	CopyStruct(PtrAdd(DllFullPath, Length), Dll, sizeof(Dll));
 
+#if defined(_M_X64)
+	// ml's CreateProcessWithDll / InjectDllBeforeKernel32Loaded only exist for
+	// x86. The x64 injection path is part of a later phase of the x64 design.
+	Status = STATUS_NOT_SUPPORTED;
+#else
 	Status = CreateProcessWithDll(
 		CPWD_BEFORE_KERNEL32,
 		DllFullPath,
@@ -59,6 +64,7 @@ LeCreateProcess2(
 		Environment,
 		Token
 		);
+#endif
 
 	if (NT_FAILED(Status))
 		return Status;
