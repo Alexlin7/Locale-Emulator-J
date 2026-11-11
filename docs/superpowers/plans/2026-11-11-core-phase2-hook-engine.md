@@ -61,7 +61,11 @@ MSBuild 的 C++23 值是 `stdcpp23`，對應 `/std:c++23preview`；MSVC Build To
 ### Task C2：判讀結果
 
 - 狀態：已完成（2026-11-11）。E1、E2 都是 6/6 PASS、264 個 `CHECK_*` 全 `OK`，`LE_EXPERIMENT` 標記證明延後路徑確實執行。詳細結果與解讀見 spec §4.5。過程中修了兩個問題：LocaleEmulator 的 Win32 組態把輸出路徑寫死，`/p:OutDir` 無效；第一次的結果無法證明延後路徑有執行，所以補了標記。
-- 下一步（Task C3）：擴充 `CHECK_*`（`GetCPInfo`、`CP_THREAD_ACP`、`GetLocaleInfo`、時區、registry 轉向、gdi32 charset），再跑一次 E2。
+
+### Task C3：擴充 `CHECK_*` 後再跑 E2
+
+- 狀態：已完成（CI run 42965336674）。新增 10 個 `CHECK_*` 與時區檢查，smoke test 改為 `RedirectRegistry=true`。E0、E1、E2 都是 6/6 PASS、192/192 `CHECK_*` OK。詳見 spec §4.5。
+- 剩下的 D7 定案條件：使用者以實際遊戲測試 E2 版（需要時把實驗版 DLL 加進 CI artifact）。
 
 - 把 E1、E2 每個語系的 `CHECK_*`、ACP、OEMCP、LCID 結果寫回 spec §4.5。
 - E2 全部 `OK` → D7 可以考慮簡化為單段、完整 CRT；E2 有 `FAIL` → 依失敗項目規劃 E3。
