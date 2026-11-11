@@ -39,6 +39,21 @@ PLeGlobalData g_GlobalData;
 #define LE_EXPERIMENT_TIMING 0
 #endif
 
+#if LE_EXPERIMENT_TIMING != 0
+
+// Leaves LE_EXPERIMENT=<Marker> in the process environment so the smoke test can
+// confirm that the deferred path actually ran (LocaleTestApp prints it).
+static VOID LeExperimentMark(PCWSTR Marker)
+{
+    UNICODE_STRING Name, Value;
+
+    RtlInitUnicodeString(&Name, L"LE_EXPERIMENT");
+    RtlInitUnicodeString(&Value, Marker);
+    RtlSetEnvironmentVariable(nullptr, &Name, &Value);
+}
+
+#endif // LE_EXPERIMENT_TIMING != 0
+
 #if LE_EXPERIMENT_TIMING == 1
 
 static PUSHORT g_DeferredAnsiCodePageData;
@@ -58,6 +73,7 @@ static VOID LeExperimentApplyDeferredPeb()
     Peb->UnicodeCaseTableData   = g_DeferredUnicodeCaseTableData;
 
     g_DeferredAnsiCodePageData = nullptr;
+    LeExperimentMark(L"E1:peb-after-kernel32");
     WriteLog(L"E1: peb nls applied");
 }
 
@@ -708,6 +724,8 @@ static BOOL NTAPI LeExperimentKernel32Entry(PVOID BaseAddress, ULONG Reason, PVO
 
     Status = LeGetGlobalData()->Initialize();
     WriteLog(L"E2: init after kernel32: %p", Status);
+    if (NT_SUCCESS(Status))
+        LeExperimentMark(L"E2:init-after-kernel32");
 
     // Initialize hooks kernel32 only when LDRP_PROCESS_ATTACH_CALLED is already
     // set; otherwise it points the entry at DelayInitDllEntry, which will not run
