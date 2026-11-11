@@ -1,0 +1,5 @@
+| Hook.cpp:12:5:12:23 | call to MultiByteToWideChar | Core calls the kernel32/kernelbase API 'MultiByteToWideChar'. Use ntdll (RtlCustomCPToUnicodeN / RtlUnicodeToCustomCPN with LE's own NLS tables) instead. |
+| Hook.cpp:15:5:15:37 | KERNEL32_API(Name) | Core looks up the kernel32/kernelbase API 'MultiByteToWideChar'. Use ntdll (RtlCustomCPToUnicodeN / RtlUnicodeToCustomCPN with LE's own NLS tables) instead. |
+| Hook.cpp:18:54:18:68 | KERNEL32_GetACP | Core looks up the kernel32/kernelbase API 'GetACP'. Use ntdll (RtlCustomCPToUnicodeN / RtlUnicodeToCustomCPN with LE's own NLS tables) instead. |
+| Hook.cpp:21:15:21:31 | call to GetRoutineAddress | Core looks up the kernel32/kernelbase API 'WideCharToMultiByte'. Use ntdll (RtlCustomCPToUnicodeN / RtlUnicodeToCustomCPN with LE's own NLS tables) instead. |
+| Hook.cpp:50:5:50:10 | call to GetACP | Core calls the kernel32/kernelbase API 'GetACP'. Use ntdll (RtlCustomCPToUnicodeN / RtlUnicodeToCustomCPN with LE's own NLS tables) instead. |

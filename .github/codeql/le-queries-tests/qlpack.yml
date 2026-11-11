@@ -1,0 +1,7 @@
+name: le/core-queries-tests
+version: 0.0.1
+extractor: cpp
+tests: .
+dependencies:
+  le/core-queries: "*"
+  codeql/cpp-all: "*"
