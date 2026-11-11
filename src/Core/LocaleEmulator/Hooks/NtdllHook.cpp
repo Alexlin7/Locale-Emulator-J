@@ -1070,6 +1070,9 @@ NTSTATUS NTAPI LeRtlUpcaseUnicodeStringToAnsiString(PANSI_STRING DestinationStri
         return Status;
     }
 
+    // Length above is estimated from the source string, but upcasing can change the
+    // byte length (e.g. GBK has "ń" as 2 bytes but no "Ń", which becomes "?").
+    DestinationString->Length = (USHORT)BytesWritten;
     DestinationString->Buffer[BytesWritten] = 0;
     return STATUS_SUCCESS;
 }
