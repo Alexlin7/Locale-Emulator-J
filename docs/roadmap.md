@@ -41,6 +41,10 @@
 - [ ] smoke test 輸出 OS 版本與 build 號碼，讓結果可以對照 Windows 版本
 - [ ] LoaderDll / Loader 的 vcxproj 也改用 `$(OutDir)` / `$(IntDir)`（目前把 `.\Release\` 寫死）
 - [x] CodeQL（C# + C/C++）與第一條自訂查詢 `le/core/kernelbase-nls-call`
+- [ ] 處理 CodeQL `security-extended` 第一次掃描的 6 筆結果（皆在 Core，非 ml）：
+  - 值得修：`cpp/alloca-in-loop` 兩筆（`HookPort.cpp` 在 syscall 過濾迴圈裡每次 `_alloca`；`LocaleEmulator.h` 的目錄列舉加倍緩衝區時 `_alloca`），堆疊會隨迭代增長
+  - 型別小問題：`cpp/wrong-type-format-argument`（`LocaleEmulator.h` 以 `%p` 格式化 `ULONG_PTR` 的 PID；同架構內寬度一致，但未來若支援跨架構子程序，x86 與 x64 產生的共享記憶體名稱會不同）
+  - 判斷為誤報，可在 GitHub 上 dismiss：`cpp/incorrect-string-type-conversion`（`Utility.cpp` 的 atom 轉型）、`cpp/suspicious-pointer-scaling` 兩筆（`NtdllHook.cpp` 刻意以元素為單位的指標運算）
 - [ ] 更多自訂查詢：例如 `LocaleEmulator.dll` 的 hook 裡不准呼叫 user32 / gdi32（延遲載入可能在 kernel32 之前觸發）、x64 程式碼不准用 `__readfsdword`
 - [ ] （可選）SonarQube Cloud：可維護性、重複率、技術債趨勢，適合追蹤 Phase 7 的進度
 - [ ] （可選）實驗版 DLL 加進 CI artifact
