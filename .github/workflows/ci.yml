@@ -100,8 +100,11 @@ jobs:
       - name: Build Core (Release|Win32)
         run: |
           msbuild src/Core/LoaderDll/LoaderDll.vcxproj /p:Configuration=Release /p:Platform=Win32 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           msbuild src/Core/LocaleEmulator/LocaleEmulator.vcxproj /p:Configuration=Release /p:Platform=Win32 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           msbuild src/Core/Loader/Loader.vcxproj /p:Configuration=Release /p:Platform=Win32 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         shell: pwsh
 
       # x64 Core is under development and not shipped: its output is not copied
@@ -121,15 +124,21 @@ jobs:
       - name: Build ShellExtension + C++ tests (Release|Win32)
         run: |
           msbuild src/ShellExtension/ShellExtension.vcxproj /p:Configuration=Release /p:Platform=Win32 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           msbuild tests/SmokeTest/LocaleTestApp/LocaleTestApp.vcxproj /p:Configuration=Release /p:Platform=Win32 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           msbuild tests/Core.Tests/Core.Tests.vcxproj /p:Configuration=Release /p:Platform=Win32 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         shell: pwsh
 
       - name: Build ShellExtension + tests (Release|x64)
         run: |
           msbuild src/ShellExtension/ShellExtension.vcxproj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           msbuild tests/ShellExtension.Tests/ShellExtension.Tests.vcxproj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           msbuild tests/Core.Tests/Core.Tests.vcxproj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         shell: pwsh
 
       # ---- Assemble runtime directory ----
