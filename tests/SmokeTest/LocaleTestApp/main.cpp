@@ -411,6 +411,14 @@ int main(int argc, char* argv[])
     fprintf(out, "UILANG=0x%04X\n", GetUserDefaultUILanguage());
     fprintf(out, "THREADLOCALE=0x%04X\n", GetThreadLocale());
 
+    // Set only by the timing-experiment builds of LocaleEmulator.dll (D7).
+    {
+        char marker[64];
+        DWORD len = GetEnvironmentVariableA("LE_EXPERIMENT", marker, sizeof(marker));
+        if (len > 0 && len < sizeof(marker))
+            fprintf(out, "LE_EXPERIMENT=%s\n", marker);
+    }
+
     CheckConversions();
 
     fclose(out);
