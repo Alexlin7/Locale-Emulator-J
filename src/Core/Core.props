@@ -29,7 +29,7 @@
     <ClCompile>
       <!-- ml.h predates standard conformance; keep legacy parsing rules. -->
       <ConformanceMode>false</ConformanceMode>
-      <LanguageStandard>stdcpp14</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <!--
         No CRT: keep UCRT headers from emitting inline stdio wrappers
         (__stdio_common_*) so printf-family calls resolve to ntdll's exports,
