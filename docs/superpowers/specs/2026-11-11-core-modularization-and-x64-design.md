@@ -223,7 +223,7 @@ LoaderDll ─ 建立暫停的程序，hook 第一次 LdrLoadDll（現有機制�
 - 實驗步驟允許失敗（`continue-on-error`），只記錄每個 `CHECK_*` 的結果。
 - 結果寫回本節，據此把 D7 移到「已確定」或「否決」。
 
-**結果（2026-11-11，CI run 42963850519，commit `12ff732`，GitHub Actions `windows-2025-vs2026`，系統 ACP 1252 / OEMCP 437 / LCID 0x0409）：**
+**結果（2026-11-11，CI run 42964350577，commit `12ff732`，GitHub Actions `windows-2025-vs2026`，系統 ACP 1252 / OEMCP 437 / LCID 0x0409）：**
 
 | 實驗 | 延後路徑確實執行（`LE_EXPERIMENT` 標記） | ja-JP | zh-TW | zh-CN | zh-Hant-TW | ko-KR | en-US |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|
