@@ -368,6 +368,26 @@ NTSTATUS LeGlobalData::Initialize()
         RtlInitCodePageTable((PUSHORT)PtrAdd(CodePageMapView, AnsiCodePageOffset), &AnsiTableInfo);
         RtlInitCodePageTable((PUSHORT)PtrAdd(CodePageMapView, OemCodePageOffset), &OemTableInfo);
 
+        // RtlResetRtlTranslations used to update these ntdll globals; now that it is a
+        // no-op they keep describing the system code page. kernelbase reads them
+        // directly (CharNextA / CharPrevA check NlsMbCodePageTag), so with the system
+        // "Beta: Use Unicode UTF-8" option (ACP 65001, not a DBCS code page) DBCS
+        // text is walked one byte at a time. They live in ntdll's writable .data.
+        {
+            auto NlsAnsiCodePage     = (PUSHORT)LookupExportTable(Ntdll->DllBase, NTDLL_NlsAnsiCodePage);
+            auto NlsMbCodePageTag    = (PBOOLEAN)LookupExportTable(Ntdll->DllBase, NTDLL_NlsMbCodePageTag);
+            auto NlsMbOemCodePageTag = (PBOOLEAN)LookupExportTable(Ntdll->DllBase, NTDLL_NlsMbOemCodePageTag);
+
+            if (NlsAnsiCodePage != nullptr)
+                *NlsAnsiCodePage = AnsiTableInfo.CodePage;
+
+            if (NlsMbCodePageTag != nullptr)
+                *NlsMbCodePageTag = AnsiTableInfo.DBCSCodePage != 0;
+
+            if (NlsMbOemCodePageTag != nullptr)
+                *NlsMbOemCodePageTag = OemTableInfo.DBCSCodePage != 0;
+        }
+
         WriteLog(L"reset nls");
 
 #if LE_EXPERIMENT_TIMING == 1
