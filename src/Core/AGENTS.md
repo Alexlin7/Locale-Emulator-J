@@ -8,7 +8,7 @@ Core 是 LE 的原生核心：`LoaderDll` 建立目標程序並注入，`LocaleE
 
 1. **不使用 C runtime，靜態 import 只有 `ntdll.dll`**（LoaderDll 另有 kernel32 的 `CreateProcessInternalW`）。CRT 函式來自 ntdll 匯出（`ImportLibs/<x86|x64>/*.def`，修飾規則與 helper 依架構不同），執行期支援在 `Runtime/CoreRuntime.cpp`（x86 的 SEH handler 自行實作；x64 使用 ntdll 的 `__C_specific_handler`），共用設定在 `Core.props`。不要把 CRT 或 Delayimp.lib 加回來。
 2. **`LocaleEmulator.dll` 絕不能靜態 import kernel32。** 它是在目標程序第一次呼叫 `LdrLoadDll`（ntdll 正要載入 kernel32）時被注入的，當下 kernel32 還不存在。要用 kernel32 的函式就在執行時查找（`LocaleEmulator/Hooks/User32Hook.cpp` 的 `KERNEL32_API`）；建置時有檢查（`Core.props` 的 `LeCheckNoStaticKernel32`），出現靜態 kernel32 import 會直接失敗。
-3. **hook 只能依賴 ntdll。** hook 裡不能呼叫 kernelbase 的 `MultiByteToWideChar` 之類函式；code page 轉換一律用 ntdll 的 `RtlCustomCPToUnicodeN` / `RtlUnicodeToCustomCPN` 搭配 LE 自己載入的 NLS 表。
+3. **hook 只能依賴 ntdll。** hook 裡不能呼叫 kernelbase 的 `MultiByteToWideChar` 之類函式；code page 轉換一律用 ntdll 的 `RtlCustomCPToUnicodeN` / `RtlUnicodeToCustomCPN` 搭配 LE 自己載入的 NLS 表。CodeQL 自訂查詢 `le/core/kernelbase-nls-call` 會檢查 Core（排除 ml）直接呼叫或在執行時查找（`KERNEL32_API`、`KERNEL32_*` hash、依名稱查找）kernel32 / kernelbase 的 code page、地區、時區 API。確實需要時（例如 `Hooks/Kernel32Hook.cpp` 刻意操作 kernelbase 的地區快取），在同一行或上一行加 `// LE-ALLOW-KERNELBASE: <理由>`，review 時要看理由是否成立。
 4. **新版 Windows 上換 ntdll NLS 表的做法已經失效**：`RtlInitNlsTables` / `RtlResetRtlTranslations` 是空函式（build 26300 實測）。ANSI/OEM 轉換靠 `LocaleEmulator/Hooks/NtdllHook.cpp` 的 `LeRtl*` hook，不要拿掉。
 5. **x86 的 syscall hook（`HookPort.cpp`）靠比對 `KiFastSystemCall` 的 opcode 運作**，x64 沒有這個函式；x64 的 hook 引擎是另一套實作（設計見 `docs/superpowers/specs/2026-11-11-core-modularization-and-x64-design.md`）。不要試圖把 HookPort 移植到 x64。
 
