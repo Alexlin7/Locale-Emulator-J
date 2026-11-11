@@ -203,7 +203,8 @@ Global
 		{E1A2B3C4-5D6E-7F80-9A1B-C2D3E4F50002}.Release|Any CPU.ActiveCfg = Release|Win32
 		{E1A2B3C4-5D6E-7F80-9A1B-C2D3E4F50002}.Release|Win32.ActiveCfg = Release|Win32
 		{E1A2B3C4-5D6E-7F80-9A1B-C2D3E4F50002}.Release|Win32.Build.0 = Release|Win32
-		{E1A2B3C4-5D6E-7F80-9A1B-C2D3E4F50002}.Release|x64.ActiveCfg = Release|Win32
+		{E1A2B3C4-5D6E-7F80-9A1B-C2D3E4F50002}.Release|x64.ActiveCfg = Release|x64
+		{E1A2B3C4-5D6E-7F80-9A1B-C2D3E4F50002}.Release|x64.Build.0 = Release|x64
 		{E1A2B3C4-5D6E-7F80-9A1B-C2D3E4F50002}.Release|x86.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
