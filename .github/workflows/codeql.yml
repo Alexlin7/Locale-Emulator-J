@@ -1,0 +1,129 @@
+# CodeQL code scanning: C# (no build) and C/C++ (Core x86 + ShellExtension x64).
+# Results appear under Security > Code scanning and on pull requests.
+# The C/C++ analysis also runs the project's own queries (.github/codeql/le-queries),
+# e.g. le/core/kernelbase-nls-call, which enforces src/Core/AGENTS.md rule 3.
+
+name: CodeQL
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '37 19 * * 3'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Unit tests of the custom queries (.github/codeql/le-queries-tests).
+  query-tests:
+    name: Custom query tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install CodeQL bundle
+        run: |
+          curl -sSL -o "$RUNNER_TEMP/codeql.tgz" https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz
+          tar -xzf "$RUNNER_TEMP/codeql.tgz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/codeql/codeql" version
+
+      - name: Run query tests
+        working-directory: .github/codeql
+        run: |
+          "$RUNNER_TEMP/codeql/codeql" test run le-queries-tests
+
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: windows-2025-vs2026
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: csharp
+            build-mode: none
+            queries: ''
+          - language: c-cpp
+            build-mode: manual
+            queries: '+./.github/codeql/le-queries'
+    env:
+      SOLUTION_DIR: ${{ github.workspace }}\
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql/codeql-config.yml
+          queries: ${{ matrix.queries }}
+
+      - name: Setup MSBuild
+        if: matrix.build-mode == 'manual'
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Build C/C++ (Core x86, ShellExtension x64)
+        if: matrix.build-mode == 'manual'
+        shell: pwsh
+        run: |
+          foreach ($b in @(
+              @('src/Core/LoaderDll/LoaderDll.vcxproj', 'Win32'),
+              @('src/Core/LocaleEmulator/LocaleEmulator.vcxproj', 'Win32'),
+              @('src/ShellExtension/ShellExtension.vcxproj', 'x64'))) {
+            msbuild $b[0] /p:Configuration=Release /p:Platform=$($b[1]) "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
+          upload: never
+          output: sarif-results
+
+      # Drop results in upstream / third-party code, and make sure the custom
+      # query pack actually ran (its rules must be present in the SARIF).
+      - name: Filter SARIF
+        shell: pwsh
+        run: |
+          $excluded = 'src/Core/LocaleEmulator/ml\.(h|cpp)$|src/ShellExtension/pugixml/'
+          $files = Get-ChildItem sarif-results -Filter *.sarif
+          foreach ($f in $files) {
+            $sarif = Get-Content $f.FullName -Raw | ConvertFrom-Json -Depth 100
+            foreach ($run in $sarif.runs) {
+              $before = @($run.results).Count
+              $run.results = @($run.results | Where-Object {
+                $uri = $_.locations[0].physicalLocation.artifactLocation.uri
+                -not ($uri -match $excluded)
+              })
+              Write-Host "$($f.Name): $before results, $(@($run.results).Count) after filtering upstream code"
+              if ('${{ matrix.language }}' -eq 'c-cpp') {
+                $rules = @($run.tool.extensions | ForEach-Object { $_.rules } | ForEach-Object { $_.id })
+                if ($rules -notcontains 'le/core/kernelbase-nls-call') {
+                  Write-Host "::error::custom query le/core/kernelbase-nls-call did not run"
+                  exit 1
+                }
+                $own = @($run.results | Where-Object { $_.ruleId -like 'le/*' })
+                Write-Host "le/* results: $($own.Count)"
+                $own | ForEach-Object { Write-Host "  $($_.ruleId) $($_.locations[0].physicalLocation.artifactLocation.uri):$($_.locations[0].physicalLocation.region.startLine)" }
+              }
+            }
+            $sarif | ConvertTo-Json -Depth 100 | Set-Content $f.FullName -Encoding utf8
+          }
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: sarif-results
+          category: /language:${{ matrix.language }}

@@ -1,0 +1,3 @@
+provide:
+  - "le-queries/qlpack.yml"
+  - "le-queries-tests/qlpack.yml"

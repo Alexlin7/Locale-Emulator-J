@@ -1,0 +1,14 @@
+# CodeQL configuration shared by both languages (.github/workflows/codeql.yml).
+# The C/C++ job adds the project's own query pack (.github/codeql/le-queries).
+name: Locale Emulator CodeQL config
+
+queries:
+  - uses: security-extended
+
+# Third-party / upstream code. For compiled languages these filters are not
+# guaranteed to apply, so the workflow also strips these paths from the SARIF.
+paths-ignore:
+  - src/Core/LocaleEmulator/ml.h
+  - src/Core/LocaleEmulator/ml.cpp
+  - src/ShellExtension/pugixml
+  - .github/codeql/le-queries-tests
