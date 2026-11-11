@@ -1,88 +1,84 @@
 # AGENTS.md
 
-本檔給 coding agent（Claude Code / Codex / 其他）使用，是專案的大方向、不可違反的鐵則與開發約定的單一真相源。現況與使用說明見根目錄 [`README.md`](README.md)；Core 的建置細節見 [`src/Core/README.md`](src/Core/README.md)。
+本檔給 coding agent（Claude Code / Codex / 其他）使用，內容是全專案共用的大方向、跨模組鐵則與開發約定。**各模組的細節寫在該模組自己的 `AGENTS.md`**（見下方「模組說明檔」），改哪個模組就讀哪一份；本檔只保留跨模組、每次都必須知道的內容。
+
+現況與使用說明見 [`README.md`](README.md)；目前的待辦、取捨與風險見 [`docs/roadmap.md`](docs/roadmap.md)。
 
 ## 專案
 
 Locale Emulator（LE）是 Windows 工具：不改系統地區設定，就能讓指定程式以另一個地區（code page、LCID、時區）執行。做法是把 DLL 注入目標程序、hook Windows API。
 
-本 repo 是 [xupefei/Locale-Emulator](https://github.com/xupefei/Locale-Emulator)（2022-04-15 封存）的延續，經 [ooxxTaiwan/Locale-Emulator-J](https://github.com/ooxxTaiwan/Locale-Emulator-J) fork 而來，目前由本人自行修改維護。包含三個 .NET 10 專案、兩個 C++ native 元件（Core）與一個 C++ COM Shell Extension。Core 源自 [Locale-Emulator-Core](https://github.com/xupefei/Locale-Emulator-Core)（commit `ae7160d`，2022-04-15 封存），直接整合在 `src/Core/`。
+本 repo 是 [xupefei/Locale-Emulator](https://github.com/xupefei/Locale-Emulator)（2022-04-15 封存）的延續，經 [ooxxTaiwan/Locale-Emulator-J](https://github.com/ooxxTaiwan/Locale-Emulator-J) fork 而來，目前由本人自行修改維護。Core 源自 [Locale-Emulator-Core](https://github.com/xupefei/Locale-Emulator-Core)（commit `ae7160d`，2022-04-15 封存），直接整合在 `src/Core/`。
 
-## 架構大方向
+## 架構
 
 ```
 使用者在 exe 上按右鍵
     ↓
-ShellExtension（C++，x64）           ← COM Shell Extension，由 Explorer.exe 載入
-    │ 讀 LEConfig.xml
-    │ 呼叫 LEProc.exe -runas {guid} {path}
+ShellExtension（C++，x86 + x64）     ← COM Shell Extension，由 Explorer.exe 載入
+    │ 讀 LEConfig.xml，呼叫 LEProc.exe -runas {guid} {path}
     ↓
-LEProc（.NET 10，x86）               ← 啟動器
-    │ 參照 LECommonLibrary
-    │ P/Invoke 呼叫 LoaderDll.dll
+LEProc（.NET 10，x86）               ← 啟動器：由 CultureInfo 組出 LEB，P/Invoke 呼叫 LoaderDll
     ↓
-Core/LoaderDll（C++，x86）           ← 建立目標程序並注入 LocaleEmulator.dll
-    │ 把 LEB 寫入共享記憶體
+Core/LoaderDll（C++，x86）           ← 建立目標程序、注入 LocaleEmulator.dll、把 LEB 寫入共享記憶體
     ↓
 Core/LocaleEmulator（C++，x86）      ← 在目標程序內 hook Windows API
-    │ 讀 LEB、改寫 PEB 的 NLS 表、裝 syscall hook + EAT hook、hook ntdll 轉換函式
     ↓
 目標程序                              ← 以為自己跑在目標地區
 
 LEGUI（.NET 10，AnyCPU）             ← Profile 管理介面 + Shell Extension 安裝
-    │ 參照 LECommonLibrary；ShellExtensionRegistrar 以 Registry API 註冊/解除
-    ↓
 LECommonLibrary（.NET 10，AnyCPU）   ← 共用：LEConfig、LEProfile、RegionSupport、SystemHelper
 ```
 
-| 專案 | 語言 | 平台 | 職責 |
+## 模組說明檔
+
+| 模組 | 語言 / 平台 | 職責 | 說明檔 |
 |---|---|---|---|
-| LECommonLibrary | C# | AnyCPU | XML 設定讀寫、Profile 資料模型、可模擬地區判斷（`RegionSupport`）、OS 工具函式 |
-| LEProc | C# | x86 | CLI 進入點、由 `CultureInfo` 取 code page/LCID、組 LEB 結構、P/Invoke 呼叫 Core |
-| LEGUI | C#（WPF） | AnyCPU | Profile 管理介面、Shell Extension 安裝/解除（`ShellExtensionRegistrar`） |
-| Core/LoaderDll | C++ | x86（x64 開發中） | 匯出 `LeCreateProcess`：建立目標程序並注入 `LocaleEmulator.dll` |
-| Core/LocaleEmulator | C++ | x86（x64 開發中） | 注入用 DLL：hook syscall/EAT、改寫 PEB NLS 表、攔截地區相關 API |
-| ShellExtension | C++ | x86 + x64 | COM Shell Extension：右鍵選單、讀設定、啟動 LEProc |
+| `src/Core/`（LoaderDll、LocaleEmulator、Loader） | C++，x86（x64 開發中） | 注入與 hook；無 CRT | [`src/Core/AGENTS.md`](src/Core/AGENTS.md) |
+| `src/LEProc/` | C#，x86 | CLI 啟動器、組 LEB、呼叫 Core | [`src/LEProc/AGENTS.md`](src/LEProc/AGENTS.md) |
+| `src/LECommonLibrary/` | C#，AnyCPU | 設定檔、Profile、`RegionSupport` | [`src/LECommonLibrary/AGENTS.md`](src/LECommonLibrary/AGENTS.md) |
+| `src/LEGUI/` | C#（WPF），AnyCPU | Profile 管理、Shell Extension 安裝 | [`src/LEGUI/AGENTS.md`](src/LEGUI/AGENTS.md) |
+| `src/ShellExtension/` | C++，x86 + x64 | 右鍵選單 | [`src/ShellExtension/AGENTS.md`](src/ShellExtension/AGENTS.md) |
+| `tests/SmokeTest/` | PowerShell + C++ | 端對端驗證 hook 是否生效 | [`tests/SmokeTest/AGENTS.md`](tests/SmokeTest/AGENTS.md) |
 
-**資料流：** 右鍵 exe → ShellExtension 讀 `LEConfig.xml` 並呼叫 `LEProc.exe -runas {guid} {path}` → LEProc 由 XML 載入 profile、用 `CultureInfo` 解析 code page/地區/時區 → `LoaderWrapper` 把 `LEB` 結構與 registry 轉向項目整理進 unmanaged 記憶體 → `LoaderDll.dll` 的 `LeCreateProcess` 建立目標程序並注入 `LocaleEmulator.dll` → `LocaleEmulator.dll` 裝好 hook，目標程序看到的就是模擬的地區。
+每個模組的 `CLAUDE.md` 只負責匯入同目錄的 `AGENTS.md`，不另外寫內容。其他測試專案（`tests/*.Tests`）的說明併在對應模組的檔案裡。
 
-## 不可違反的鐵則（改動前必讀）
+## 跨模組鐵則（改動前必讀）
 
-1. **LEProc 與 x86 版 Core 必須維持 x86。** 32 位元目標程式走 `LoaderDll.dll` + `LocaleEmulator.dll`（x86）；x86 的 syscall hook 引擎（`HookSysCall_x86`）靠比對 `KiFastSystemCall` 的 opcode 運作。64 位元目標程式由 x64 版 Core（`LoaderDll64.dll` + `LocaleEmulator64.dll`）處理；x64 沒有 `KiFastSystemCall`，hook 引擎是另一套實作（見 `docs/superpowers/specs/2026-11-11-core-modularization-and-x64-design.md`）。x64 版尚在開發中，納入發佈產物前不影響現有行為。
-2. **Shell Extension 必須同時建 x86 與 x64。** x64 給 64 位元 Explorer，x86 給 32 位元 Windows 的 Explorer。
-3. **Core 不使用 C runtime，靜態 import 只有 `ntdll.dll`**（LoaderDll 另有 kernel32 的 `CreateProcessInternalW`）。CRT 函式來自 ntdll 匯出（`src/Core/ImportLibs/<x86|x64>/*.def`，修飾規則與 helper 依架構不同），執行期支援在 `src/Core/Runtime/CoreRuntime.cpp`（x86 的 SEH handler 自行實作；x64 使用 ntdll 的 `__C_specific_handler`），共用設定在 `src/Core/Core.props`。不要把 CRT 或 Delayimp.lib 加回來。
-4. **`LocaleEmulator.dll` 絕不能靜態 import kernel32。** 它是在目標程序第一次呼叫 `LdrLoadDll`（也就是 ntdll 正要載入 kernel32）時被注入的，當下 kernel32 還不存在。要用 kernel32 的函式就在執行時查找（`Hooks/User32Hook.cpp` 的 `KERNEL32_API`）；建置時有檢查，出現靜態 kernel32 import 會直接失敗。
-5. **Core 的 hook 只能依賴 ntdll。** 理由同上，hook 裡不能呼叫 kernelbase 的 `MultiByteToWideChar` 之類函式；code page 轉換一律用 ntdll 的 `RtlCustomCPToUnicodeN` / `RtlUnicodeToCustomCPN` 搭配 LE 自己載入的 NLS 表。
-6. **新版 Windows 上換 ntdll NLS 表的做法已經失效**：`RtlInitNlsTables` / `RtlResetRtlTranslations` 是空函式（build 26300 實測）。ANSI/OEM 轉換靠 `Hooks/NtdllHook.cpp` 的 `LeRtl*` hook，不要拿掉。
-7. **.NET 端全球化後端固定用 NLS**（`Directory.Build.props` 的 `System.Globalization.UseNls=true`）。ICU 模式下地區清單會變成 `zh-Hans-CN` / `zh-Hant-TW`（LCID 0x1000），Core 無法模擬、程式完全沒反應。地區是否可用一律經 `LECommonLibrary.RegionSupport` 判斷。
-8. **`src/Core/` 底下的修改，commit 訊息一律加 `[Core]` 前綴**，用來和上游程式碼區分。
-9. **改 Core 之後一定要跑 smoke test**（見下方指令）。`Core.Tests` 只驗證結構佈局，測不到 hook 是否真的生效。
+1. **架構分工固定。** LEProc 與 x86 版 Core 必須維持 x86；64 位元目標程式由 x64 版 Core（`LoaderDll64.dll` + `LocaleEmulator64.dll`）處理，x64 版尚在開發中、未納入發佈產物。ShellExtension 必須同時建 x86 與 x64（架構跟著 Explorer，與目標程式無關）。設計見 `docs/superpowers/specs/2026-11-11-core-modularization-and-x64-design.md`。
+2. **跨模組的資料契約要一起改。**
+   - **LEB 結構**：C#（`src/LEProc/LoaderWrapper.cs`）、C++（`src/Core/LocaleEmulator/LocaleEmulator.h`）、`tests/Core.Tests/main.cpp`、`tests/LEProc.Tests/LEBStructLayoutTests.cs` 四處必須一致，改任何一處都要同步其他三處，並跑 Core.Tests 與 LEProc.Tests。
+   - **Shell Extension 的 CLSID**：`src/ShellExtension/dllmain.cpp` 與 `src/LEGUI/ShellExtensionConstants.cs` 必須相同。
+   - **`LEConfig.xml` schema**：LECommonLibrary（C#）與 ShellExtension 的 `ConfigReader`（C++）各自解析，改 schema 要兩邊一起改。
+3. **.NET 端全球化後端固定用 NLS**（`Directory.Build.props` 的 `System.Globalization.UseNls=true`）。ICU 模式下地區會變成 LCID 0x1000，Core 無法模擬。地區是否可用一律經 `LECommonLibrary.RegionSupport` 判斷。
+4. **`src/Core/` 底下的修改，commit 訊息一律加 `[Core]` 前綴**，用來和上游程式碼區分。
+5. **改 Core 之後一定要跑 smoke test。** Core.Tests 只驗證結構佈局，測不到 hook 是否真的生效。
+
+各模組自己的鐵則摘要（細節見各模組說明檔）：
+- Core：不使用 C runtime，靜態 import 只有 ntdll；`LocaleEmulator.dll` 絕不能靜態 import kernel32；hook 只能依賴 ntdll；`LeRtl*` hook 不能拿掉。
+- ShellExtension：x86、x64 都要建；字串改動要處理 22 種語系。
+- LEGUI：字串改動要處理 22 種語系。
 
 ## 工具鏈
 
 | 工具 | 版本 | 用途 |
 |---|---|---|
-| Visual Studio / MSVC Build Tools | 2026（v18），PlatformToolset `v145` | C++ 建置（Core、ShellExtension、C++ 測試） |
+| Visual Studio / MSVC Build Tools | 2026（v18），PlatformToolset `v145` | C++ 建置 |
 | Windows SDK | 10.0（目前用 10.0.26100） | Core 的標頭與 import lib；**不需要 WDK** |
-| .NET SDK | 10 | LECommonLibrary / LEProc / LEGUI 與 .NET 測試 |
+| .NET SDK | 10 | .NET 專案與測試 |
 | .NET 10 Windows Desktop Runtime x86 | 10 | 執行 x86 的 LEProc 與 `LEProc.Tests --arch x86` |
 
-- C++ 標準：Core 為 C++17（`Core.props`；無 CRT，只能用語言功能，標準函式庫不可用）；ShellExtension 與 C++ 測試專案為 C++23（`stdcpp23`，即 `/std:c++23preview`）。升級路線見 `docs/superpowers/plans/2026-11-11-core-phase2-hook-engine.md` Part A。
+- C++ 標準：Core 為 C++17；ShellExtension 與 C++ 測試專案為 C++23（`stdcpp23`）。
 - 方案檔：`LocaleEmulator.sln`（C# 與 C++ 混合）。共用 .NET 建置屬性在 `Directory.Build.props`，所有組件以 `key.snk` 強式名稱簽章。
 - 最低支援系統：Windows 10 1607 以上（.NET 10 的要求）。
 - 授權：LGPL-3.0（Core 為 LGPL-3.0 / GPL-3.0）。
 
-## 建置與指令
+## 建置、測試與 CI
 
 ```powershell
 # 完整建置（兩個平台）
 msbuild LocaleEmulator.sln /p:Configuration=Release /p:Platform=Win32
 msbuild LocaleEmulator.sln /p:Configuration=Release /p:Platform=x64
-
-# 只建 .NET 專案
-dotnet build src/LECommonLibrary/
-dotnet build src/LEProc/
-dotnet build src/LEGUI/
 
 # .NET 測試
 dotnet test tests/LECommonLibrary.Tests/
@@ -95,22 +91,20 @@ dotnet test tests/LEProc.Tests/ --arch x86     # LEProc 是 x86，需要 x86 tes
 .\tests\SmokeTest\Invoke-SmokeTest.ps1
 ```
 
-CI（`.github/workflows/ci.yml`）用 `dotnet build` 建 .NET 專案、用 `msbuild` 逐一建 C++ vcxproj，再把 LEProc/LEGUI publish 與 Core DLL 組進 `Build/Release/x86/`。
+| 層級 | 框架 | 位置 |
+|---|---|---|
+| .NET 單元測試 | xUnit + NSubstitute | `tests/LECommonLibrary.Tests/`、`tests/LEGUI.Tests/`、`tests/LEProc.Tests/` |
+| C++ 測試 | 獨立 exe（無框架） | `tests/Core.Tests/`（結構佈局，x86 + x64）、`tests/ShellExtension.Tests/`（COM，x64） |
+| Smoke test | PowerShell + LocaleTestApp | `tests/SmokeTest/` |
+
+CI（`.github/workflows/ci.yml`，`workflow_dispatch` 觸發）用 `dotnet build` 建 .NET、用 `msbuild` 逐一建 C++ vcxproj（每個 msbuild 後都檢查結束碼），組出 `Build/Release/x86/` 後跑 C++ 測試與 smoke test，另外跑時機實驗（僅供參考）。操作說明見 `docs/guides/github-actions-ci.md`。
 
 **建置產出：**
 
 ```
 Build/Release/
-  x86/
-    LEProc.exe              # .NET 10（x86）
-    LECommonLibrary.dll     # .NET 10（AnyCPU）
-    LEGUI.exe               # .NET 10（AnyCPU）
-    LoaderDll.dll           # Core（x86）
-    LocaleEmulator.dll      # Core（x86）
-    ShellExtension.dll      # Shell Extension（x86）
-    Lang/                   # 語系檔
-  x64/
-    ShellExtension.dll      # Shell Extension（x64）
+  x86/   LEProc.exe、LECommonLibrary.dll、LEGUI.exe、LoaderDll.dll、LocaleEmulator.dll、ShellExtension.dll、Lang/
+  x64/   ShellExtension.dll
 ```
 
 **C++ 專案的建置組態：**
@@ -125,44 +119,6 @@ Build/Release/
 | Core.Tests | ✓ | ✓ | - | ✓ |
 | ShellExtension.Tests | - | - | ✓ | ✓ |
 
-Core 只有 Release 組態。x64 版輸出 `LoaderDll64.dll` / `LocaleEmulator64.dll`（各專案的 `x64\Release\`），尚未組進 `Build/Release/`；x64 建置以 `HookPortX64Stub.cpp` 取代 `HookPort.cpp`，不安裝任何 hook。
-
-## 設定檔格式
-
-`LEConfig.xml` 與 `*.le.config` 共用同一個 schema：
-
-```xml
-<LEConfig>
-  <Profiles>
-    <Profile Name="..." Guid="..." MainMenu="true|false">
-      <Parameter>...</Parameter>
-      <Region>ja-JP</Region>
-      <Timezone>Tokyo Standard Time</Timezone>
-      <RunAsAdmin>false</RunAsAdmin>
-      <RedirectRegistry>true</RedirectRegistry>
-      <IsAdvancedRedirection>false</IsAdvancedRedirection>
-      <RunWithSuspend>false</RunWithSuspend>
-    </Profile>
-  </Profiles>
-</LEConfig>
-```
-
-## 測試
-
-| 層級 | 框架 | 指令 |
-|---|---|---|
-| .NET 單元測試（LECommonLibrary、LEGUI） | xUnit + NSubstitute | `dotnet test` |
-| .NET 單元測試（LEProc） | xUnit + NSubstitute | `dotnet test --arch x86` |
-| C++ 單元測試 | 獨立 exe（無框架） | 執行 `Build/Release/x86/`、`x64/` 的 `*Tests*.exe` |
-| Smoke test | PowerShell + LocaleTestApp | `.\tests\SmokeTest\Invoke-SmokeTest.ps1` |
-
-- `tests/LECommonLibrary.Tests/`：XML 設定解析、profile 模型、系統工具函式、可模擬地區（`RegionSupportTests`）
-- `tests/LEProc.Tests/`：code page 對應、`CultureInfo` 查詢（與 .NET Framework 4.0 基準值比對）、CLI 參數、registry 轉向
-- `tests/LEGUI.Tests/`：Shell Extension 註冊邏輯、i18n 載入、ViewModel 邏輯
-- `tests/Core.Tests/`：C++ 與 C# 結構佈局契約（LEB、RTL_TIME_ZONE_INFORMATION、REGISTRY_REDIRECTION_ENTRY64 的大小與欄位位移，x86 獨立 exe）
-- `tests/ShellExtension.Tests/`：COM 匯出驗證、DllRegisterServer/Unregister 來回測試（x64）
-- **Smoke test**：用不同地區的 profile 經 LEProc 啟動 LocaleTestApp，檢查 `GetACP()`、`GetOEMCP()`、`GetUserDefaultLCID()`；LocaleTestApp 另外輸出 `CHECK_*=OK|FAIL`，驗證 ntdll `Rtl*` 轉換、kernelbase（`CP_ACP`/`CP_OEMCP`/`CP_THREAD_ACP`、`GetCPInfoEx`、地區資訊）、ANSI 檔案 API、user32 ANSI 視窗標題、registry 轉向（profile 為 `RedirectRegistry=true`）、gdi32 字型 charset 都符合 profile；時區 `Bias` 必須是 -540（Tokyo Standard Time）。所有 `CHECK_*` 都必須是 `OK`。CI 另外會建時機實驗版（`LE_EXPERIMENT_TIMING`，見 spec §4.5）並跑同一套 smoke test，結果僅供參考。
-
 ## 開發約定
 
 **工作流程（動手前必讀）：**
@@ -171,21 +127,27 @@ Core 只有 Release 組態。x64 版輸出 `LoaderDll64.dll` / `LocaleEmulator64
 - **commit / merge 前先驗證**：改 .NET 後跑對應的 `dotnet build` + `dotnet test`；改 C++ 後跑 C++ 建置與測試；改 Core 後一定要再跑 smoke test。確認綠燈才 commit。
 - **先寫測試**：修 bug 時先寫出能重現問題的測試（例如 LocaleTestApp 的 `CHECK_*`、`RegionSupportTests`），確認它會失敗，再修到通過。
 - **commit 前先問**：除非使用者明確要求，否則不要自行 commit 或 push；推到遠端、開 PR 前一定先確認。
+- **本機沒有 Windows 時以 CI 驗證**：結論要附 CI run 編號；「全部通過」的結果要確認測試確實測到了東西（例如時機實驗的 `LE_EXPERIMENT` 標記）。
 
 **慣例：**
 - 全程以**繁體中文（台灣用語）**溝通；程式碼識別子與技術名詞保留原文。
 - commit 訊息用中文，格式 `type(scope): 摘要`（例如 `fix:`、`test(smoke-test):`、`chore:`）；`src/Core/` 的修改一律用 `[Core]` 前綴。
 - 一個功能一個分支（例如 `feature/...`、`fix/...`），一個 commit 只做一件事，方便日後拆開回饋給上游。
-- 語系檔：LEGUI 的 i18n 是 `src/LEGUI/Lang/` 的 XAML resource dictionary（22 種語言）；Shell Extension 是 `src/ShellExtension/Lang/` 的 XML（22 種語言）。新增或修改字串時要一併處理所有語系。
 - **對外連結只放可信來源**（GitHub、微軟、gnu.org 等）。原作者的 `pooi.moe` 與圖示來源 `graphicex.com` 已成為停放網域、會轉址到不明網站，不得再加回 README、程式或語系檔；新增連結前先確認網域現況。
 - 測試或除錯時**不要擅自執行或掃描使用者的遊戲／應用程式資料夾**；需要時先問，只碰使用者指定的路徑。
-- 改動牽涉設計決策時，同步更新本檔與必要的 `README.md` / `src/Core/README.md`。
+- 改動牽涉設計決策時，同步更新相關的 `AGENTS.md`（本檔或模組的）、`docs/roadmap.md` 與必要的 `README.md`。
 
 ## 文件整理原則
 
-- `README.md`：專案現況、來源、系統需求、使用方式（公開門面）。
-- `AGENTS.md`：大方向、鐵則、開發約定（本檔）。`CLAUDE.md` 只負責匯入本檔，不另外寫內容。
-- `src/Core/README.md`：Core 的建置方式與無 CRT 設計的說明。
-- `docs/guides/`：操作指南（例如 CI）。
-- `docs/superpowers/specs/`、`docs/superpowers/plans/`：過去的設計與計畫紀錄，保留脈絡用；已過時的內容不要回頭改寫，以本檔與程式碼為準。
-- 內容衝突時的優先順序：**本檔的鐵則 > 程式碼與測試 > `README.md` > `docs/` 的歷史紀錄**。
+| 文件 | 內容 | 維護方式 |
+|---|---|---|
+| `README.md` | 專案現況、來源、系統需求、使用方式（公開門面） | 隨功能更新 |
+| `AGENTS.md`（本檔） | 跨模組的大方向、鐵則、開發約定 | 隨決策更新 |
+| `<模組>/AGENTS.md` | 該模組的鐵則、結構、常見陷阱、測試方式 | 改該模組時一起更新 |
+| `CLAUDE.md`（各層） | 只匯入同目錄的 `AGENTS.md` | 不寫內容 |
+| `src/Core/README.md` | Core 的建置方式與無 CRT 設計（給人看） | 隨 Core 建置變更 |
+| `docs/roadmap.md` | 待辦、做得好的地方、取捨、不做會後悔的事 | **活文件**，每完成或新增一項就更新 |
+| `docs/guides/` | 操作指南（例如 CI） | 隨流程更新 |
+| `docs/superpowers/specs/`、`plans/` | 設計與計畫紀錄 | 保留脈絡；實驗結果與定案狀態可以補記，已過時的內容不回頭改寫 |
+
+內容衝突時的優先順序：**本檔的鐵則 > 模組 `AGENTS.md` 的鐵則 > 程式碼與測試 > `README.md` > `docs/` 的紀錄**。
