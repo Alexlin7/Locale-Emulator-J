@@ -13,7 +13,12 @@
   <ItemGroup>
     <ClCompile Include="Arch\LayoutAsserts.cpp" />
     <ClCompile Include="HandleTable.cpp" />
-    <ClCompile Include="HookPort.cpp" />
+    <ClCompile Include="HookPort.cpp">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="HookPortX64Stub.cpp">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Hooks\Gdi32Hook.cpp" />
     <ClCompile Include="Hooks\Kernel32Hook.cpp" />
     <ClCompile Include="Hooks\NtdllHook.cpp" />
