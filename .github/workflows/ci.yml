@@ -109,8 +109,13 @@ jobs:
       - name: Build Core (Release|x64)
         continue-on-error: true
         run: |
-          msbuild src/Core/LoaderDll/LoaderDll.vcxproj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
-          msbuild src/Core/LocaleEmulator/LocaleEmulator.vcxproj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          # Errors only, so the x64 error list stays readable while it is being fixed.
+          $failed = $false
+          foreach ($proj in 'src/Core/LoaderDll/LoaderDll.vcxproj', 'src/Core/LocaleEmulator/LocaleEmulator.vcxproj') {
+            msbuild $proj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:quiet "/clp:ErrorsOnly;NoSummary"
+            if ($LASTEXITCODE -ne 0) { $failed = $true }
+          }
+          if ($failed) { exit 1 }
         shell: pwsh
 
       - name: Build ShellExtension + C++ tests (Release|Win32)

@@ -128,6 +128,15 @@ NTSTATUS ReadFileInSystemDirectory(NtFileMemory &File, PUNICODE_STRING Path)
 
 NTSTATUS LeGlobalData::Initialize()
 {
+#if defined(_M_X64)
+
+    // Phase 1: the x64 build only has to compile. HookPort is replaced by a stub
+    // (HookPortX64Stub.cpp); the x64 HookEngine installs hooks starting in Phase 3.
+    // The rest of the function is still compiled so x64 build errors surface now.
+    return STATUS_NOT_SUPPORTED;
+
+#endif // _M_X64
+
     BOOL            IsLoader;
     PLEPEB          LePeb;
     PLDR_MODULE     Ntdll;
