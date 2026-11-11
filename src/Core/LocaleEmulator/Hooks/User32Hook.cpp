@@ -916,7 +916,7 @@ LONG_PTR NTAPI LeGetWindowLongA(HWND hWnd, int Index)
 
     switch (Index)
     {
-        case GWL_WNDPROC:
+        case GWLP_WNDPROC:
             Proc = GlobalData->GetWindowDataA(hWnd);
             if (Proc == nullptr)
                 break;
@@ -934,7 +934,7 @@ LONG_PTR NTAPI LeSetWindowLongA(HWND hWnd, int Index, LONG_PTR NewLong)
 
     switch (Index)
     {
-        case GWL_WNDPROC:
+        case GWLP_WNDPROC:
             OriginalProcA = GlobalData->GetWindowDataA(hWnd);
             if (OriginalProcA != nullptr)
             {
