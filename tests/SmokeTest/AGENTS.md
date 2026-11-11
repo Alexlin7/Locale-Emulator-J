@@ -22,7 +22,9 @@ Smoke test 是唯一能驗證「hook 真的生效」的測試：用不同地區�
 
 測試樣本 `kSample` 用 `\u` 跳脫寫成（原始碼沒有 BOM；直接寫中日韓字元會被建置機的 code page 讀成亂碼，曾經發生過）。新增非 ASCII 字元時同樣用 `\u` 跳脫。
 
-目前的檢查類別：ntdll `Rtl*` 轉換、kernelbase（`CP_ACP` / `CP_OEMCP` / `CP_THREAD_ACP`、`GetCPInfoEx`、地區資訊）、ANSI 檔案 API、user32 ANSI 視窗標題、registry 轉向、gdi32 字型 charset，另有時區。尚未涵蓋：`SendMessageA` 等訊息轉換、`EnumFontFamilies*`、進階 registry 轉向與 UI 語言 API。
+目前的檢查類別：ntdll `Rtl*` 轉換、kernelbase（`CP_ACP` / `CP_OEMCP` / `CP_THREAD_ACP` 雙向、`GetCPInfoEx`、`IsDBCSLeadByte(Ex)`、地區資訊含 ANSI 版）、user32 `CharNextA`、CRT `setlocale` 後的 `wcstombs` / `mbstowcs`、ANSI 檔案 API、user32 ANSI 視窗標題、registry 轉向、gdi32 字型 charset，另有時區。尚未涵蓋：`SendMessageA` 等訊息轉換、`EnumFontFamilies*`、進階 registry 轉向與 UI 語言 API。
+
+**系統 ACP 65001（UTF-8 beta）**：有些漏洞只在這個系統設定下出現（例如 `CHARNEXTA_DBCS`）。CI runner 是 1252 且不能重開機切換，只能在本機開啟 UTF-8 beta、重開機後執行 `Invoke-SmokeTest.ps1 -Verbose`。
 
 ## `PROBE_*` 與 `INFO_*`
 
