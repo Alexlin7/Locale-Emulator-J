@@ -422,6 +422,34 @@ static void CheckConversions()
             freeA(&a);
         }
 
+        // Upcasing can change the byte length: GBK has lowercase pinyin letters such as
+        // "ń" (2 bytes) but not their uppercase forms, which become "?" (1 byte). The
+        // reported Length must be the converted length, not the pre-upcase estimate.
+        {
+            static const WCHAR kLower[] =
+                L"\x0144\x0101\x00E1\x01CE\x00E0\x0113\x00E9\x011B\x00E8"
+                L"\x012B\x00ED\x01D0\x00EC\x014D\x00F3\x01D2\x00F2\x016B"
+                L"\x00FA\x01D4\x00F9\x01D6\x01D8\x01DA\x01DC\x00FC\x00EA";
+            WCHAR lower[64] = {};
+            int n = 0;
+            for (const WCHAR *p = kLower; *p; ++p)
+            {
+                char buf[8]; BOOL usedDefault = FALSE;
+                if (WideCharToMultiByte(acp, WC_NO_BEST_FIT_CHARS, p, 1, buf, sizeof(buf), NULL, &usedDefault) > 0 && !usedDefault)
+                    lower[n++] = *p;
+            }
+
+            UNICODE_STRING_ u = { (USHORT)(n * sizeof(WCHAR)), (USHORT)(n * sizeof(WCHAR)), lower };
+            ANSI_STRING_ a = {};
+            upToAnsi(&a, &u, TRUE);
+            int actual = a.Buffer ? (int)strlen(a.Buffer) : -1;
+            bool ok = a.Buffer != NULL && a.Length == actual;
+            Hex(a.Buffer, a.Length, hex, sizeof(hex));
+            sprintf_s(detail, "cp=%u chars=%d Length=%u strlen=%d got=%s", acp, n, a.Length, actual, hex);
+            Check("RTL_UPCASE_UNICODE_TO_ANSI_STRING_LENGTH", ok, detail);
+            freeA(&a);
+        }
+
         auto charToU = (AnsiCharToUnicodeChar_t)GetProcAddress(ntdll, "RtlAnsiCharToUnicodeChar");
         {
             // Convert the first non-ASCII character of the sample one character at a time.
