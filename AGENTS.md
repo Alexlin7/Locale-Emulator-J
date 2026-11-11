@@ -161,7 +161,7 @@ Core 只有 Release 組態。x64 版輸出 `LoaderDll64.dll` / `LocaleEmulator64
 - `tests/LEGUI.Tests/`：Shell Extension 註冊邏輯、i18n 載入、ViewModel 邏輯
 - `tests/Core.Tests/`：C++ 與 C# 結構佈局契約（LEB、RTL_TIME_ZONE_INFORMATION、REGISTRY_REDIRECTION_ENTRY64 的大小與欄位位移，x86 獨立 exe）
 - `tests/ShellExtension.Tests/`：COM 匯出驗證、DllRegisterServer/Unregister 來回測試（x64）
-- **Smoke test**：用不同地區的 profile 經 LEProc 啟動 LocaleTestApp，檢查 `GetACP()`、`GetOEMCP()`、`GetUserDefaultLCID()`；LocaleTestApp 另外輸出 `CHECK_*=OK|FAIL`，驗證 ntdll `Rtl*` 轉換、kernelbase `CP_ACP`、ANSI 檔案 API、user32 ANSI 視窗標題都使用 profile 的 code page。所有 `CHECK_*` 都必須是 `OK`。
+- **Smoke test**：用不同地區的 profile 經 LEProc 啟動 LocaleTestApp，檢查 `GetACP()`、`GetOEMCP()`、`GetUserDefaultLCID()`；LocaleTestApp 另外輸出 `CHECK_*=OK|FAIL`，驗證 ntdll `Rtl*` 轉換、kernelbase（`CP_ACP`/`CP_OEMCP`/`CP_THREAD_ACP`、`GetCPInfoEx`、地區資訊）、ANSI 檔案 API、user32 ANSI 視窗標題、registry 轉向（profile 為 `RedirectRegistry=true`）、gdi32 字型 charset 都符合 profile；時區 `Bias` 必須是 -540（Tokyo Standard Time）。所有 `CHECK_*` 都必須是 `OK`。CI 另外會建時機實驗版（`LE_EXPERIMENT_TIMING`，見 spec §4.5）並跑同一套 smoke test，結果僅供參考。
 
 ## 開發約定
 
