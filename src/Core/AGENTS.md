@@ -51,6 +51,7 @@ Loader/                    命令列啟動器（只有 x86）
   - 每個呼叫點在 log 關閉時只多一次全域變數判斷；不要在頻繁呼叫的 hook 裡加會格式化大量資料的 log。
 - **LoaderDll 讀的是 LEProc 配置、大小剛好的緩衝區**（LEB + registry 轉向資料）。複製長度算錯會讀超過結尾，只有緩衝區剛好在分頁結尾時才當機，平常測不出來（曾造成 LEProc 偶發 `0xC0000005`，見 `docs/roadmap.md` 已完成項目）。改 `LoaderDll.cpp` 的 LEB 處理後，除了 smoke test，也用 CI 的 `launch_stress` 跑一次壓力測試（例如 200 次）。
 - **HookPort 的 filter 是靠堆疊位置拿參數的**：filter 宣告成 `HPARGS` 加上 syscall 本身的參數，但 `HpServiceDispatcherInternal` 只用兩個 FASTCALL 暫存器參數呼叫它，其餘參數由 filter 直接從堆疊頂端讀，也就是迴圈裡 `_alloca` 複製出來的那份。看起來沒被讀的 `LocalArguments` 不是死碼，`_alloca` 也必須留在迴圈內（FASTCALL 由被呼叫端清堆疊，每個 filter 都會彈掉自己那份）。曾經誤刪過，結果所有被 hook 的程式都起不來（CI run 43233800178）。
+- **改 PEB / ntdll 表蓋不到的「系統 code page」快取**：kernelbase 的 `CharNextA` 等 DBCS 走訪會問 user32 的 `CheckDBCSEnabledExt`，它讀的是 win32k 共享給整個 session 的資訊，依真正的系統 ACP 設定，只能用 hook 改（`Hooks/User32Hook.cpp`）。ntdll 的 `NlsAnsiCodePage` / `NlsMbCodePageTag` / `NlsMbOemCodePageTag` 以前由 `RtlResetRtlTranslations` 更新，現在由 `LeGlobalData::Initialize` 直接寫入。系統開了「Beta：使用 Unicode UTF-8」（ACP 65001）時這類漏洞最明顯；CI runner 是 1252 且不能重開機切換，只能在本機驗證。
 
 ## 時機實驗（D7，已決定不做）
 
