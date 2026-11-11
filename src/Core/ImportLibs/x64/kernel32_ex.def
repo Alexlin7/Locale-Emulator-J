@@ -1,0 +1,6 @@
+; kernel32.dll exports that the Windows SDK's kernel32.lib does not provide (x64).
+; Built into kernel32_ex.lib by Core.props.
+; x64 has a single calling convention: names carry no "@N" decoration.
+LIBRARY kernel32.dll
+EXPORTS
+    CreateProcessInternalW

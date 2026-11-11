@@ -1,0 +1,40 @@
+; ntdll.dll exports that the Windows SDK's ntdll.lib does not provide (x64).
+; Built into ntdll_ex.lib by Core.props.
+;
+; Differences from x86\ntdll_ex.def:
+;   - no "@N" decoration and no leading underscore on x64
+;   - no 64-bit arithmetic / float conversion helpers (_alldiv, _ftol, ...):
+;     x64 has native instructions for them
+;   - stack probe is __chkstk; SEH handler is __C_specific_handler
+;     (x64 SEH is table based, see Runtime\CoreRuntime.cpp)
+LIBRARY ntdll.dll
+EXPORTS
+    ; Undocumented loader APIs
+    LdrInitializeThunk
+    LdrRegisterDllNotification
+    LdrUnregisterDllNotification
+
+    ; NLS conversion
+    RtlUpcaseUnicodeStringToAnsiString
+
+    ; Compiler helpers
+    __chkstk
+    __C_specific_handler
+
+    ; C runtime functions
+    memcmp
+    memcpy
+    memmove
+    memset
+    strlen
+    wcslen
+    wcsstr
+    _stricmp
+    _wcsicmp
+    wcsicmp                                 EXPORTAS _wcsicmp
+    _snwprintf
+    _vsnprintf
+    _vsnwprintf
+    _vscwprintf
+    swprintf
+    vswprintf                               EXPORTAS _vsnwprintf

@@ -19,6 +19,8 @@ Build/
 *.sbr
 x64/
 Win32/
+# Source directories named after a platform (not build output)
+!/src/Core/ImportLibs/x64/
 [Dd]ebug/
 [Rr]elease/
 
