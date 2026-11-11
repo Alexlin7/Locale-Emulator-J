@@ -6,6 +6,13 @@
 #include "ml.cpp"
 #include "LoaderDll.h"
 
+// The x64 Core injects LocaleEmulator64.dll; both builds live in the same folder.
+#if defined(_M_X64)
+#define LE_INJECTED_DLL_NAME L"LocaleEmulator64.dll"
+#else
+#define LE_INJECTED_DLL_NAME L"LocaleEmulator.dll"
+#endif
+
 EXTC
 NTSTATUS
 NTAPI
@@ -29,7 +36,7 @@ LeCreateProcess2(
 	NTSTATUS                Status;
 	ML_PROCESS_INFORMATION  ProcessInfo;
 
-	static WCHAR Dll[] = L"LocaleEmulator.dll";
+	static WCHAR Dll[] = LE_INJECTED_DLL_NAME;
 
 	Module = FindLdrModuleByHandle(nullptr);
 
@@ -153,7 +160,7 @@ LeCreateProcess(
 	PLDR_MODULE             Module;
 	PLEPEB                  LePeb;
 
-	static WCHAR Dll[] = L"LocaleEmulator.dll";
+	static WCHAR Dll[] = LE_INJECTED_DLL_NAME;
 
 	Module = FindLdrModuleByHandle(nullptr);
 

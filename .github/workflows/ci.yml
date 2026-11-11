@@ -104,6 +104,15 @@ jobs:
           msbuild src/Core/Loader/Loader.vcxproj /p:Configuration=Release /p:Platform=Win32 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
         shell: pwsh
 
+      # x64 Core is under development and not shipped: its output is not copied
+      # into Build/Release/. Allowed to fail until it compiles cleanly.
+      - name: Build Core (Release|x64)
+        continue-on-error: true
+        run: |
+          msbuild src/Core/LoaderDll/LoaderDll.vcxproj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          msbuild src/Core/LocaleEmulator/LocaleEmulator.vcxproj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+        shell: pwsh
+
       - name: Build ShellExtension + C++ tests (Release|Win32)
         run: |
           msbuild src/ShellExtension/ShellExtension.vcxproj /p:Configuration=Release /p:Platform=Win32 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
