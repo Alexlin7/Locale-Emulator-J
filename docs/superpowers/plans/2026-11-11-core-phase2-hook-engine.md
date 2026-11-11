@@ -32,10 +32,14 @@ MSBuild 的 C++23 值是 `stdcpp23`，對應 `/std:c++23preview`；MSVC Build To
 - 預期風險：C++17 移除動態例外規格與 `register`、把 `noexcept` 納入函式型別、新增 aligned `operator new`。Core 沒有 CRT，若連結時出現新的 `operator new/delete` 多載或其他 helper 符號未解析，要在 `Runtime/CoreRuntime.cpp` 或 `.def` 補，不能把 CRT 加回來（鐵則 3）。
 - 驗收：CI 的 Core x86（含「不得靜態 import kernel32」檢查）與 x64 建置成功；Core.Tests 通過；smoke test 6/6，所有 `CHECK_*` 為 `OK`（鐵則 9）。
 - commit：`[Core] build: Core 升級到 C++17`
-- 結果（CI run 42961436478）：x86 的 LocaleEmulator 連結失敗，缺 `operator delete(void*, unsigned int, std::align_val_t)`。x86 的預設 new 對齊是 8，有 16-byte 對齊的型別被 `delete` 時，C++17 會改呼叫 aligned 版本（x64 預設對齊為 16，不受影響）。Core.props 加上 `/Zc:alignedNew-`，維持 C++14 的行為。同一次 run 也發現 CI 的 Win32 建置步驟只檢查最後一個 msbuild 的結束碼，中間專案失敗會被蓋掉，已改為每個 msbuild 後都檢查。
+- 結果（CI run 42961436478 失敗 → 修正後 run 42961883548 全綠）：x86 的 LocaleEmulator 連結失敗，缺 `operator delete(void*, unsigned int, std::align_val_t)`。x86 的預設 new 對齊是 8，有 16-byte 對齊的型別被 `delete` 時，C++17 會改呼叫 aligned 版本（x64 預設對齊為 16，不受影響）。Core.props 加上 `/Zc:alignedNew-`，維持 C++14 的行為。同一次 run 也發現 CI 的 Win32 建置步驟只檢查最後一個 msbuild 的結束碼，中間專案失敗會被蓋掉，已改為每個 msbuild 後都檢查。
 
 ### 之後（不在本計畫內，視 A2 結果另外排）
 
+- A2b：盤點超對齊配置，評估拿掉 `/Zc:alignedNew-`、改成正式實作 aligned `operator new/delete`。
+  - 盤點：找出哪些超過 `__STDCPP_DEFAULT_NEW_ALIGNMENT__`（x86 為 8、x64 為 16）的型別被 `new`/`delete`。Core 自己沒有宣告對齊，來源應該是 SDK 結構（例如 `M128A`、`XSAVE_FORMAT`）。方法：開啟 C4316（在 `/Zc:alignedNew-` 下 `new` 超對齊型別時發出警告），或暫時拿掉 `/Zc:alignedNew-`，看連結器列出的未解析符號；也可以對 `LocaleEmulator.cpp` 用 `/d1reportSingleClassLayout` 確認對齊。
+  - 實作：在 `ML_OVERLOAD_NEW`（或 `Runtime/CoreRuntime.cpp`）補上 `std::align_val_t` 版本的 `new`/`new[]`/`delete`/`delete[]`（含 sized 版本）。做法是多配置 `alignment - 1 + sizeof(void*)`，回傳對齊後的位址，原始指標存在前一格；只能用 ntdll 的 heap 函式（鐵則 3、5）。x86 與 x64 都要能編譯。
+  - 判斷：如果盤點結果只有少數幾個型別、而且它們其實不需要 16-byte 對齊（C++14 時代一直沒對齊也正常運作），維持 `/Zc:alignedNew-` 也合理；決定前先看盤點結果。
 - A3：Core 從 C++17 升到 C++20。C++20 的 `operator==` 改寫規則、`char8_t`、聚合初始化規則都可能讓 `ml.h` 出錯；錯誤量太大時改走「ml 留在舊標準、新模組用新標準」，前提是先在標頭層級隔開 ml（Phase 7 的方向）。
 - A4：Core 從 C++20 升到 C++23。
 - Core 在無 CRT 下只能用語言功能（`if consteval`、deducing `this`、concepts、`consteval` 等）；`std::expected`、`std::format`/`std::print`、容器等標準函式庫功能不能用，需要的話自己寫小型替代品（例如包裝 `NTSTATUS` 的 `Result` 型別）。
