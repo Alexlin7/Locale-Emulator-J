@@ -216,7 +216,7 @@ foreach ($test in $TestMatrix) {
       <Region>$($test.Region)</Region>
       <Timezone>Tokyo Standard Time</Timezone>
       <RunAsAdmin>false</RunAsAdmin>
-      <RedirectRegistry>false</RedirectRegistry>
+      <RedirectRegistry>true</RedirectRegistry>
       <IsAdvancedRedirection>false</IsAdvancedRedirection>
       <RunWithSuspend>false</RunWithSuspend>
     </Profile>
@@ -277,6 +277,14 @@ foreach ($test in $TestMatrix) {
             $details += "LCID: expected=0x$expectedLCID, actual=0x$actualLCID"
         } else {
             Write-Verbose "  LCID=0x$actualLCID (expected 0x$expectedLCID) OK"
+        }
+
+        # 時區：profile 固定為 Tokyo Standard Time（UTC+9，Bias=-540，無日光節約）
+        if ($parsed.TZBIAS -ne '-540') {
+            $testPassed = $false
+            $details += "TZBIAS: expected=-540, actual=$($parsed.TZBIAS)"
+        } else {
+            Write-Verbose "  TZBIAS=-540 OK"
         }
 
         # 時機實驗版的 LocaleEmulator.dll 會留下 LE_EXPERIMENT 標記（正式版沒有）
