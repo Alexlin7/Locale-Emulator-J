@@ -279,6 +279,11 @@ foreach ($test in $TestMatrix) {
             Write-Verbose "  LCID=0x$actualLCID (expected 0x$expectedLCID) OK"
         }
 
+        # 時機實驗版的 LocaleEmulator.dll 會留下 LE_EXPERIMENT 標記（正式版沒有）
+        if ($parsed.ContainsKey('LE_EXPERIMENT')) {
+            Write-Host "  LE_EXPERIMENT=$($parsed.LE_EXPERIMENT)" -ForegroundColor Gray
+        }
+
         # 比對 CHECK_*：各層 ANSI/OEM <-> Unicode 轉換必須使用 profile 的 code page
         $checkKeys = @($parsed.Keys | Where-Object { $_ -like 'CHECK_*' } | Sort-Object)
         if ($checkKeys.Count -eq 0) {
