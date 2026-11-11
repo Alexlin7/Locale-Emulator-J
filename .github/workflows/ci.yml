@@ -105,11 +105,11 @@ jobs:
         shell: pwsh
 
       # x64 Core is under development and not shipped: its output is not copied
-      # into Build/Release/. Allowed to fail until it compiles cleanly.
+      # into Build/Release/. Hooks are disabled in the x64 build until the x64
+      # HookEngine lands, but it must compile.
       - name: Build Core (Release|x64)
-        continue-on-error: true
         run: |
-          # Errors only, so the x64 error list stays readable while it is being fixed.
+          # Errors only: Core's legacy code produces many x64 truncation warnings.
           $failed = $false
           foreach ($proj in 'src/Core/LoaderDll/LoaderDll.vcxproj', 'src/Core/LocaleEmulator/LocaleEmulator.vcxproj') {
             msbuild $proj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:quiet "/clp:ErrorsOnly;NoSummary"
