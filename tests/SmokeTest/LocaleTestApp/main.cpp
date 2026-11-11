@@ -15,7 +15,9 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 
 typedef LONG NTSTATUS_;
 
@@ -202,6 +204,21 @@ static void CheckLocaleApis(UINT acp, const WCHAR *wide, int wideChars, const ch
         WideCharToMultiByte(CP_UTF8, 0, value, -1, got, sizeof(got), NULL, NULL);
         sprintf_s(detail, "expected=%u got=%s", acp, got);
         Check("KERNELBASE_LOCALEINFO_ACP", wcscmp(value, expected) == 0, detail);
+
+        // Older CRTs (msvcr80 etc.) resolve setlocale(LC_ALL, "") through the ANSI
+        // API with an explicit LCID, or with LOCALE_SYSTEM_DEFAULT. Under the
+        // system UTF-8 option these may report 65001 instead of the locale's code page.
+        const struct { LCID id; const char *check; } kAnsiQueries[] = {
+            { lcid,                  "KERNELBASE_LOCALEINFO_A_LCID_ACP" },
+            { LOCALE_SYSTEM_DEFAULT, "KERNELBASE_LOCALEINFO_A_SYSTEM_ACP" },
+        };
+        for (const auto &q : kAnsiQueries)
+        {
+            char valueA[32] = {};
+            GetLocaleInfoA(q.id, LOCALE_IDEFAULTANSICODEPAGE, valueA, sizeof(valueA));
+            sprintf_s(detail, "lcid=0x%04X expected=%u got=%s", q.id, acp, valueA);
+            Check(q.check, (UINT)atoi(valueA) == acp, detail);
+        }
 
         WCHAR name[LOCALE_NAME_MAX_LENGTH] = {}, expectedName[LOCALE_NAME_MAX_LENGTH] = {};
         GetUserDefaultLocaleName(name, LOCALE_NAME_MAX_LENGTH);
@@ -484,6 +501,64 @@ static void CheckConversions()
         Hex(back, n * sizeof(WCHAR), hex, sizeof(hex));
         sprintf_s(detail, "cp=%u got=%s", acp, hex);
         Check("KERNELBASE_CP_ACP", ok, detail);
+    }
+
+    // kernelbase Unicode -> ANSI through CP_ACP / CP_THREAD_ACP. With the system
+    // "Beta: Use Unicode UTF-8" option (ACP 65001) this direction can take a
+    // UTF-8 path that ignores the emulated code page.
+    {
+        const struct { UINT cp; const char *check; } w2mb[] = {
+            { CP_ACP,        "KERNELBASE_CP_ACP_W2MB" },
+            { CP_THREAD_ACP, "KERNELBASE_CP_THREAD_ACP_W2MB" },
+        };
+        for (const auto &v : w2mb)
+        {
+            char got[512] = {};
+            int n = WideCharToMultiByte(v.cp, 0, wide, wideChars, got, sizeof(got), NULL, NULL);
+            bool ok = n == expectedMbLen && memcmp(got, expectedMb, n) == 0;
+            Hex(got, n > 0 ? n : 0, hex, sizeof(hex));
+            sprintf_s(detail, "cp=%u got=%s", acp, hex);
+            Check(v.check, ok, detail);
+        }
+    }
+
+    // DBCS lead-byte detection for the ANSI code page (engines walk ANSI text with it).
+    {
+        CPINFO info = {};
+        GetCPInfo(acp, &info);
+        bool isDbcs = info.MaxCharSize == 2;
+        BYTE lead = isDbcs ? info.LeadByte[0] : 0;
+        char pair[3] = { (char)lead, (char)0x40, 0 };
+        BOOL isLead = isDbcs ? IsDBCSLeadByte(lead) : FALSE;
+        BOOL isLeadEx = isDbcs ? IsDBCSLeadByteEx(CP_ACP, lead) : FALSE;
+        int step = isDbcs ? (int)(CharNextA(pair) - pair) : 0;
+
+        sprintf_s(detail, "cp=%u lead=0x%02X got=%d", acp, lead, isLead);
+        Check("KERNELBASE_ISDBCSLEADBYTE", !isDbcs || isLead, detail);
+        sprintf_s(detail, "cp=%u lead=0x%02X got=%d", acp, lead, isLeadEx);
+        Check("KERNELBASE_ISDBCSLEADBYTEEX_CP_ACP", !isDbcs || isLeadEx, detail);
+        sprintf_s(detail, "cp=%u lead=0x%02X step=%d", acp, lead, step);
+        Check("USER32_CHARNEXTA_DBCS", !isDbcs || step == 2, detail);
+    }
+
+    // CRT conversions after setlocale(LC_ALL, "") (the user-default locale's ANSI code page).
+    {
+        char *prev = setlocale(LC_ALL, "");
+        char got[512] = {};
+        size_t n = wcstombs(got, wide, sizeof(got));
+        bool ok = n == (size_t)expectedMbLen && memcmp(got, expectedMb, n) == 0;
+        Hex(got, n != (size_t)-1 ? (int)n : 0, hex, sizeof(hex));
+        sprintf_s(detail, "cp=%u locale=%s got=%s", acp, prev ? prev : "(null)", hex);
+        Check("CRT_WCSTOMBS_USER_LOCALE", ok, detail);
+
+        WCHAR back[256] = {};
+        size_t m = mbstowcs(back, expectedMb, 256);
+        ok = m == (size_t)wideChars && memcmp(back, wide, m * sizeof(WCHAR)) == 0;
+        Hex(back, m != (size_t)-1 ? (int)(m * sizeof(WCHAR)) : 0, hex, sizeof(hex));
+        sprintf_s(detail, "cp=%u got=%s", acp, hex);
+        Check("CRT_MBSTOWCS_USER_LOCALE", ok, detail);
+
+        setlocale(LC_ALL, "C");
     }
 
     // user32: window title set through an ANSI API, read back as Unicode
