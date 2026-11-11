@@ -11,8 +11,8 @@
 | x86 Core | 正式使用；smoke test 6 個地區、每個地區 32 個 `CHECK_*` 加時區全綠 |
 | x64 Core | 能編譯（`LoaderDll64.dll` / `LocaleEmulator64.dll`），不安裝 hook、不發佈 |
 | C++ 標準 | Core C++17（加 `/Zc:alignedNew-`）；ShellExtension 與 C++ 測試 C++23 |
-| D7 兩段式 Core | 時機實驗 E1、E2 在 smoke test 範圍內全 PASS；等實際遊戲驗證後定案 |
-| 開發分支 | `claude/busy-wozniak-et7oxc`，尚未合回 main |
+| D7 兩段式 Core | 時機實驗 E1、E2 在 smoke test 範圍內全 PASS；實際遊戲測試進行中（E2 測 5 款：3 款正常，2 款與 E2 無關或待查） |
+| 開發分支 | Phase 1 + Part A + Part C 已合回 `master` 並推上遠端 |
 
 ## 2. TODO
 
@@ -20,7 +20,11 @@
 
 ### 近期：D7 與 Phase 2
 
-- [ ] **實際遊戲測試 E2 版**：使用者在自己的 Windows 主機上編譯 `/p:LeExperimentTiming=2` 的 `LocaleEmulator.dll`，換掉 LE 目錄裡的 DLL 測幾個 32 位元遊戲，用 Process Explorer 確認環境變數 `LE_EXPERIMENT=E2:init-after-kernel32`。結果寫回 spec §4.5。
+- [ ] **實際遊戲測試 E2 版**（進行中，E2 測 5 款：KiriKiri、RealLive、FVP 各一款正常；一款漢化啟動器不經 LE 也會當，已排除；一款 ExHIBIT 遊戲的亂碼另列於下）：本機建置 `/p:LeExperimentTiming=2` 的 `LocaleEmulator.dll`，覆蓋到使用者的安裝目錄，同一份 profile 分別用 E0 / E2 測幾個 32 位元遊戲。結果寫回 spec §4.5。
+- [ ] **修 `.le.config` 的 `<Location>` 相容問題**：舊版 LE（與上游 fork `f29f84f` 之前）寫 `<Location>`，新版只讀 `<Region>`；讀不到時 `LEConfig.GetProfiles` 吞掉例外回傳空陣列：`-run`（`RunWithIndependentProfile`）的 `[0]` 越界被 `Main` 的空 `catch` 吞掉，**什麼都不發生、沒有任何訊息**；不帶參數直接給路徑時則靜默改用全域第一個 profile。
+- [ ] **`-run` 的路徑不存在時給錯誤訊息**：目前路徑打錯（例如路徑前段重複了一次，`X:\dir\X:\dir\...`）會去開 LEGUI 建 `.le.config`，因目錄不存在而判定不可寫，觸發 UAC 後顯示「目錄無寫入權限，請改用全域設定」，誤導使用者以為是權限問題。應先檢查目標 exe 是否存在。
+- [ ] **系統 ACP 65001（UTF-8 beta）下 LE 有漏攔路徑**（已確認）：一款 ExHIBIT 引擎的遊戲（劇本 `.rld` 加密）在 LE ja 下 UI 正常、劇本呈「縺ゅ」型亂碼（UTF-8 位元組被當 CP932 顯示）；E0 / E2 相同；使用者關閉 UTF-8 beta（系統 ACP 回到 950）後劇本正常。代表引擎某處 W→A 轉換拿到了系統真正的 ACP 65001。smoke test 在 65001 下全 PASS，所以這條路徑不在現有 `CHECK_*` 裡。下一步：在 LocaleTestApp 加候選 API 的 `CHECK_*`（含 CRT `wcstombs` / `setlocale`、`WideCharToMultiByte(CP_ACP)` 往返、gdi32 `GetGlyphOutlineA` / `TextOutA` 等）在 65001 環境找出漏網的 API。注意：GitHub runner 是 ACP 1252 且無法重開機切 65001，重現只能在使用者主機上做。profile 的 `ja` 與 `ja-JP` 組出的 LEB 相同（`TextInfo.LCID` 0x0411、ACP 932），已排除。
+- [ ] **查 LEProc 偶發當機**：`LoaderWrapper.LeCreateProcess` 內存取違規（`0xc0000005`，faulting module 顯示 coreclr.dll），E0、E2 都會發生，本機 smoke test 的偶發逾時即此問題。
 - [ ] **D7 定案**；成立的話，寫兩段式 Core 的實作計畫（第一段只負責在 kernel32 初始化後載入第二段，第二段可以用 CRT）。
 - [ ] **A2b**：盤點需要超出預設對齊的型別（開 C4316，或暫時拿掉 `/Zc:alignedNew-` 看連結錯誤），評估改成正式實作對齊版 `operator new/delete`。
 - [ ] **A3 / A4**：Core 升到 C++20、C++23（風險在 ml.h：`operator==` 改寫規則、`char8_t`、聚合初始化）。
@@ -53,7 +57,7 @@
 
 - [ ] Windows 11 右鍵選單第一層（`IExplorerCommand` + 有簽章的 sparse package）
 - [ ] Core 的可選診斷 log（目前 `WriteLog` 不輸出任何東西）
-- [ ] 開 PR，把 Phase 1 + Part A + Part C 合回 main
+- [x] 開 PR，把 Phase 1 + Part A + Part C 合回 main
 
 ## 3. 做得不錯、要維持的做法
 
@@ -90,5 +94,4 @@
 3. **LEB 契約在 x64 上的變化。** 指標大小會變，C# / C++ / 兩個測試專案是手抄的定義。做 LEProc64 之前，至少要讓 Core.Tests 與 LEProc.Tests 以 x64 檢查 LEProc64 看到的佈局。
 4. **Core 沒有診斷 log。** 使用者回報「某個遊戲沒效」時會沒有線索。建議早點加可選的 log（例如 ntdll 的 `DbgPrint`，用環境變數開關）。
 5. **Windows 11 右鍵選單。** 要出現在第一層通常需要 `IExplorerCommand` 加有簽章的 sparse package，會牽涉安裝方式與簽章；越晚決定，現有的安裝流程越難改。
-6. **長期分支太久沒合回 main。** 分支上已有數十個 commit，越晚合衝突越多、review 越難。
-7. **只在一種 Windows 版本上測過。** 鐵則中「NLS 表替換失效」就是在特定 build 上發現的。至少讓 smoke test 輸出 OS build；有條件時多一種 Windows 版本。ARM64 Windows 以模擬執行 x86 程式，`KiFastSystemCall` 那套做法能否運作也值得早點確認。
+6. **只在一種 Windows 版本上測過。** 鐵則中「NLS 表替換失效」就是在特定 build 上發現的。至少讓 smoke test 輸出 OS build；有條件時多一種 Windows 版本。ARM64 Windows 以模擬執行 x86 程式，`KiFastSystemCall` 那套做法能否運作也值得早點確認。
