@@ -38,7 +38,13 @@
         that used to live in _Libs (undoc_k32.lib, undoc_apphelp.lib, ...).
       -->
       <PreprocessorDefinitions>ML_DISABLE_THIRD_LIB=1;_NO_CRT_STDIO_INLINE;_USE_STD_VECTOR_ALGORITHMS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalOptions>/Zc:templateScope- /Zc:strictStrings- /Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
+      <!--
+        /Zc:alignedNew- keeps the C++14 behaviour for over-aligned types: since
+        C++17, deleting a type aligned beyond __STDCPP_DEFAULT_NEW_ALIGNMENT__
+        (8 on x86) calls operator new/delete(..., std::align_val_t), which the
+        CRT-free Core does not provide (ml.h only overloads the plain forms).
+      -->
+      <AdditionalOptions>/Zc:templateScope- /Zc:strictStrings- /Zc:threadSafeInit- /Zc:alignedNew- %(AdditionalOptions)</AdditionalOptions>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
       <SDLCheck>false</SDLCheck>

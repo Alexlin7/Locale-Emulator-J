@@ -32,6 +32,7 @@ MSBuild 的 C++23 值是 `stdcpp23`，對應 `/std:c++23preview`；MSVC Build To
 - 預期風險：C++17 移除動態例外規格與 `register`、把 `noexcept` 納入函式型別、新增 aligned `operator new`。Core 沒有 CRT，若連結時出現新的 `operator new/delete` 多載或其他 helper 符號未解析，要在 `Runtime/CoreRuntime.cpp` 或 `.def` 補，不能把 CRT 加回來（鐵則 3）。
 - 驗收：CI 的 Core x86（含「不得靜態 import kernel32」檢查）與 x64 建置成功；Core.Tests 通過；smoke test 6/6，所有 `CHECK_*` 為 `OK`（鐵則 9）。
 - commit：`[Core] build: Core 升級到 C++17`
+- 結果（CI run 42961436478）：x86 的 LocaleEmulator 連結失敗，缺 `operator delete(void*, unsigned int, std::align_val_t)`。x86 的預設 new 對齊是 8，有 16-byte 對齊的型別被 `delete` 時，C++17 會改呼叫 aligned 版本（x64 預設對齊為 16，不受影響）。Core.props 加上 `/Zc:alignedNew-`，維持 C++14 的行為。同一次 run 也發現 CI 的 Win32 建置步驟只檢查最後一個 msbuild 的結束碼，中間專案失敗會被蓋掉，已改為每個 msbuild 後都檢查。
 
 ### 之後（不在本計畫內，視 A2 結果另外排）
 
