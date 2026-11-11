@@ -124,6 +124,7 @@ jobs:
         run: |
           msbuild src/ShellExtension/ShellExtension.vcxproj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
           msbuild tests/ShellExtension.Tests/ShellExtension.Tests.vcxproj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+          msbuild tests/Core.Tests/Core.Tests.vcxproj /p:Configuration=Release /p:Platform=x64 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
         shell: pwsh
 
       # ---- Assemble runtime directory ----
