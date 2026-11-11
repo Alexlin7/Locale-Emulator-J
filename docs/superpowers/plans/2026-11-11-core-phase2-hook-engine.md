@@ -44,10 +44,26 @@ MSBuild 的 C++23 值是 `stdcpp23`，對應 `/std:c++23preview`；MSVC Build To
 - A4：Core 從 C++20 升到 C++23。
 - Core 在無 CRT 下只能用語言功能（`if consteval`、deducing `this`、concepts、`consteval` 等）；`std::expected`、`std::format`/`std::print`、容器等標準函式庫功能不能用，需要的話自己寫小型替代品（例如包裝 `NTSTATUS` 的 `Result` 型別）。
 
+## Part C：時機實驗（D7，兩段式 Core）
+
+依 spec §3.3、§4.5 執行（x86）。原本排在 Part B 之後，改到 Part B 之前：E1、E2 不依賴 HookEngine，而 D7 是否成立會影響 Part B 與 x64 的 hook 要寫在無 CRT 的第一段，還是可以用 CRT 的第二段，先做可以避免白工。
+
+### Task C1：E1、E2 的實驗開關與 CI 步驟
+
+- `src/Core/LocaleEmulator/LocaleEmulator.cpp`：新增 `LE_EXPERIMENT_TIMING`（預設 0，正式產物行為不變）。
+  - `1`（E1）：`LeGlobalData::Initialize` 照常載入 NLS 表，但不寫入 PEB；等 kernel32（含之前的 kernelbase）完成 `DLL_PROCESS_ATTACH`、`HookModule` 要 hook kernel32 時，才寫入 `AnsiCodePageData` / `OemCodePageData` / `UnicodeCaseTableData`。
+  - `2`（E2）：`::Initialize` 只註冊 DLL 載入通知；kernel32 載入時把它的進入點換成 `LeExperimentKernel32Entry`，在 kernel32 原本的進入點回傳後才執行整個 `LeGlobalData::Initialize`，並補上 kernel32 的 hook。啟動器程序（`LE_LOADER_PROCESS`）的 kernel32 早已載入，維持原本路徑。
+- `src/Core/Core.props`：`/p:LeExperimentTiming=N` 時定義 `LE_EXPERIMENT_TIMING=N`。
+- `.github/workflows/ci.yml`：smoke test 之後新增「Timing experiment (E1, E2)」步驟，分別建一份實驗版 x86 `LocaleEmulator.dll` 到 `Build/Experiment/E<n>/`，複製一份執行目錄後跑 smoke test（`-Verbose`，列出每個 `CHECK_*`）。步驟設 `continue-on-error`，不影響建置結果。
+- 驗收：正式的 x86/x64 建置、Core.Tests、smoke test 維持全綠；實驗步驟兩份 DLL 都建置成功並產出結果。
+- commit：`[Core] test: 新增時機實驗開關 LE_EXPERIMENT_TIMING（E1、E2）`、`ci: 新增時機實驗步驟`
+
+### Task C2：判讀結果
+
+- 把 E1、E2 每個語系的 `CHECK_*`、ACP、OEMCP、LCID 結果寫回 spec §4.5。
+- E2 全部 `OK` → D7 可以考慮簡化為單段、完整 CRT；E2 有 `FAIL` → 依失敗項目規劃 E3。
+- 實驗結果若讓程序直接啟動失敗（逾時、沒有 `locale_result.txt`），先查原因再判讀，不要直接當成「必須早期注入」的證據。
+
 ## Part B：HookEngine 介面（x86 行為不變）
 
 待 Part A 完成、依 A2 結果決定新模組可用的標準後，再寫細部 Task。範圍依 spec Phase 2：抽出 HookEngine 介面，x86 實作包住現有 `HookPort`，行為不變。
-
-## Part C：時機實驗（D7，兩段式 Core）
-
-依 spec §3.3、§4.5 執行 E0～E3（x86）。排在 Part B 之後、Phase 3（x64 引擎）之前，因為 D7 是否成立會影響 x64 的 hook 要寫在無 CRT 的第一段，還是可以用 CRT 的第二段。細部 Task 在 Part B 完成後撰寫。

@@ -187,6 +187,34 @@ jobs:
         shell: pwsh
         if: success()
 
+      # ---- Timing experiment (D7, design spec section 4.5) ----
+      # Rebuilds x86 LocaleEmulator.dll with LE_EXPERIMENT_TIMING=1 (E1) / 2 (E2)
+      # into a separate directory and runs the smoke test against a copy of the
+      # runtime directory. Informational only: failures do not fail the build.
+
+      - name: Timing experiment (E1, E2)
+        if: success()
+        continue-on-error: true
+        run: |
+          $results = @()
+          foreach ($e in 1, 2) {
+            $int = "$env:SOLUTION_DIR" + "Build\Intermediate\Experiment\E$e\"
+            $out = "$env:SOLUTION_DIR" + "Build\Experiment\E$e\bin\"
+            msbuild src/Core/LocaleEmulator/LocaleEmulator.vcxproj /p:Configuration=Release /p:Platform=Win32 "/p:SolutionDir=$env:SOLUTION_DIR" "/p:IntDir=$int" "/p:OutDir=$out" /p:LeExperimentTiming=$e /v:minimal
+            if ($LASTEXITCODE -ne 0) { $results += "E${e}: BUILD FAILED"; continue }
+            $dir = "Build\Experiment\E$e\run"
+            if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
+            Copy-Item Build\Release\x86 $dir -Recurse
+            Copy-Item "$out\LocaleEmulator.dll" $dir -Force
+            Write-Host "===== E$e smoke test =====" -ForegroundColor Cyan
+            & .\tests\SmokeTest\Invoke-SmokeTest.ps1 -BuildDir (Resolve-Path $dir) -Verbose
+            $results += "E${e}: smoke test exit code $LASTEXITCODE"
+          }
+          Write-Host "===== Timing experiment summary =====" -ForegroundColor Cyan
+          $results | ForEach-Object { Write-Host $_ }
+          $results | ForEach-Object { "- $_" } | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+        shell: pwsh
+
       # ---- Artifacts ----
 
       - name: Upload build artifacts
