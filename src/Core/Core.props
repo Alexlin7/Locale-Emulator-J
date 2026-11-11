@@ -65,6 +65,17 @@
   </ItemDefinitionGroup>
 
   <!-- x86-only settings. -->
+  <!--
+    Timing experiment for the two-stage Core proposal (D7). Only the CI experiment
+    step sets LeExperimentTiming (msbuild /p:LeExperimentTiming=1|2); see
+    LE_EXPERIMENT_TIMING in LocaleEmulator.cpp.
+  -->
+  <ItemDefinitionGroup Condition="'$(LeExperimentTiming)' != ''">
+    <ClCompile>
+      <PreprocessorDefinitions>LE_EXPERIMENT_TIMING=$(LeExperimentTiming);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
   <ItemDefinitionGroup Condition="'$(Platform)' == 'Win32'">
     <ClCompile>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>

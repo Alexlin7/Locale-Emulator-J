@@ -30,6 +30,39 @@ EXTC ULONG NTAPI FuckStupid2DJGame(PCSTR FileName)
 
 PLeGlobalData g_GlobalData;
 
+// Timing experiment for the two-stage Core proposal (D7, design spec section 4.5).
+// Built only by the CI experiment step; shipping builds use 0.
+//   0: current behaviour
+//   1 (E1): rewrite the PEB NLS pointers after kernel32 has been initialized
+//   2 (E2): run the whole LeGlobalData::Initialize after kernel32 has been initialized
+#ifndef LE_EXPERIMENT_TIMING
+#define LE_EXPERIMENT_TIMING 0
+#endif
+
+#if LE_EXPERIMENT_TIMING == 1
+
+static PUSHORT g_DeferredAnsiCodePageData;
+static PUSHORT g_DeferredOemCodePageData;
+static PUSHORT g_DeferredUnicodeCaseTableData;
+
+static VOID LeExperimentApplyDeferredPeb()
+{
+    PPEB_BASE Peb;
+
+    if (g_DeferredAnsiCodePageData == nullptr)
+        return;
+
+    Peb = CurrentPeb();
+    Peb->AnsiCodePageData       = g_DeferredAnsiCodePageData;
+    Peb->OemCodePageData        = g_DeferredOemCodePageData;
+    Peb->UnicodeCaseTableData   = g_DeferredUnicodeCaseTableData;
+
+    g_DeferredAnsiCodePageData = nullptr;
+    WriteLog(L"E1: peb nls applied");
+}
+
+#endif // LE_EXPERIMENT_TIMING == 1
+
 ForceInline VOID LeSetGlobalData(PLeGlobalData GlobalData)
 {
     g_GlobalData = GlobalData;
@@ -321,11 +354,24 @@ NTSTATUS LeGlobalData::Initialize()
 
         WriteLog(L"reset nls");
 
+#if LE_EXPERIMENT_TIMING == 1
+
+        // E1: keep the tables, write them into the PEB once kernel32 is initialized
+        // (LeGlobalData::HookModule).
+        UNREFERENCED_PARAMETER(Peb);
+        g_DeferredAnsiCodePageData      = (PUSHORT)PtrAdd(CodePageMapView, AnsiCodePageOffset);
+        g_DeferredOemCodePageData       = (PUSHORT)PtrAdd(CodePageMapView, OemCodePageOffset);
+        g_DeferredUnicodeCaseTableData  = (PUSHORT)PtrAdd(CodePageMapView, UnicodeCaseTableOffset);
+
+#else
+
         Peb = CurrentPeb();
 
         Peb->AnsiCodePageData       = (PUSHORT)PtrAdd(CodePageMapView, AnsiCodePageOffset);
         Peb->OemCodePageData        = (PUSHORT)PtrAdd(CodePageMapView, OemCodePageOffset);
         Peb->UnicodeCaseTableData   = (PUSHORT)PtrAdd(CodePageMapView, UnicodeCaseTableOffset);
+
+#endif // LE_EXPERIMENT_TIMING == 1
 
         // LdrInitShimEngineDynamic(&__ImageBase);
 
@@ -506,6 +552,12 @@ VOID LeGlobalData::HookModule(PVOID DllBase, PCUNICODE_STRING DllName, BOOL DllL
     if (Entry == nullptr)
         return;
 
+#if LE_EXPERIMENT_TIMING == 1
+    // kernel32 (and kernelbase before it) has finished DLL_PROCESS_ATTACH here.
+    if (DllLoad && Entry->HookRoutine == &LeGlobalData::HookKernel32Routines)
+        LeExperimentApplyDeferredPeb();
+#endif
+
     NTSTATUS Status = DllLoad ? (this->*Entry->HookRoutine)(DllBase) : (this->*Entry->UnHookRoutine)();
 
     UNREFERENCED_PARAMETER(Status);
@@ -634,6 +686,66 @@ VOID GenerateModuleList(ml::String &ModuleNames)
     }
 }
 
+#if LE_EXPERIMENT_TIMING == 2
+
+// E2: kernel32's entry point is redirected here; LE initializes after kernel32
+// (and kernelbase) have finished DLL_PROCESS_ATTACH, which approximates the
+// timing of import-table injection (Detours).
+static BOOL NTAPI LeExperimentKernel32Entry(PVOID BaseAddress, ULONG Reason, PVOID Reserved)
+{
+    BOOL                Success;
+    NTSTATUS            Status;
+    PLDR_MODULE         Module;
+    PIMAGE_NT_HEADERS   NtHeaders;
+
+    Module = FindLdrModuleByHandle(BaseAddress);
+    NtHeaders = PtrAdd((PIMAGE_NT_HEADERS)BaseAddress, ((PIMAGE_DOS_HEADER)BaseAddress)->e_lfanew);
+    Module->EntryPoint = PtrAdd(BaseAddress, NtHeaders->OptionalHeader.AddressOfEntryPoint);
+
+    Success = ((API_POINTER(LeExperimentKernel32Entry))Module->EntryPoint)(BaseAddress, Reason, Reserved);
+    if (Reason != DLL_PROCESS_ATTACH || !Success)
+        return Success;
+
+    Status = LeGetGlobalData()->Initialize();
+    WriteLog(L"E2: init after kernel32: %p", Status);
+
+    // Initialize hooks kernel32 only when LDRP_PROCESS_ATTACH_CALLED is already
+    // set; otherwise it points the entry at DelayInitDllEntry, which will not run
+    // again for this attach. Hook it here in that case.
+    if (NT_SUCCESS(Status) && !FLAG_ON(Module->Flags, LDRP_PROCESS_ATTACH_CALLED))
+    {
+        Module->EntryPoint = PtrAdd(BaseAddress, NtHeaders->OptionalHeader.AddressOfEntryPoint);
+        LeGetGlobalData()->HookModule(BaseAddress, &Module->BaseDllName, TRUE);
+    }
+
+    return Success;
+}
+
+static PVOID g_ExperimentNotificationCookie;
+static BOOL  g_ExperimentKernel32Seen;
+
+static VOID NTAPI LeExperimentDllNotification(ULONG NotificationReason, PCLDR_DLL_NOTIFICATION_DATA NotificationData, PVOID Context)
+{
+    static UNICODE_STRING Kernel32Name = RTL_CONSTANT_STRING(L"KERNEL32.dll");
+    PLDR_MODULE Module;
+
+    UNREFERENCED_PARAMETER(Context);
+
+    if (g_ExperimentKernel32Seen || NotificationReason != LDR_DLL_NOTIFICATION_REASON_LOADED)
+        return;
+
+    if (!RtlEqualUnicodeString(NotificationData->Loaded.BaseDllName, &Kernel32Name, TRUE))
+        return;
+
+    g_ExperimentKernel32Seen = TRUE;
+
+    Module = FindLdrModuleByHandle(NotificationData->Loaded.DllBase);
+    if (Module != nullptr)
+        Module->EntryPoint = LeExperimentKernel32Entry;
+}
+
+#endif // LE_EXPERIMENT_TIMING == 2
+
 BOOL Initialize(PVOID BaseAddress)
 {
     NTSTATUS            Status;
@@ -661,6 +773,19 @@ BOOL Initialize(PVOID BaseAddress)
         return FALSE;
 
     LeSetGlobalData(GlobalData);
+
+#if LE_EXPERIMENT_TIMING == 2
+
+    // The launcher process (LE_LOADER_PROCESS) already has kernel32 loaded; keep
+    // the normal path there so injection into the target still works.
+    if (FindThreadFrame(LE_LOADER_PROCESS) == nullptr)
+    {
+        Status = LdrRegisterDllNotification(0, LeExperimentDllNotification, nullptr, &g_ExperimentNotificationCookie);
+        WriteLog(L"E2: defer init: %p", Status);
+        return NT_SUCCESS(Status);
+    }
+
+#endif // LE_EXPERIMENT_TIMING == 2
 
     Status = GlobalData->Initialize();
     if (NT_FAILED(Status))
