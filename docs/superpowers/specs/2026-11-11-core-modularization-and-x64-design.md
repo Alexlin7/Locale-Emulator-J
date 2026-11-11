@@ -78,7 +78,7 @@ x64 化必須重寫 hook 引擎（x86 的 `KiFastSystemCall` 單點攔截在 x64
 
 | ID | 項目 | 提案 | 決定條件 |
 |---|---|---|---|
-| **D7** | 兩段式 Core | 把注入 DLL 拆成兩段：**第一段**維持無 CRT、只依賴 ntdll，只做一定要在 kernel32 之前完成的事；**第二段**是一般 C++ DLL（靜態 CRT `/MT`、STL、C++23 函式庫），其餘 hook 都放這裡 | §4.5 的時機實驗（E1～E3）。實驗結果決定第一段要留哪些東西，或是否連第一段都不需要 |
+| **D7** | 兩段式 Core（E1、E2 已全 PASS，見 §4.5） | 把注入 DLL 拆成兩段：**第一段**維持無 CRT、只依賴 ntdll，只做一定要在 kernel32 之前完成的事；**第二段**是一般 C++ DLL（靜態 CRT `/MT`、STL、C++23 函式庫），其餘 hook 都放這裡 | §4.5 的時機實驗（E1～E3）。實驗結果決定第一段要留哪些東西，或是否連第一段都不需要 |
 
 背景：
 - 現在的無 CRT 限制，來自 LE 選擇在 ntdll 第一次呼叫 `LdrLoadDll`（載入 kernel32）時注入（鐵則 4）。這樣做的理由是 kernelbase 初始化時會讀取 PEB 的 code page / NLS 資料並快取，LE 要在它讀之前改好 PEB。
@@ -222,6 +222,31 @@ LoaderDll ─ 建立暫停的程序，hook 第一次 LdrLoadDll（現有機制�
 - 用編譯期巨集（例如 `LE_EXPERIMENT_TIMING=1/2`）切換，只在 CI 的實驗步驟另外建一份 x86 `LocaleEmulator.dll` 來跑 smoke test。正式產物不受影響。
 - 實驗步驟允許失敗（`continue-on-error`），只記錄每個 `CHECK_*` 的結果。
 - 結果寫回本節，據此把 D7 移到「已確定」或「否決」。
+
+**結果（2026-11-11，CI run 42963850519，commit `12ff732`，GitHub Actions `windows-2025-vs2026`，系統 ACP 1252 / OEMCP 437 / LCID 0x0409）：**
+
+| 實驗 | 延後路徑確實執行（`LE_EXPERIMENT` 標記） | ja-JP | zh-TW | zh-CN | zh-Hant-TW | ko-KR | en-US |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| E0 基準 | — | PASS | PASS | PASS | PASS | PASS | PASS |
+| E1 延後改寫 PEB | `E1:peb-after-kernel32` | PASS | PASS | PASS | PASS | PASS | PASS |
+| E2 全部延後 | `E2:init-after-kernel32` | PASS | PASS | PASS | PASS | PASS | PASS |
+
+- 每個語系的 ACP、OEMCP、LCID 與 22 個 `CHECK_*` 全部 `OK`（E1、E2 合計 264 個 `CHECK_*`）。en-US 與 runner 的系統設定相同，分辨不出差異；其他五個語系都和系統設定不同，結果有鑑別力。
+- 第一次跑時兩份實驗版都 PASS，但無法證明延後路徑真的執行，所以補了 `LE_EXPERIMENT` 標記：實驗版在延後的時間點設定這個環境變數，LocaleTestApp 輸出，smoke test 顯示。正式版沒有這個標記。
+- 實驗沒有用到 E3（E2 沒有 `FAIL`）。
+
+**解讀：**
+- 在 smoke test 涵蓋的範圍內，**LE 的初始化不需要早於 kernel32 / kernelbase 的 `DLL_PROCESS_ATTACH`**。kernelbase 的 `CP_ACP` 在 E1、E2 都正確，原因應該是 kernel32 載入時的 `HackAnsiOemCodeHashNodes`（寫入 PEB 的 code page 欄位並重建 kernelbase 的 code page hash 節點）本來就在 kernel32 之後執行，它取代了「在 kernelbase 初始化前改好 PEB」的必要性。這一點是推論，尚未單獨驗證。
+- E2 的時機是在 kernel32 的進入點回傳之後、主程式的其他 DLL 與進入點之前，和 Detours 匯入表注入的時機相同或更早。所以「改成 kernel32 之後再初始化」在 smoke test 範圍內可行。
+- **但這還不代表可以直接用 CRT。** E2 的 DLL 本身仍然在 kernel32 之前被載入，只是初始化延後，所以它依然不能靜態 import kernel32 或 CRT。要用 CRT，必須讓「用 CRT 的那顆 DLL」在 kernel32 之後才載入。因此 D7 的形狀調整為：
+  - **第一段**縮到最小：只負責在 kernel32 初始化完成後載入第二段（現有的注入機制不變）。
+  - **第二段**：所有初始化與 hook，可以使用 CRT。
+  - 另一個選項是改掉注入機制（例如匯入表注入），讓第一段完全消失。但這會動到 LoaderDll 與 `ml` 的 `CreateProcessWithDll`，範圍大很多，先不採用。
+
+**D7 定案前還要做的事：**
+1. 擴充 smoke test 的涵蓋範圍，再跑一次 E2：`GetCPInfo`、`MultiByteToWideChar(CP_THREAD_ACP)`、`GetLocaleInfo`、時區（`GetTimeZoneInformation`）、registry 轉向（smoke test 目前是 `RedirectRegistry=false`）、gdi32 字型 charset。
+2. 由使用者挑幾個實際遊戲，在自己的電腦上用 E2 版測試（不擅自掃描使用者的遊戲資料夾）。
+3. 兩項都沒問題，就把 D7 移到「已確定」，並另寫兩段式的實作計畫。
 
 **實驗的限制：**
 - smoke test 只涵蓋 LocaleTestApp 會檢查的 API（`GetACP`、`GetOEMCP`、`GetUserDefaultLCID`、`Rtl*` 轉換、kernelbase `CP_ACP`、ANSI 檔案 API、user32 視窗標題）。kernelbase 也許還快取了別的東西，LocaleTestApp 沒有檢查到。
