@@ -9223,21 +9223,13 @@ protected:
         {
             case OpPush:
                 //
-                // push imm.low
-                // mov dword ptr [rsp + 4], imm.high
-                // ret
+                // push/ret is not used on x64: the original encoding here was
+                // wrong (it dropped the high 32 bits of Target and left 4
+                // uninitialized bytes between the two instructions), and
+                // push/ret breaks CET shadow stacks. x64 hooks go through the
+                // Locale Emulator HookEngine instead.
                 //
-                *Buffer++ = 0x68;
-                *(PULONG)Buffer = (ULONG)((ULONG_PTR)Target >> 32);
-                Buffer += POINTER_SIZE;
-
-                *Buffer++ = 0xC7;
-                *Buffer++ = 0x04;
-                *Buffer++ = 0x24;
-                *(PULONG)Buffer = (ULONG)(ULONG_PTR)Target;
-
-                *Buffer = 0xC3;
-                break;
+                return STATUS_NOT_SUPPORTED;
 
             default:
                 if (HookOp < OpJRax || HookOp > OpJRdi)
@@ -9837,10 +9829,8 @@ protected:
         switch (HookOp)
         {
             case OpPush:
-                // 68 00 00 00 80       push    80000000h
-                // C7 04 24 00 00 00 80 mov     dword ptr [rsp], 80000000h
-                // C3                   ret
-                return 0xD;
+                // Not supported on x64, see GenerateHookCode.
+                return ULONG_PTR_MAX;
 
             //case OpJumpIndirect:
             //    //
