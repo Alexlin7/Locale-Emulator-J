@@ -22,6 +22,7 @@ NTSTATUS LeGlobalData::HackUserDefaultLCID(PVOID Kernel32)
     PLDR_MODULE Kernel;
     API_POINTER(GetUserDefaultLCID) GetUserDefaultLCID;
 
+    // LE-ALLOW-KERNELBASE: reads kernelbase's own LCID to locate its process locale cache (runs after kernel32 is loaded).
     *(PVOID *)&GetUserDefaultLCID = LookupExportTable(Kernel32, KERNEL32_GetUserDefaultLCID);
     Lcid = GetUserDefaultLCID();
 
@@ -73,6 +74,7 @@ PVOID FASTCALL LeGetNamedLocaleHashNode(PWSTR LocaleName, LANGID LangId)
         return StubGetNamedLocaleHashNode(LocaleName, LangId);
     }
 
+    // LE-ALLOW-KERNELBASE: rewrites the locale name kernelbase is about to hash, inside kernelbase's own call.
     *(PVOID *)&LCIDToLocaleName = LookupExportTable(Kernel->DllBase, KERNEL32_LCIDToLocaleName);
 
     LocaleName[-1] = (USHORT)(LCIDToLocaleName(GlobalData->GetLeb()->LocaleID, LocaleName, 0xAC, 0) - 1);
@@ -115,6 +117,7 @@ NTSTATUS LeGlobalData::HackUserDefaultLCID2(PVOID Kernel32)
 
     PatchMemory(p, countof(p));
 
+    // LE-ALLOW-KERNELBASE: forces kernelbase to rebuild its locale hash node through the temporary hook above.
     *(PVOID *)&GetUserDefaultLCID = LookupExportTable(Kernel32, KERNEL32_GetUserDefaultLCID);
     GetUserDefaultLCID();
 
