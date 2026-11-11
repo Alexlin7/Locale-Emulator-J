@@ -243,8 +243,27 @@ LoaderDll ─ 建立暫停的程序，hook 第一次 LdrLoadDll（現有機制�
   - **第二段**：所有初始化與 hook，可以使用 CRT。
   - 另一個選項是改掉注入機制（例如匯入表注入），讓第一段完全消失。但這會動到 LoaderDll 與 `ml` 的 `CreateProcessWithDll`，範圍大很多，先不採用。
 
+**擴充涵蓋範圍後再跑一次（Task C3，CI run 42965336674，commit `8987222`）：**
+
+新增 10 個 `CHECK_*`，smoke test 的 profile 改為 `RedirectRegistry=true`，並檢查時區：
+
+| 類別 | 新增項目 |
+|---|---|
+| kernelbase | `GETCPINFO_ACP`、`GETCPINFO_OEMCP`、`CP_THREAD_ACP`、`CP_OEMCP`、`LOCALEINFO_ACP`、`USER_DEFAULT_LOCALE_NAME` |
+| registry 轉向 | `REGISTRY_NLS_ACP`、`REGISTRY_NLS_OEMCP`（`HKLM\System\CurrentControlSet\Control\Nls\CodePage`） |
+| gdi32 | `GDI32_STOCK_FONT_CHARSET`（`DEFAULT_GUI_FONT`）、`GDI32_COMPATIBLE_DC_CHARSET`（`CreateCompatibleDC`） |
+| 時區 | `GetTimeZoneInformation` 的 `Bias` 必須是 -540（Tokyo Standard Time；runner 是 UTC） |
+
+| 實驗 | 6 個語系 | `CHECK_*`（每語系 32 個） | 時區 |
+|---|---|---|---|
+| E0 正式版 | 6/6 PASS | 192/192 OK | 6/6 |
+| E1 | 6/6 PASS | 192/192 OK | 6/6 |
+| E2 | 6/6 PASS | 192/192 OK | 6/6 |
+
+新項目在 E0 也全部 `OK`，代表它們反映的是 LE 現有的行為，不是新發現的缺口；E2 同樣全部 `OK`，結論不變。
+
 **D7 定案前還要做的事：**
-1. 擴充 smoke test 的涵蓋範圍，再跑一次 E2：`GetCPInfo`、`MultiByteToWideChar(CP_THREAD_ACP)`、`GetLocaleInfo`、時區（`GetTimeZoneInformation`）、registry 轉向（smoke test 目前是 `RedirectRegistry=false`）、gdi32 字型 charset。
+1. ~~擴充 smoke test 的涵蓋範圍，再跑一次 E2~~：已完成，見上表。仍未涵蓋：user32 的訊息轉換（`SendMessageA` 等）、gdi32 的 `EnumFontFamilies*`、`IsAdvancedRedirection` 的 HKCU 項目與 UI 語言 API。
 2. 由使用者挑幾個實際遊戲，在自己的電腦上用 E2 版測試（不擅自掃描使用者的遊戲資料夾）。
 3. 兩項都沒問題，就把 D7 移到「已確定」，並另寫兩段式的實作計畫。
 
