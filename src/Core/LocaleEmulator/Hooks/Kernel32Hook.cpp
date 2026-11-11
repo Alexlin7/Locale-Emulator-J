@@ -224,11 +224,23 @@ NTSTATUS LeSetupAnsiOemCodeHashNodes() {
 NTSTATUS LeGlobalData::HackAnsiOemCodeHashNodes() {
     PLeGlobalData GlobalData = LeGetGlobalData();
 
+#if defined(_M_IX86)
+
+    // fs:[0x30] is the PEB on x86; 0x228 / 0x22A are 32-bit PEB offsets.
     unsigned char* pTeb = (unsigned char*)(__readfsdword(48));
     *(short*)(pTeb + 0x228) = GlobalData->GetLeb()->AnsiCodePage;
     *(short*)(pTeb + 0x22a) = GlobalData->GetLeb()->OemCodePage;
 
     return LeSetupAnsiOemCodeHashNodes();
+
+#else
+
+    // The x64 PEB layout differs and these fields have not been verified on x64
+    // yet (Phase 4 of the x64 design).
+    UNREFERENCED_PARAMETER(GlobalData);
+    return STATUS_NOT_SUPPORTED;
+
+#endif
 }
 
 NTSTATUS LeGlobalData::HookKernel32Routines(PVOID Kernel32)
