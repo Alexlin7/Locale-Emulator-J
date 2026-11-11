@@ -20,6 +20,9 @@
     <LeImportLibDir>$(IntDir)ImportLibs\</LeImportLibDir>
     <IncludePath>$(LeCoreDir)LocaleEmulator;$(IncludePath)</IncludePath>
     <LibraryPath>$(LeImportLibDir);$(LibraryPath)</LibraryPath>
+    <!-- Selects ImportLibs\<machine>\*.def and the lib.exe /machine: switch. -->
+    <LeLibMachine Condition="'$(Platform)' == 'Win32'">x86</LeLibMachine>
+    <LeLibMachine Condition="'$(Platform)' == 'x64'">x64</LeLibMachine>
   </PropertyGroup>
 
   <ItemDefinitionGroup>
@@ -41,7 +44,6 @@
       <SDLCheck>false</SDLCheck>
       <ExceptionHandling>false</ExceptionHandling>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <!--
@@ -53,6 +55,15 @@
       <IgnoreSpecificDefaultLibraries>msvcrt.lib;msvcrtd.lib;libcmt.lib;libcmtd.lib;vcruntime.lib;vcruntimed.lib;libvcruntime.lib;libvcruntimed.lib;ucrt.lib;ucrtd.lib;libucrt.lib;libucrtd.lib;msvcprt.lib;msvcprtd.lib;libcpmt.lib;libcpmtd.lib;oldnames.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <AdditionalDependencies>ntdll_ex.lib;kernel32_ex.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4254 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- x86-only settings. -->
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'Win32'">
+    <ClCompile>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <Link>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
@@ -61,9 +72,11 @@
     Import libraries for ntdll/kernel32 exports that the Windows SDK's import
     libraries do not cover (CRT helpers exported by ntdll, undocumented Ldr*
     APIs, CreateProcessInternalW). Generated from the .def files on each build.
+    Decorated names and compiler helpers differ per architecture, so each
+    machine has its own directory: ImportLibs\x86\, ImportLibs\x64\.
   -->
   <ItemGroup>
-    <LeImportDef Include="$(LeCoreDir)ImportLibs\*.def" />
+    <LeImportDef Include="$(LeCoreDir)ImportLibs\$(LeLibMachine)\*.def" />
   </ItemGroup>
 
   <!-- Delay-load helper and SEH handler that replace the CRT (see the file header). -->
@@ -100,6 +113,6 @@
           Inputs="@(LeImportDef)"
           Outputs="@(LeImportDef->'$(LeImportLibDir)%(Filename).lib')">
     <MakeDir Directories="$(LeImportLibDir)" />
-    <Exec Command="lib.exe /nologo /machine:x86 /def:&quot;%(LeImportDef.FullPath)&quot; /out:&quot;$(LeImportLibDir)%(LeImportDef.Filename).lib&quot;" />
+    <Exec Command="lib.exe /nologo /machine:$(LeLibMachine) /def:&quot;%(LeImportDef.FullPath)&quot; /out:&quot;$(LeImportLibDir)%(LeImportDef.Filename).lib&quot;" />
   </Target>
 </Project>
