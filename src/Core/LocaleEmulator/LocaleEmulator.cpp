@@ -5,7 +5,11 @@ ML_OVERLOAD_NEW
 #pragma comment(linker, "/ENTRY:DllMain")
 #pragma comment(linker, "/SECTION:.text,ERW /MERGE:.rdata=.text /MERGE:.data=.text")
 #pragma comment(linker, "/SECTION:.Asuna,ERW /MERGE:.text=.Asuna")
+#if defined(_M_IX86)
 #pragma comment(linker, "/EXPORT:GetFileAttributesA=_FuckStupid2DJGame@4")
+#else
+#pragma comment(linker, "/EXPORT:GetFileAttributesA=FuckStupid2DJGame")
+#endif
 
 EXTC ULONG NTAPI FuckStupid2DJGame(PCSTR FileName)
 {
