@@ -40,15 +40,15 @@ LECommonLibrary（.NET 10，AnyCPU）   ← 共用：LEConfig、LEProfile、Regi
 | LECommonLibrary | C# | AnyCPU | XML 設定讀寫、Profile 資料模型、可模擬地區判斷（`RegionSupport`）、OS 工具函式 |
 | LEProc | C# | x86 | CLI 進入點、由 `CultureInfo` 取 code page/LCID、組 LEB 結構、P/Invoke 呼叫 Core |
 | LEGUI | C#（WPF） | AnyCPU | Profile 管理介面、Shell Extension 安裝/解除（`ShellExtensionRegistrar`） |
-| Core/LoaderDll | C++ | x86 | 匯出 `LeCreateProcess`：建立目標程序並注入 `LocaleEmulator.dll` |
-| Core/LocaleEmulator | C++ | x86 | 注入用 DLL：hook syscall/EAT、改寫 PEB NLS 表、攔截地區相關 API |
+| Core/LoaderDll | C++ | x86（x64 開發中） | 匯出 `LeCreateProcess`：建立目標程序並注入 `LocaleEmulator.dll` |
+| Core/LocaleEmulator | C++ | x86（x64 開發中） | 注入用 DLL：hook syscall/EAT、改寫 PEB NLS 表、攔截地區相關 API |
 | ShellExtension | C++ | x86 + x64 | COM Shell Extension：右鍵選單、讀設定、啟動 LEProc |
 
 **資料流：** 右鍵 exe → ShellExtension 讀 `LEConfig.xml` 並呼叫 `LEProc.exe -runas {guid} {path}` → LEProc 由 XML 載入 profile、用 `CultureInfo` 解析 code page/地區/時區 → `LoaderWrapper` 把 `LEB` 結構與 registry 轉向項目整理進 unmanaged 記憶體 → `LoaderDll.dll` 的 `LeCreateProcess` 建立目標程序並注入 `LocaleEmulator.dll` → `LocaleEmulator.dll` 裝好 hook，目標程序看到的就是模擬的地區。
 
 ## 不可違反的鐵則（改動前必讀）
 
-1. **LEProc 與 Core 必須維持 x86。** Core 的 syscall hook 引擎（`HookSysCall_x86`）只有 x86 實作，靠比對 `KiFastSystemCall` 的 opcode 運作。
+1. **LEProc 與 x86 版 Core 必須維持 x86。** 32 位元目標程式走 `LoaderDll.dll` + `LocaleEmulator.dll`（x86）；x86 的 syscall hook 引擎（`HookSysCall_x86`）靠比對 `KiFastSystemCall` 的 opcode 運作。64 位元目標程式由 x64 版 Core（`LoaderDll64.dll` + `LocaleEmulator64.dll`）處理；x64 沒有 `KiFastSystemCall`，hook 引擎是另一套實作（見 `docs/superpowers/specs/2026-11-11-core-modularization-and-x64-design.md`）。x64 版尚在開發中，納入發佈產物前不影響現有行為。
 2. **Shell Extension 必須同時建 x86 與 x64。** x64 給 64 位元 Explorer，x86 給 32 位元 Windows 的 Explorer。
 3. **Core 不使用 C runtime，靜態 import 只有 `ntdll.dll`**（LoaderDll 另有 kernel32 的 `CreateProcessInternalW`）。CRT 函式來自 ntdll 匯出（`src/Core/ImportLibs/*.def`），執行期支援在 `src/Core/Runtime/CoreRuntime.cpp`，共用設定在 `src/Core/Core.props`。不要把 CRT 或 Delayimp.lib 加回來。
 4. **`LocaleEmulator.dll` 絕不能靜態 import kernel32。** 它是在目標程序第一次呼叫 `LdrLoadDll`（也就是 ntdll 正要載入 kernel32）時被注入的，當下 kernel32 還不存在。要用 kernel32 的函式就在執行時查找（`Hooks/User32Hook.cpp` 的 `KERNEL32_API`）；建置時有檢查，出現靜態 kernel32 import 會直接失敗。
