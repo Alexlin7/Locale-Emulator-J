@@ -193,7 +193,8 @@ jobs:
       # runtime directory. Informational only: failures do not fail the build.
 
       - name: Timing experiment (E1, E2)
-        if: success()
+        # Runs even when the main smoke test fails, so E0 and E1/E2 can be compared.
+        if: ${{ !cancelled() }}
         continue-on-error: true
         run: |
           $results = @()
