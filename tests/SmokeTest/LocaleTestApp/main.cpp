@@ -136,6 +136,123 @@ static void CheckRtl(const char *prefix, UINT cp, MbToUnicodeN_t mbToU, UnicodeT
     }
 }
 
+// Charset GDI associates with code page `cp` (gdi32's own table, not affected by LE).
+static UINT ExpectedCharset(UINT cp)
+{
+    CHARSETINFO csi = {};
+    if (!TranslateCharsetInfo((DWORD *)(UINT_PTR)cp, &csi, TCI_SRCCODEPAGE))
+        return DEFAULT_CHARSET;
+    return csi.ciCharset;
+}
+
+// Locale APIs beyond the ANSI/OEM conversions: code page queries, CP_THREAD_ACP /
+// CP_OEMCP, locale info, registry redirection and GDI font charsets. The expected
+// values are derived from GetACP()/GetOEMCP()/GetUserDefaultLCID(), which the
+// smoke test already compares against the profile.
+static void CheckLocaleApis(UINT acp, const WCHAR *wide, int wideChars, const char *acpMb, int acpMbLen)
+{
+    char detail[600], hex[520];
+    UINT oemcp = GetOEMCP();
+    LCID lcid = GetUserDefaultLCID();
+
+    // GetCPInfoExW(CP_ACP / CP_OEMCP) must report the emulated code pages.
+    {
+        CPINFOEXW info = {};
+        BOOL ok = GetCPInfoExW(CP_ACP, 0, &info);
+        sprintf_s(detail, "expected=%u got=%u", acp, ok ? info.CodePage : 0);
+        Check("KERNELBASE_GETCPINFO_ACP", ok && info.CodePage == acp, detail);
+
+        CPINFOEXW oemInfo = {};
+        ok = GetCPInfoExW(CP_OEMCP, 0, &oemInfo);
+        sprintf_s(detail, "expected=%u got=%u", oemcp, ok ? oemInfo.CodePage : 0);
+        Check("KERNELBASE_GETCPINFO_OEMCP", ok && oemInfo.CodePage == oemcp, detail);
+    }
+
+    // CP_THREAD_ACP follows the thread locale; LE makes it the profile's locale.
+    {
+        WCHAR back[256] = {};
+        int n = MultiByteToWideChar(CP_THREAD_ACP, 0, acpMb, acpMbLen, back, 256);
+        bool ok = n == wideChars && memcmp(back, wide, n * sizeof(WCHAR)) == 0;
+        Hex(back, n * sizeof(WCHAR), hex, sizeof(hex));
+        sprintf_s(detail, "cp=%u got=%s", acp, hex);
+        Check("KERNELBASE_CP_THREAD_ACP", ok, detail);
+    }
+
+    // CP_OEMCP through kernelbase.
+    {
+        WCHAR oemWide[128];
+        int oemChars = RepresentableSample(oemcp, oemWide, 128);
+        char oemMb[512];
+        int oemMbLen = WideCharToMultiByte(oemcp, 0, oemWide, oemChars, oemMb, sizeof(oemMb), NULL, NULL);
+        WCHAR back[256] = {};
+        int n = MultiByteToWideChar(CP_OEMCP, 0, oemMb, oemMbLen, back, 256);
+        bool ok = n == oemChars && memcmp(back, oemWide, n * sizeof(WCHAR)) == 0;
+        Hex(back, n * sizeof(WCHAR), hex, sizeof(hex));
+        sprintf_s(detail, "cp=%u got=%s", oemcp, hex);
+        Check("KERNELBASE_CP_OEMCP", ok, detail);
+    }
+
+    // Locale info of the user default locale must be consistent with it.
+    {
+        WCHAR value[32] = {};
+        GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_IDEFAULTANSICODEPAGE, value, 32);
+        WCHAR expected[32];
+        swprintf_s(expected, L"%u", acp);
+        char got[64];
+        WideCharToMultiByte(CP_UTF8, 0, value, -1, got, sizeof(got), NULL, NULL);
+        sprintf_s(detail, "expected=%u got=%s", acp, got);
+        Check("KERNELBASE_LOCALEINFO_ACP", wcscmp(value, expected) == 0, detail);
+
+        WCHAR name[LOCALE_NAME_MAX_LENGTH] = {}, expectedName[LOCALE_NAME_MAX_LENGTH] = {};
+        GetUserDefaultLocaleName(name, LOCALE_NAME_MAX_LENGTH);
+        LCIDToLocaleName(lcid, expectedName, LOCALE_NAME_MAX_LENGTH, 0);
+        char gotName[128], expName[128];
+        WideCharToMultiByte(CP_UTF8, 0, name, -1, gotName, sizeof(gotName), NULL, NULL);
+        WideCharToMultiByte(CP_UTF8, 0, expectedName, -1, expName, sizeof(expName), NULL, NULL);
+        sprintf_s(detail, "expected=%s got=%s", expName, gotName);
+        Check("KERNELBASE_USER_DEFAULT_LOCALE_NAME", wcscmp(name, expectedName) == 0, detail);
+    }
+
+    // Registry redirection (the smoke test profile sets RedirectRegistry=true).
+    {
+        static const struct { const char *check; const WCHAR *value; } kValues[] =
+        {
+            { "REGISTRY_NLS_ACP",   L"ACP"   },
+            { "REGISTRY_NLS_OEMCP", L"OEMCP" },
+        };
+        for (const auto &v : kValues)
+        {
+            WCHAR data[32] = {};
+            DWORD size = sizeof(data);
+            LSTATUS st = RegGetValueW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Control\\Nls\\CodePage",
+                                      v.value, RRF_RT_REG_SZ, NULL, data, &size);
+            WCHAR expected[32];
+            swprintf_s(expected, L"%u", v.value[0] == L'A' ? acp : oemcp);
+            char got[64];
+            WideCharToMultiByte(CP_UTF8, 0, data, -1, got, sizeof(got), NULL, NULL);
+            sprintf_s(detail, "status=%ld expected=%u got=%s", st, v.value[0] == L'A' ? acp : oemcp, got);
+            Check(v.check, st == ERROR_SUCCESS && wcscmp(data, expected) == 0, detail);
+        }
+    }
+
+    // GDI: stock fonts and the default font of a new memory DC use the charset of
+    // the emulated code page.
+    {
+        UINT expected = ExpectedCharset(acp);
+
+        LOGFONTW lf = {};
+        int n = GetObjectW(GetStockObject(DEFAULT_GUI_FONT), sizeof(lf), &lf);
+        sprintf_s(detail, "cp=%u expected=%u got=%u", acp, expected, n ? lf.lfCharSet : 0xFFFF);
+        Check("GDI32_STOCK_FONT_CHARSET", n != 0 && lf.lfCharSet == expected, detail);
+
+        HDC dc = CreateCompatibleDC(NULL);
+        int cs = dc ? GetTextCharset(dc) : -1;
+        sprintf_s(detail, "cp=%u expected=%u got=%d", acp, expected, cs);
+        Check("GDI32_COMPATIBLE_DC_CHARSET", cs == (int)expected, detail);
+        if (dc) DeleteDC(dc);
+    }
+}
+
 static void CheckConversions()
 {
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
@@ -380,6 +497,8 @@ static void CheckConversions()
         Check("USER32_WINDOW_TEXT_A", ok, detail);
         if (w) DestroyWindow(w);
     }
+
+    CheckLocaleApis(acp, wide, wideChars, expectedMb, expectedMbLen);
 }
 
 int main(int argc, char* argv[])
@@ -410,6 +529,11 @@ int main(int argc, char* argv[])
     fprintf(out, "LCID=0x%04X\n", GetUserDefaultLCID());
     fprintf(out, "UILANG=0x%04X\n", GetUserDefaultUILanguage());
     fprintf(out, "THREADLOCALE=0x%04X\n", GetThreadLocale());
+    {
+        TIME_ZONE_INFORMATION tzi = {};
+        GetTimeZoneInformation(&tzi);
+        fprintf(out, "TZBIAS=%ld\n", tzi.Bias);
+    }
 
     // Set only by the timing-experiment builds of LocaleEmulator.dll (D7).
     {
