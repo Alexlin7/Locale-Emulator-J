@@ -67,6 +67,7 @@ LECommonLibrary（.NET 10，AnyCPU）   ← 共用：LEConfig、LEProfile、Regi
 | .NET SDK | 10 | LECommonLibrary / LEProc / LEGUI 與 .NET 測試 |
 | .NET 10 Windows Desktop Runtime x86 | 10 | 執行 x86 的 LEProc 與 `LEProc.Tests --arch x86` |
 
+- C++ 標準：Core 為 C++17（`Core.props`；無 CRT，只能用語言功能，標準函式庫不可用）；ShellExtension 與 C++ 測試專案為 C++23（`stdcpp23`，即 `/std:c++23preview`）。升級路線見 `docs/superpowers/plans/2026-11-11-core-phase2-hook-engine.md` Part A。
 - 方案檔：`LocaleEmulator.sln`（C# 與 C++ 混合）。共用 .NET 建置屬性在 `Directory.Build.props`，所有組件以 `key.snk` 強式名稱簽章。
 - 最低支援系統：Windows 10 1607 以上（.NET 10 的要求）。
 - 授權：LGPL-3.0（Core 為 LGPL-3.0 / GPL-3.0）。
