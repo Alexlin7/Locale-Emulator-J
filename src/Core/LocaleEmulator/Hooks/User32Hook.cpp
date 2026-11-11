@@ -1478,6 +1478,12 @@ PVOID FindSendMessageWorker(PVOID User32)
     return SendMessageWorker;
 }
 
+// Replaces user32!CheckDBCSEnabledExt: whether the emulated ANSI code page is DBCS.
+static BOOL NTAPI LeCheckDBCSEnabledExt()
+{
+    return LeGetGlobalData()->AnsiTableInfo.DBCSCodePage != 0;
+}
+
 NTSTATUS LeGlobalData::HookUser32Routines(PVOID User32)
 {
     PVOID       NtUserMessageCall;
@@ -1572,7 +1578,28 @@ NTSTATUS LeGlobalData::HookUser32Routines(PVOID User32)
         LeHookFromEAT(User32, USER32, BeginPaint),
     };
 
-    return Mp::PatchMemory(p, countof(p));
+    Status = Mp::PatchMemory(p, countof(p));
+    FAIL_RETURN(Status);
+
+    // kernelbase's CharNextA / CharPrevA and other DBCS walkers ask user32 whether
+    // the ANSI code page is DBCS (ext-ms-win-ntuser-string!CheckDBCSEnabledExt).
+    // user32 answers from win32k's shared info, which follows the real system code
+    // page: with the system "Beta: Use Unicode UTF-8" option (ACP 65001) it says
+    // "not DBCS" and Shift-JIS / GBK / Big5 / UHC text is walked one byte at a time.
+    // Older Windows builds do not export it; kernelbase then reads ntdll's
+    // NlsMbCodePageTag, which LeGlobalData::Initialize sets.
+    PVOID CheckDBCSEnabledExt = Nt_GetProcAddress((HMODULE)User32, "CheckDBCSEnabledExt");
+    if (CheckDBCSEnabledExt != nullptr)
+    {
+        Mp::PATCH_MEMORY_DATA Dbcs[] =
+        {
+            Mp::FunctionJumpVa(CheckDBCSEnabledExt, LeCheckDBCSEnabledExt),
+        };
+
+        Status = Mp::PatchMemory(Dbcs, countof(Dbcs));
+    }
+
+    return Status;
 }
 
 NTSTATUS LeGlobalData::UnHookUser32Routines()
