@@ -7,6 +7,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Arch\LayoutAsserts.cpp" />
     <ClCompile Include="HandleTable.cpp" />
     <ClCompile Include="HookPort.cpp" />
     <ClCompile Include="Hooks\Gdi32Hook.cpp" />
@@ -19,6 +20,7 @@
     <ClCompile Include="Utility\Utility.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Arch\LeArch.h" />
     <ClInclude Include="HandleTable.h" />
     <ClInclude Include="HookPort.h" />
     <ClInclude Include="Hooks\Gdi32Hook.h" />
