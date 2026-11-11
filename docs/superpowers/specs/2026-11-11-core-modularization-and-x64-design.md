@@ -239,7 +239,7 @@ LoaderDll ─ 建立暫停的程序，hook 第一次 LdrLoadDll（現有機制�
 | **0** | 決策 | 確認 §3.2；修改 AGENTS.md 鐵則 | 使用者確認 | 本文件 |
 | **1** | 地基 | 刪 HookPort 死碼、Core.props 依平台參數化、拆分 .def、CoreRuntime 依架構分段、LeArch.h + 佈局 assert、修正 ml 的 x64 錯誤、**x64 能編譯（hook 暫時停用）**、Core.Tests 加 x64 | CI：x86 全綠 + x64 建置成功 | `plans/2026-11-11-core-phase1-foundation.md` |
 | **2** | HookEngine 切點（x86） | 建立 `Le::Hook` 介面與 x86 實作；四個 hook 檔改用新介面 | x86 smoke test 全綠，行為不變 | Phase 1 完成後撰寫 |
-| **2E** | 時機實驗（D7） | §4.5 的 E0～E3（x86）；必要時補 LocaleTestApp 的 `CHECK_*` | 實驗結果寫回 §4.5；D7 定案 | Phase 2 計畫 Part C |
+| **2E** | 時機實驗（D7） | §4.5 的 E0～E3（x86）；必要時補 LocaleTestApp 的 `CHECK_*` | 實驗結果寫回 §4.5；D7 定案 | Phase 2 計畫 Part C（排在 Part B 之前） |
 | **3** | x64 引擎 + NLS 實驗 | Zydis、near relay、syscall stub 複製；C++ 單元測試（hook 測試程式自己的函式）；LocaleTestApp x64；PEB 改寫實驗 | x64 hook 單元測試全綠；實驗結果記錄 | Phase 2 完成後撰寫 |
 | **4** | x64 功能移植 | `LeRtl*`、`NtQueryDefault*`、時區 hook | x64 smoke test 的 NLS / LCID `CHECK_*` 全綠 | 依 Phase 3 結果撰寫 |
 | **5** | 啟動鏈 | `TargetArchitectureDetector`（C#，含單元測試）、LEProc64 建置、組裝 x64 產物 | 右鍵 64 位元程式能正確模擬 | — |
