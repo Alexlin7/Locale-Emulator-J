@@ -40,6 +40,9 @@
 - [ ] smoke test 補上：`SendMessageA` 等 user32 訊息轉換、`EnumFontFamilies*`、進階 registry 轉向（`IsAdvancedRedirection`）與 UI 語言 API
 - [ ] smoke test 輸出 OS 版本與 build 號碼，讓結果可以對照 Windows 版本
 - [ ] LoaderDll / Loader 的 vcxproj 也改用 `$(OutDir)` / `$(IntDir)`（目前把 `.\Release\` 寫死）
+- [x] CodeQL（C# + C/C++）與第一條自訂查詢 `le/core/kernelbase-nls-call`
+- [ ] 更多自訂查詢：例如 `LocaleEmulator.dll` 的 hook 裡不准呼叫 user32 / gdi32（延遲載入可能在 kernel32 之前觸發）、x64 程式碼不准用 `__readfsdword`
+- [ ] （可選）SonarQube Cloud：可維護性、重複率、技術債趨勢，適合追蹤 Phase 7 的進度
 - [ ] （可選）實驗版 DLL 加進 CI artifact
 
 ### 其他

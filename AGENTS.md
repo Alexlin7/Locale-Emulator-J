@@ -96,8 +96,11 @@ dotnet test tests/LEProc.Tests/ --arch x86     # LEProc 是 x86，需要 x86 tes
 | .NET 單元測試 | xUnit + NSubstitute | `tests/LECommonLibrary.Tests/`、`tests/LEGUI.Tests/`、`tests/LEProc.Tests/` |
 | C++ 測試 | 獨立 exe（無框架） | `tests/Core.Tests/`（結構佈局，x86 + x64）、`tests/ShellExtension.Tests/`（COM，x64） |
 | Smoke test | PowerShell + LocaleTestApp | `tests/SmokeTest/` |
+| 靜態分析 | CodeQL（`security-extended` + 自訂查詢） | `.github/workflows/codeql.yml`、`.github/codeql/` |
 
 CI（`.github/workflows/ci.yml`，`workflow_dispatch` 觸發）用 `dotnet build` 建 .NET、用 `msbuild` 逐一建 C++ vcxproj（每個 msbuild 後都檢查結束碼），組出 `Build/Release/x86/` 後跑 C++ 測試與 smoke test，另外跑時機實驗（僅供參考）。操作說明見 `docs/guides/github-actions-ci.md`。
+
+CodeQL（`.github/workflows/codeql.yml`）分析 C#（不建置）與 C/C++（Core x86、ShellExtension x64），結果在 GitHub 的 Security → Code scanning 與 PR 上；`ml.h` / `ml.cpp`、`pugixml` 的結果會被濾掉。另有專案自訂查詢（`.github/codeql/le-queries/`），把鐵則寫成自動檢查。說明見 `docs/guides/codeql.md`。
 
 **建置產出：**
 
