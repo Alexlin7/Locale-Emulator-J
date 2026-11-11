@@ -74,7 +74,7 @@ PVOID FASTCALL LeGetNamedLocaleHashNode(PWSTR LocaleName, LANGID LangId)
         return StubGetNamedLocaleHashNode(LocaleName, LangId);
     }
 
-    // LE-ALLOW-KERNELBASE: rewrites the locale name kernelbase is about to hash, inside kernelbase's own call.
+
     *(PVOID *)&LCIDToLocaleName = LookupExportTable(Kernel->DllBase, KERNEL32_LCIDToLocaleName);
 
     LocaleName[-1] = (USHORT)(LCIDToLocaleName(GlobalData->GetLeb()->LocaleID, LocaleName, 0xAC, 0) - 1);
