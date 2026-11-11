@@ -50,7 +50,7 @@ LECommonLibrary（.NET 10，AnyCPU）   ← 共用：LEConfig、LEProfile、Regi
 
 1. **LEProc 與 x86 版 Core 必須維持 x86。** 32 位元目標程式走 `LoaderDll.dll` + `LocaleEmulator.dll`（x86）；x86 的 syscall hook 引擎（`HookSysCall_x86`）靠比對 `KiFastSystemCall` 的 opcode 運作。64 位元目標程式由 x64 版 Core（`LoaderDll64.dll` + `LocaleEmulator64.dll`）處理；x64 沒有 `KiFastSystemCall`，hook 引擎是另一套實作（見 `docs/superpowers/specs/2026-11-11-core-modularization-and-x64-design.md`）。x64 版尚在開發中，納入發佈產物前不影響現有行為。
 2. **Shell Extension 必須同時建 x86 與 x64。** x64 給 64 位元 Explorer，x86 給 32 位元 Windows 的 Explorer。
-3. **Core 不使用 C runtime，靜態 import 只有 `ntdll.dll`**（LoaderDll 另有 kernel32 的 `CreateProcessInternalW`）。CRT 函式來自 ntdll 匯出（`src/Core/ImportLibs/*.def`），執行期支援在 `src/Core/Runtime/CoreRuntime.cpp`，共用設定在 `src/Core/Core.props`。不要把 CRT 或 Delayimp.lib 加回來。
+3. **Core 不使用 C runtime，靜態 import 只有 `ntdll.dll`**（LoaderDll 另有 kernel32 的 `CreateProcessInternalW`）。CRT 函式來自 ntdll 匯出（`src/Core/ImportLibs/<x86|x64>/*.def`，修飾規則與 helper 依架構不同），執行期支援在 `src/Core/Runtime/CoreRuntime.cpp`（x86 的 SEH handler 自行實作；x64 使用 ntdll 的 `__C_specific_handler`），共用設定在 `src/Core/Core.props`。不要把 CRT 或 Delayimp.lib 加回來。
 4. **`LocaleEmulator.dll` 絕不能靜態 import kernel32。** 它是在目標程序第一次呼叫 `LdrLoadDll`（也就是 ntdll 正要載入 kernel32）時被注入的，當下 kernel32 還不存在。要用 kernel32 的函式就在執行時查找（`Hooks/User32Hook.cpp` 的 `KERNEL32_API`）；建置時有檢查，出現靜態 kernel32 import 會直接失敗。
 5. **Core 的 hook 只能依賴 ntdll。** 理由同上，hook 裡不能呼叫 kernelbase 的 `MultiByteToWideChar` 之類函式；code page 轉換一律用 ntdll 的 `RtlCustomCPToUnicodeN` / `RtlUnicodeToCustomCPN` 搭配 LE 自己載入的 NLS 表。
 6. **新版 Windows 上換 ntdll NLS 表的做法已經失效**：`RtlInitNlsTables` / `RtlResetRtlTranslations` 是空函式（build 26300 實測）。ANSI/OEM 轉換靠 `Hooks/NtdllHook.cpp` 的 `LeRtl*` hook，不要拿掉。
@@ -116,15 +116,15 @@ Build/Release/
 
 | C++ 專案 | Debug\|Win32 | Release\|Win32 | Debug\|x64 | Release\|x64 |
 |---|:---:|:---:|:---:|:---:|
-| Core/LoaderDll | - | ✓ | - | - |
-| Core/LocaleEmulator | - | ✓ | - | - |
+| Core/LoaderDll | - | ✓ | - | ✓（開發中，未發佈） |
+| Core/LocaleEmulator | - | ✓ | - | ✓（開發中，hook 停用） |
 | Core/Loader | - | ✓ | - | - |
 | ShellExtension | ✓ | ✓ | ✓ | ✓ |
 | LocaleTestApp | ✓ | ✓ | - | - |
-| Core.Tests | ✓ | ✓ | - | - |
+| Core.Tests | ✓ | ✓ | - | ✓ |
 | ShellExtension.Tests | - | - | ✓ | ✓ |
 
-Core 只有 Release 組態。
+Core 只有 Release 組態。x64 版輸出 `LoaderDll64.dll` / `LocaleEmulator64.dll`（各專案的 `x64\Release\`），尚未組進 `Build/Release/`；x64 建置以 `HookPortX64Stub.cpp` 取代 `HookPort.cpp`，不安裝任何 hook。
 
 ## 設定檔格式
 
