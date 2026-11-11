@@ -108,6 +108,10 @@ jobs:
                 -not ($uri -match $excluded)
               })
               Write-Host "$($f.Name): $before results, $(@($run.results).Count) after filtering upstream code"
+              $run.results | ForEach-Object {
+                $loc = $_.locations[0].physicalLocation
+                Write-Host "  [$($_.level)] $($_.ruleId) $($loc.artifactLocation.uri):$($loc.region.startLine)"
+              }
               if ('${{ matrix.language }}' -eq 'c-cpp') {
                 $rules = @($run.tool.extensions | ForEach-Object { $_.rules } | ForEach-Object { $_.id })
                 if ($rules -notcontains 'le/core/kernelbase-nls-call') {
