@@ -106,10 +106,10 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <WarningLevel>Level4</WarningLevel>
       <PreprocessorDefinitions>WIN32;NDEBUG;USE_NT_VER=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AssemblerListingLocation>.\Release\</AssemblerListingLocation>
-      <PrecompiledHeaderOutputFile>.\Release\LocaleEmulator.pch</PrecompiledHeaderOutputFile>
-      <ObjectFileName>.\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>.\Release\</ProgramDataBaseFileName>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <PrecompiledHeaderOutputFile>$(IntDir)LocaleEmulator.pch</PrecompiledHeaderOutputFile>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <CallingConvention>FastCall</CallingConvention>
       <ExceptionHandling>false</ExceptionHandling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -119,7 +119,7 @@
     <Midl>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <TypeLibraryName>.\Release\LocaleEmulator.tlb</TypeLibraryName>
+      <TypeLibraryName>$(IntDir)LocaleEmulator.tlb</TypeLibraryName>
       <MkTypLibCompatible>true</MkTypLibCompatible>
       <TargetEnvironment>Win32</TargetEnvironment>
     </Midl>
@@ -129,15 +129,15 @@
     </ResourceCompile>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <OutputFile>.\Release\LocaleEmulator.bsc</OutputFile>
+      <OutputFile>$(OutDir)LocaleEmulator.bsc</OutputFile>
     </Bscmake>
     <Link>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <LinkDLL>true</LinkDLL>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>NotSet</SubSystem>
-      <OutputFile>.\Release\LocaleEmulator.dll</OutputFile>
-      <ImportLibrary>.\Release\LocaleEmulator.lib</ImportLibrary>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <ImportLibrary>$(OutDir)$(TargetName).lib</ImportLibrary>
       <DelayLoadDLLs>USER32.dll;DBGHELP.dll;GDI32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalDependencies>dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
