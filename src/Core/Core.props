@@ -69,6 +69,21 @@
   </ItemDefinitionGroup>
 
   <!--
+    x64-only settings. The x64 Core is under development and not shipped yet
+    (docs/superpowers/specs/2026-11-11-core-modularization-and-x64-design.md).
+  -->
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'x64'">
+    <ClCompile>
+      <!-- x64 always has SSE2; /arch:SSE is not valid on x64. -->
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX64</TargetMachine>
+      <AdditionalOptions>/CETCOMPAT:NO %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!--
     Import libraries for ntdll/kernel32 exports that the Windows SDK's import
     libraries do not cover (CRT helpers exported by ntdll, undocumented Ldr*
     APIs, CreateProcessInternalW). Generated from the .def files on each build.
