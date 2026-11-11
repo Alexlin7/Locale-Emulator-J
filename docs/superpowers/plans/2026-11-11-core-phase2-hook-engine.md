@@ -47,3 +47,7 @@ MSBuild 的 C++23 值是 `stdcpp23`，對應 `/std:c++23preview`；MSVC Build To
 ## Part B：HookEngine 介面（x86 行為不變）
 
 待 Part A 完成、依 A2 結果決定新模組可用的標準後，再寫細部 Task。範圍依 spec Phase 2：抽出 HookEngine 介面，x86 實作包住現有 `HookPort`，行為不變。
+
+## Part C：時機實驗（D7，兩段式 Core）
+
+依 spec §3.3、§4.5 執行 E0～E3（x86）。排在 Part B 之後、Phase 3（x64 引擎）之前，因為 D7 是否成立會影響 x64 的 hook 要寫在無 CRT 的第一段，還是可以用 CRT 的第二段。細部 Task 在 Part B 完成後撰寫。

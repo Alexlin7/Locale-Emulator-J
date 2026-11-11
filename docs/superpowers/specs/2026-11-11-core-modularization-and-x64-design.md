@@ -1,7 +1,7 @@
 # 設計文件：Core 模組化重構與 x64 支援
 
 > **日期**：2026-11-11
-> **狀態**：設計草稿，待使用者確認（§3 的待確認決策）
+> **狀態**：§3.1、§3.2 已確認；§3.3（D7）待 §4.5 的實驗結果
 > **前置研究**：
 > - `docs/superpowers/specs/2026-11-11-x64-core-migration-research.md`（技術研究：語言選型、x64 佈局、hook、linker）
 > - `docs/superpowers/specs/2026-11-11-ml-usage-inventory.md`（ml 使用盤點）
@@ -73,6 +73,18 @@ x64 化必須重寫 hook 引擎（x86 的 `KiFastSystemCall` 單點攔截在 x64
 | **Q4** | x64 指令解碼器 | Zydis（MIT 授權），以原始碼方式放進 `src/Core/ThirdParty/zydis/`，用 `ZYAN_NO_LIBC` 編譯，只使用 decoder | 修好並沿用 ml 的 `LdeGetOpCodeSize64`（只能回報長度） |
 | **Q5** | 跨架構子程序（x86 → x64、x64 → x86） | 第一版不支援，維持現行行為（直接放棄注入，`NtdllHook.cpp:270`） | 交給對應架構的 Loader 處理（需要 IPC） |
 | **Q6** | x64 第一版的功能範圍 | NLS（ANSI / OEM code page）+ 地區 API（`NtQueryDefault*`）+ 時區 | 一次做到與 x86 相同（含 user32 / gdi32） |
+
+### 3.3 提案中（待實驗結果）
+
+| ID | 項目 | 提案 | 決定條件 |
+|---|---|---|---|
+| **D7** | 兩段式 Core | 把注入 DLL 拆成兩段：**第一段**維持無 CRT、只依賴 ntdll，只做一定要在 kernel32 之前完成的事；**第二段**是一般 C++ DLL（靜態 CRT `/MT`、STL、C++23 函式庫），其餘 hook 都放這裡 | §4.5 的時機實驗（E1～E3）。實驗結果決定第一段要留哪些東西，或是否連第一段都不需要 |
+
+背景：
+- 現在的無 CRT 限制，來自 LE 選擇在 ntdll 第一次呼叫 `LdrLoadDll`（載入 kernel32）時注入（鐵則 4）。這樣做的理由是 kernelbase 初始化時會讀取 PEB 的 code page / NLS 資料並快取，LE 要在它讀之前改好 PEB。
+- 鐵則 6 已確認，新版 Windows 上替換 ntdll NLS 表的做法失效，ANSI/OEM 轉換實際靠 `LeRtl*` hook。「一定要這麼早」的理由已經比當年弱，值得用實驗重新確認。
+- 其他工具多半選擇晚一點注入，換取完整 CRT。例如 Microsoft Detours 的 `DetourCreateProcessWithDllEx` 把 DLL 插成主程式匯入表的第一項，DLL 在 kernel32 之後、主程式其他 DLL 與進入點之前載入。Locale Remulator 就是用 Detours 實作；本專案不直接採用它，是因為它的維護太慢。
+- D7 只借用「分段、晚段可以用 CRT」的思路，不引入 Detours（hook 引擎依 Q4 使用 Zydis 自寫）。
 
 ---
 
@@ -169,6 +181,53 @@ NTSTATUS InstallSyscall(PCSTR NtName, PVOID Detour, PVOID* Original);
 1. **先做實驗（Phase 3）**：Loader 在 resume 前改寫遠端 PEB 的 `AnsiCodePageData` / `OemCodePageData` / `UnicodeCaseTableData`，**不裝任何 hook**，觀察 LocaleTestApp 的哪些 `CHECK_*` 變成 OK。
 2. 無論實驗結果如何，都移植 `LeRtl*` hook（鐵則 6）。實驗只影響 kernelbase 是否需要額外處理。
 
+### 4.5 兩段式 Core（D7）與時機實驗
+
+**目標形狀（若 D7 成立）：**
+
+```
+LoaderDll ─ 建立暫停的程序，hook 第一次 LdrLoadDll（現有機制）
+  ↓
+第一段：LocaleEmulator(64).dll        無 CRT、只依賴 ntdll、盡量小
+  │ 只做實驗證明「一定要在 kernel32 之前」的事（候選：改寫 PEB、ntdll 的 Rtl* hook）
+  │ 原本的 LdrLoadDll(kernel32) 回傳後 → LdrLoadDll(第二段)
+  ↓
+第二段：LeHooks(64).dll（暫名）        一般 C++：/MT、STL、C++23 函式庫
+  │ kernel32 / user32 / gdi32 / 時區等 hook、registry 轉向
+  ↓
+目標程式的其他 DLL 與進入點
+```
+
+- **載入第二段的位置**：放在第一段的 `LdrLoadDll` hook 裡、原呼叫回傳之後。不能放在 `LdrRegisterDllNotification` 的回呼裡，那時持有 loader lock。程序初始化階段這樣呼叫 `LdrLoadDll` 是否安全要實驗確認；LE 現在本來就在同一個時間點載入自己，這是一個正面跡象。
+- **第二段的 CRT**：靜態連結（`/MT`），不依賴目標程式帶的 VC++ runtime；每個 DLL 各有一份 CRT 狀態，不與目標程式共用。
+- **對 x64 的影響**：如果 D7 成立，x64 的大部分 hook 可以直接寫在第二段，Zydis 也不必用 no-libc 模式。所以實驗要排在 Phase 3（x64 引擎）之前。
+
+**現在的初始化順序**（`LeGlobalData::Initialize`，x86）：
+
+1. 載入 NLS 檔、改寫 PEB 的 `AnsiCodePageData` / `OemCodePageData` / `UnicodeCaseTableData`
+2. `InstallHookPort()`：syscall hook
+3. `HookNtdllRoutines()`：包含 `LeRtl*`
+4. 註冊 DLL 載入通知；kernel32、user32、gdi32 等載入時再各自 hook
+
+**實驗（x86，用 smoke test 的 `CHECK_*` 判定）：**
+
+| 實驗 | 做法 | 回答的問題 |
+|---|---|---|
+| **E0 基準** | 現行版本 | 每個 `CHECK_*` 目前都是 `OK`（現況） |
+| **E1 延後改寫 PEB** | 第 1 步移到原本的 `LdrLoadDll(kernel32)` 回傳之後再做，其他不變 | kernelbase 是否還依賴「初始化前改好 PEB」 |
+| **E2 全部延後** | 整個 `Initialize` 都移到 `LdrLoadDll(kernel32)` 回傳之後；這模擬 Detours（匯入表）的注入時機 | 是否連第一段都不需要；結果全 `OK` 代表可以改用單段、完整 CRT 的設計 |
+| **E3 逐項延後** | 只在 E2 有 `FAIL` 時才做：一次只把一個步驟（PEB、HookPort、ntdll hook）留在前面，其他延後 | 找出哪些步驟一定要放第一段 |
+
+實作方式：
+- 用編譯期巨集（例如 `LE_EXPERIMENT_TIMING=1/2`）切換，只在 CI 的實驗步驟另外建一份 x86 `LocaleEmulator.dll` 來跑 smoke test。正式產物不受影響。
+- 實驗步驟允許失敗（`continue-on-error`），只記錄每個 `CHECK_*` 的結果。
+- 結果寫回本節，據此把 D7 移到「已確定」或「否決」。
+
+**實驗的限制：**
+- smoke test 只涵蓋 LocaleTestApp 會檢查的 API（`GetACP`、`GetOEMCP`、`GetUserDefaultLCID`、`Rtl*` 轉換、kernelbase `CP_ACP`、ANSI 檔案 API、user32 視窗標題）。kernelbase 也許還快取了別的東西，LocaleTestApp 沒有檢查到。
+- 遊戲可能在自己的 DLL 的 DllMain 就讀 code page。E2 的時機仍然早於主程式其他 DLL，理論上沒問題，但實際遊戲要由使用者在自己的電腦上驗證（不擅自掃描或執行使用者的遊戲資料夾）。
+- 需要時可以為 LocaleTestApp 新增 `CHECK_*`，例如 `GetCPInfo`、`MultiByteToWideChar(CP_THREAD_ACP)`、`GetLocaleInfo`，讓實驗涵蓋更多。
+
 ---
 
 ## 5. 分階段計畫
@@ -180,6 +239,7 @@ NTSTATUS InstallSyscall(PCSTR NtName, PVOID Detour, PVOID* Original);
 | **0** | 決策 | 確認 §3.2；修改 AGENTS.md 鐵則 | 使用者確認 | 本文件 |
 | **1** | 地基 | 刪 HookPort 死碼、Core.props 依平台參數化、拆分 .def、CoreRuntime 依架構分段、LeArch.h + 佈局 assert、修正 ml 的 x64 錯誤、**x64 能編譯（hook 暫時停用）**、Core.Tests 加 x64 | CI：x86 全綠 + x64 建置成功 | `plans/2026-11-11-core-phase1-foundation.md` |
 | **2** | HookEngine 切點（x86） | 建立 `Le::Hook` 介面與 x86 實作；四個 hook 檔改用新介面 | x86 smoke test 全綠，行為不變 | Phase 1 完成後撰寫 |
+| **2E** | 時機實驗（D7） | §4.5 的 E0～E3（x86）；必要時補 LocaleTestApp 的 `CHECK_*` | 實驗結果寫回 §4.5；D7 定案 | Phase 2 計畫 Part C |
 | **3** | x64 引擎 + NLS 實驗 | Zydis、near relay、syscall stub 複製；C++ 單元測試（hook 測試程式自己的函式）；LocaleTestApp x64；PEB 改寫實驗 | x64 hook 單元測試全綠；實驗結果記錄 | Phase 2 完成後撰寫 |
 | **4** | x64 功能移植 | `LeRtl*`、`NtQueryDefault*`、時區 hook | x64 smoke test 的 NLS / LCID `CHECK_*` 全綠 | 依 Phase 3 結果撰寫 |
 | **5** | 啟動鏈 | `TargetArchitectureDetector`（C#，含單元測試）、LEProc64 建置、組裝 x64 產物 | 右鍵 64 位元程式能正確模擬 | — |
@@ -220,6 +280,8 @@ CI 調整：
 | PEB 改寫實驗失敗 | 中 | 只能靠 hook，kernelbase 可能需要額外處理 | 實驗只是加分項；`LeRtl*` hook 是既定做法 |
 | 某些 x64 遊戲啟用 CET / ACG / 反作弊 | 中 | 這些程式無法模擬 | 偵測並給出明確錯誤；列為已知限制 |
 | 重構切片意外改變 x86 行為 | 低 | 回歸 | 每個切片都跑 smoke test；切片要小 |
+| D7 實驗結果模稜兩可（smoke test 涵蓋不足） | 中 | D7 無法定案 | 先補 `CHECK_*`；仍不確定就維持單段無 CRT，D7 延後 |
+| 兩段式在程序初始化期間載入第二段失敗或造成死結 | 低 | D7 不可行 | E2 會直接暴露；失敗就維持現況 |
 | 開發環境沒有 Windows | 高 | 回饋慢 | 一律以 CI 驗證；可以加速時再用 Remote Control 連到使用者的 Windows 電腦 |
 
 ---
