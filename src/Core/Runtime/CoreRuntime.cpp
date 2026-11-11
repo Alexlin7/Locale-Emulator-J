@@ -7,6 +7,11 @@
 //   - _except_handler4: SEH frame handler emitted by the compiler for __try/__except,
 //     forwarded to ntdll's _except_handler4_common.
 //
+// The SEH handlers and _alloca_probe_16 are x86 only. On x64, __try/__except uses
+// table-based SEH (.pdata/.xdata) dispatched through ntdll's __C_specific_handler
+// (ImportLibs\x64\ntdll_ex.def), and _alloca expands to __chkstk, so nothing
+// architecture specific is implemented here for x64.
+//
 // All Core sources compile with /Gr (__fastcall default), so every function here
 // states its calling convention explicitly.
 
@@ -92,6 +97,8 @@ FARPROC WINAPI __delayLoadHelper2(PCImgDelayDescr Descriptor, FARPROC *ImportAdd
     else
     {
         ANSI_STRING ProcedureName;
+        // For an import by name AddressOfData holds an RVA; on x64 the field is
+        // 64 bits wide, so the narrowing cast to RVA is intentional.
         PIMAGE_IMPORT_BY_NAME ImportByName = RvaToPtr<IMAGE_IMPORT_BY_NAME>((RVA)Thunk->u1.AddressOfData);
 
         RtlInitAnsiString(&ProcedureName, ImportByName->Name);
@@ -112,7 +119,9 @@ FARPROC WINAPI __delayLoadHelper2(PCImgDelayDescr Descriptor, FARPROC *ImportAdd
 // Referenced by any object file that uses floating point.
 int _fltused = 0x9875;
 
-void __cdecl _alloca_probe(void);   // ntdll export, see ImportLibs\ntdll_ex.def
+#if defined(_M_IX86)
+
+void __cdecl _alloca_probe(void);   // ntdll export, see ImportLibs\x86\ntdll_ex.def
 
 // Stack probe for 16-byte aligned _alloca: EAX = requested size on entry.
 // Rounds the size up so that the new ESP is 16-byte aligned, then probes.
@@ -312,5 +321,15 @@ EXCEPTION_DISPOSITION __cdecl _except_handler4(
 {
     return _except_handler4_common(&__security_cookie, NoCookieCheck, ExceptionRecord, EstablisherFrame, ContextRecord, DispatcherContext);
 }
+
+#elif defined(_M_X64)
+
+// x64: SEH frames are described by .pdata/.xdata and dispatched through ntdll's
+// __C_specific_handler. Core builds with /GS-, so __security_cookie and
+// __GSHandlerCheck are not referenced. _alloca is expanded inline with __chkstk.
+
+#else
+#error "Core supports x86 and x64 only"
+#endif
 
 } // extern "C"
