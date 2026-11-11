@@ -45,6 +45,7 @@ Loader/                    命令列啟動器（只有 x86）
 - **ml 的 x64 路徑從未在上游使用過**，有已知錯誤（例如 x64 的 `OpPush` 編碼已停用）。用到 ml 的 x64 功能前先確認。
 - **vcxproj 的輸出路徑**：LocaleEmulator 的 Win32 組態已改用 `$(OutDir)` / `$(IntDir)`；LoaderDll、Loader 仍把 `.\Release\` 寫死，要另外建一份時 `/p:OutDir` 對它們無效。
 - **`WriteLog` 目前不輸出任何東西**，Core 沒有診斷 log。
+- **改 PEB / ntdll 表蓋不到的「系統 code page」快取**：kernelbase 的 `CharNextA` 等 DBCS 走訪會問 user32 的 `CheckDBCSEnabledExt`，它讀的是 win32k 共享給整個 session 的資訊，依真正的系統 ACP 設定，只能用 hook 改（`Hooks/User32Hook.cpp`）。ntdll 的 `NlsAnsiCodePage` / `NlsMbCodePageTag` / `NlsMbOemCodePageTag` 以前由 `RtlResetRtlTranslations` 更新，現在由 `LeGlobalData::Initialize` 直接寫入。系統開了「Beta：使用 Unicode UTF-8」（ACP 65001）時這類漏洞最明顯；CI runner 是 1252 且不能重開機切換，只能在本機驗證。
 
 ## 時機實驗（D7）
 
