@@ -136,7 +136,7 @@ try {
         } else {
             $p.WaitForExit()
             $exitCode = $p.ExitCode
-            $unsigned = [uint32]([int64]$exitCode -band 0xFFFFFFFF)
+            $unsigned = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]$exitCode), 0)
             if ($exitCode -ne 0) {
                 $status = "CRASH"
                 $detail = ("0x{0:X8}" -f $unsigned)
