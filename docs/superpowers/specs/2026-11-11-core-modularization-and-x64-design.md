@@ -1,7 +1,7 @@
 # 設計文件：Core 模組化重構與 x64 支援
 
 > **日期**：2026-11-11
-> **狀態**：§3.1、§3.2 已確認；§3.3（D7）待 §4.5 的實驗結果
+> **狀態**：§3.1、§3.2 已確認；§3.3（D7）**決定不做**（2026-11-12，見 §4.5 末的「定案」）；x64（Phase 3～7）暫緩
 > **前置研究**：
 > - `docs/superpowers/specs/2026-11-11-x64-core-migration-research.md`（技術研究：語言選型、x64 佈局、hook、linker）
 > - `docs/superpowers/specs/2026-11-11-ml-usage-inventory.md`（ml 使用盤點）
@@ -292,6 +292,8 @@ LoaderDll ─ 建立暫停的程序，hook 第一次 LdrLoadDll（現有機制�
 - smoke test 只涵蓋 LocaleTestApp 會檢查的 API（`GetACP`、`GetOEMCP`、`GetUserDefaultLCID`、`Rtl*` 轉換、kernelbase `CP_ACP`、ANSI 檔案 API、user32 視窗標題）。kernelbase 也許還快取了別的東西，LocaleTestApp 沒有檢查到。
 - 遊戲可能在自己的 DLL 的 DllMain 就讀 code page。E2 的時機仍然早於主程式其他 DLL，理論上沒問題，但實際遊戲要由使用者在自己的電腦上驗證（不擅自掃描或執行使用者的遊戲資料夾）。
 - 需要時可以為 LocaleTestApp 新增 `CHECK_*`，例如 `GetCPInfo`、`MultiByteToWideChar(CP_THREAD_ACP)`、`GetLocaleInfo`，讓實驗涵蓋更多。
+
+**定案（2026-11-12）：D7 不做。** 兩段式要解決的兩件事都沒有出現需求：(1) 沒有任何遊戲需要延後安裝 hook（E1、E2 smoke test 全 PASS，5 款實際遊戲 E2 與 E0 沒有差異）；(2) 讓第二段能用 CRT / C++23 以方便寫 x64 hook——x64 暫緩，而且評估後新標準在這個專案的效益主要是寫法更安全，不是效能。`LE_EXPERIMENT_TIMING` 開關與 CI 的實驗步驟保留，但 CI 改成只在手動觸發並勾選 `timing_experiment` 時執行。重新檢討的條件見 `docs/roadmap.md`。
 
 ---
 

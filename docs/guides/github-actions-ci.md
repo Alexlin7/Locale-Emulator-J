@@ -104,7 +104,7 @@ Workflow (工作流程)
 
 以下對照 `.github/workflows/ci.yml` 逐段說明。完整內容以該檔為準；這裡只節錄關鍵的部分。
 
-整體流程：**.NET 用 `dotnet build` / `dotnet test`，C++ 用 `msbuild` 逐一建 vcxproj**（不建整個 `.sln`），組出 `Build/Release/x86/` 後跑 C++ 測試、smoke test 與時機實驗。
+整體流程：**.NET 用 `dotnet build` / `dotnet test`，C++ 用 `msbuild` 逐一建 vcxproj**（不建整個 `.sln`），組出 `Build/Release/x86/` 後跑 C++ 測試與 smoke test；時機實驗只在手動觸發並勾選時才跑。
 
 ### 3.1 名稱、觸發條件與權限
 
@@ -117,6 +117,10 @@ on:
   pull_request:
     branches: [ master ]
   workflow_dispatch:
+    inputs:
+      timing_experiment:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -124,7 +128,7 @@ permissions:
 ```
 
 - `push` / `pull_request` 到 `master` 時自動觸發
-- `workflow_dispatch`：可在 Actions 頁面手動對任一分支執行（例如功能分支還沒開 PR 時）
+- `workflow_dispatch`：可在 Actions 頁面手動對任一分支執行（例如功能分支還沒開 PR 時）；勾選 `timing_experiment` 才會另外跑時機實驗（見 3.9）
 - `pull-requests: write`：讓覆蓋率報告能以留言貼在 PR 上
 
 ### 3.2 全域環境變數
@@ -230,13 +234,16 @@ jobs:
 
 ```yaml
 - name: Timing experiment (E1, E2)
-  if: ${{ !cancelled() }}
+  if: ${{ !cancelled() && inputs.timing_experiment }}
   continue-on-error: true
 ```
 
+**預設不執行。** D7（兩段式 Core）已決定不做（`docs/roadmap.md`），每次都多建一份 DLL、多跑兩輪 smoke test 只是浪費 CI 時間。需要重新檢討時，在 Actions 頁面 → CI → Run workflow 勾選 `timing_experiment`（或 `gh workflow run CI --ref <branch> -f timing_experiment=true`）。
+
 以 `/p:LeExperimentTiming=1`、`2` 另外建一份 `LocaleEmulator.dll`（輸出到 `Build/Experiment/`，不影響正式產物），複製一份執行目錄後再跑 smoke test。
 
-- `if: ${{ !cancelled() }}`：主 smoke test 失敗時也執行，方便對照 E0 與 E1 / E2
+- `!cancelled()`：主 smoke test 失敗時也執行，方便對照 E0 與 E1 / E2
+- `inputs.timing_experiment`：只有手動觸發並勾選時為真；`push` / `pull_request` 沒有這個輸入，一律略過
 - `continue-on-error: true`：僅供參考，失敗不會讓整個 CI 變紅
 - 結果摘要寫進 Job Summary；設計與判讀見 `docs/superpowers/specs/2026-11-11-core-modularization-and-x64-design.md` §4.5
 

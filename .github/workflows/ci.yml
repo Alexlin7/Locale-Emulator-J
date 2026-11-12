@@ -15,6 +15,11 @@ on:
     branches: [ master ]
   # 手動觸發：可在 Actions 頁面或用 `gh workflow run CI --ref <branch>` 跑任一分支
   workflow_dispatch:
+    inputs:
+      timing_experiment:
+        description: '另外跑時機實驗 E1、E2（D7 已決定不做，只在需要重新檢討時開）'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -204,10 +209,12 @@ jobs:
       # Rebuilds x86 LocaleEmulator.dll with LE_EXPERIMENT_TIMING=1 (E1) / 2 (E2)
       # into a separate directory and runs the smoke test against a copy of the
       # runtime directory. Informational only: failures do not fail the build.
+      # D7 was dropped (docs/roadmap.md), so this only runs when requested via
+      # the workflow_dispatch input `timing_experiment`.
 
       - name: Timing experiment (E1, E2)
         # Runs even when the main smoke test fails, so E0 and E1/E2 can be compared.
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && inputs.timing_experiment }}
         continue-on-error: true
         run: |
           $results = @()

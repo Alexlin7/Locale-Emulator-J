@@ -53,7 +53,7 @@ msbuild tests/SmokeTest/LocaleTestApp/LocaleTestApp.vcxproj /p:Configuration=Rel
 
 ## 時機實驗
 
-CI 會另外建 `LE_EXPERIMENT_TIMING=1|2` 的 `LocaleEmulator.dll`，複製一份執行目錄後跑同一套 smoke test（`continue-on-error`）。實驗版會設定環境變數 `LE_EXPERIMENT`，LocaleTestApp 輸出、腳本顯示，用來證明延後路徑確實執行。詳見 `src/Core/AGENTS.md` 與 spec §4.5。
+手動觸發 CI 並勾選 `timing_experiment` 時（預設不跑，D7 已決定不做），會另外建 `LE_EXPERIMENT_TIMING=1|2` 的 `LocaleEmulator.dll`，複製一份執行目錄後跑同一套 smoke test（`continue-on-error`）。實驗版會設定環境變數 `LE_EXPERIMENT`，LocaleTestApp 輸出、腳本顯示，用來證明延後路徑確實執行。詳見 `src/Core/AGENTS.md` 與 spec §4.5。
 
 ## 注意
 

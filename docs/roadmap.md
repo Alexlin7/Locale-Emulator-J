@@ -1,7 +1,7 @@
 # Roadmap：待辦、取捨與風險
 
 > **活文件**：每完成一項、做了新的取捨或發現新的風險，就更新這份文件（改勾選狀態或增刪項目，不必保留歷史；歷史在 git 與 `docs/superpowers/`）。
-> **最後整理**：2026-11-12（依「目標」重新排序：x64 與 D7 暫緩）
+> **最後整理**：2026-11-12（依「目標」重新排序：x64 暫緩、D7 不做）
 > **相關文件**：[`AGENTS.md`](../AGENTS.md)、[Core 模組化與 x64 設計](superpowers/specs/2026-11-11-core-modularization-and-x64-design.md)、[Phase 2 計畫](superpowers/plans/2026-11-11-core-phase2-hook-engine.md)
 
 ## 0. 目標
@@ -23,7 +23,7 @@
 | x86 Core | 正式使用；smoke test 6 個地區、每個地區 32 個 `CHECK_*` 加時區全綠 |
 | 已知有問題的遊戲 | 無（ExHIBIT 遊戲在 65001 下的亂碼已確認由目前的 fork 版修好） |
 | x64 Core | **暫緩**。能編譯（`LoaderDll64.dll` / `LocaleEmulator64.dll`），不安裝 hook、不發佈 |
-| D7 兩段式 Core | **暫緩**。時機實驗 E1、E2 在 smoke test 範圍內全 PASS；E2 實測 5 款遊戲沒有任何一款比 E0 好或差 |
+| D7 兩段式 Core | **不做**（2026-11-12）。時機實驗 E1、E2 在 smoke test 範圍內全 PASS；E2 實測 5 款遊戲沒有任何一款比 E0 好或差。CI 的實驗步驟改為手動勾選才跑 |
 | C++ 標準 | Core C++17（加 `/Zc:alignedNew-`）；ShellExtension 與 C++ 測試 C++23 |
 | 靜態分析 | CodeQL（C# + C/C++）在 push / PR 到 `master`、每週排程時執行；剩 3 筆結果，皆判斷為誤報；另 2 筆已 dismiss 為 Won't fix（見 §2「已完成」） |
 
@@ -53,13 +53,16 @@
 
 ### 暫緩（遊戲都是 32 位元，目前沒有需求）
 
-重新啟動的條件：要玩 64 位元的遊戲，或 x86 Core 遇到只有兩段式架構才能解的問題。重啟前先讀第 5 節的「重啟 x64 前要先處理的事」。
+重新啟動的條件：要玩 64 位元的遊戲。重啟前先讀第 5 節的「重啟 x64 前要先處理的事」。
 
-- [ ] **D7 定案**；成立的話，寫兩段式 Core 的實作計畫（第一段只負責在 kernel32 初始化後載入第二段，第二段可以用 CRT）。實測紀錄在 spec §4.5。
 - [ ] Phase 2 剩下的項目：A2b（正式實作對齊版 `operator new/delete`）、A3 / A4（Core 升 C++20 / C++23，風險在 ml.h）、Part B（HookEngine 介面 `Le::Hook`）
 - [ ] x64（Phase 3～7，spec §5）：x64 hook 引擎（Zydis）、移植 `LeRtl*` / `NtQueryDefault*` / 時區 hook、LEProc64、user32 / gdi32 hook、減少 ml 依賴、x64 的大量截斷警告
 - [ ] Windows 11 右鍵選單第一層（`IExplorerCommand` + 有簽章的 sparse package）：Windows 11 的「顯示其他選項」裡仍然可以用
 - [ ] （可選）SonarQube Cloud、實驗版 DLL 加進 CI artifact
+
+### 不做（除非條件改變）
+
+- **D7 兩段式 Core**（2026-11-12 決定）：要解決的兩件事都沒有需求。沒有任何遊戲需要延後安裝 hook（E1、E2 smoke test 全 PASS；5 款實際遊戲 E2 與 E0 沒有差異，spec §4.5）；讓第二段能用 CRT / C++23 來寫 x64 hook，但 x64 暫緩，新標準在這裡的效益也主要是寫法更安全、不是效能。`LE_EXPERIMENT_TIMING` 開關保留，CI 的實驗步驟改為手動觸發並勾選 `timing_experiment` 才跑。**重新檢討的條件**：出現只有延後安裝 hook 才修得好的遊戲，或重啟 x64 時確認沒有 CRT 寫不下去。
 
 ### 已完成（最近）
 
@@ -89,8 +92,8 @@
 
 | 取捨 | 得到 | 放棄 / 代價 | 何時重新檢討 |
 |---|---|---|---|
-| x64、D7 與 Phase 2 剩餘項目暫緩，只顧 x86 與自己玩的遊戲（2026-11-12） | 時間集中在實際影響遊戲的問題 | 64 位元遊戲不能用；Core 的程式碼現代化停在 C++17 | 要玩 64 位元遊戲時 |
-| Core 維持 MSVC C++ + ml，不用 Rust 重寫（D1） | 不用重寫約 5 萬行；保留 SEH | 現代語言的安全性；ml 的技術債留著 | D7 成立後，第二段可以改用現代 C++ |
+| x64 與 Phase 2 剩餘項目暫緩、D7 不做，只顧 x86 與自己玩的遊戲（2026-11-12） | 時間集中在實際影響遊戲的問題；CI 不再每次跑時機實驗 | 64 位元遊戲不能用；Core 的程式碼現代化停在 C++17 | 要玩 64 位元遊戲，或出現只有延後安裝 hook 才修得好的遊戲時 |
+| Core 維持 MSVC C++ + ml，不用 Rust 重寫（D1） | 不用重寫約 5 萬行；保留 SEH | 現代語言的安全性；ml 的技術債留著 | — |
 | 自寫 hook 引擎（Zydis），不用 Detours，也不沿用 Locale Remulator | 不依賴維護緩慢的上游；完全掌控 | 要自己寫、自己除錯 x64 hook | Phase 3 遇到重大困難時 |
 | x64 第一版只做 NLS、LCID、時區（Q6） | 較快可用 | user32 / gdi32 要等 Phase 6 | Phase 4 完成後 |
 | 不支援跨架構子程序（Q5） | 不需要 IPC | x86 程式啟動 x64 子程序時不會被模擬 | 有使用者需求時 |
@@ -113,7 +116,7 @@
 
 只在第 2 節「暫緩」的項目重新啟動時才需要：
 
-1. **D7 要在寫 x64 hook 之前定案。** 否則 x64 hook 可能先寫在無 CRT 的第一段，之後又要搬到可以用 CRT 的第二段，同一批程式碼寫兩次。
+1. **重新確認 D7 的「不做」。** 寫 x64 hook 之前先判斷無 CRT 能不能寫得下去；若要改成兩段式，要在寫 x64 hook 之前決定，否則同一批程式碼可能寫兩次（先寫在無 CRT 的第一段，之後又搬到可以用 CRT 的第二段）。
 2. **新模組不要直接依賴 ml。** HookEngine 與 x64 程式碼若一開始就到處用 ml 的 API，Phase 7 會越來越難。
 3. **LEB 契約在 x64 上的變化。** 指標大小會變，C# / C++ / 兩個測試專案是手抄的定義。做 LEProc64 之前，至少要讓 Core.Tests 與 LEProc.Tests 以 x64 檢查 LEProc64 看到的佈局。
 4. **LePeb 共享記憶體的名稱要跨架構一致。** `GetLePebSectionName`（`LocaleEmulator.h`）用 `%p` 格式化 `ULONG_PTR` 的 PID，x86 產生 8 位、x64 產生 16 位十六進位，x86 LoaderDll 建立的名稱與 x64 LocaleEmulator 找的名稱會不同（跨架構啟動子程序時就找不到 LEB）。改成固定寬度的格式（例如 `%08X` 搭配 `(ULONG)ProcessId`）（只有 `LocaleEmulator.h` 這一處，x86 與 x64 共用），改完跑 smoke test。CodeQL alert #1（`cpp/wrong-type-format-argument`）已先 dismiss 為 Won't fix。
