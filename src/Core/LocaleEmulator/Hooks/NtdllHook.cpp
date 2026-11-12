@@ -168,6 +168,12 @@ LoadFirstDll(
     PVOID*              DllHandle
 )
 {
+    // Exported by name so LoaderDll can find it in a mapped (not loaded) copy of
+    // this DLL and inject without loading LocaleEmulator.dll into the launcher
+    // (LoaderDll.cpp, LeCreateProcessDirect). __FUNCDNAME__ keeps the decorated
+    // name correct on both x86 and x64.
+#pragma comment(linker, "/EXPORT:LoadFirstDll=" __FUNCDNAME__)
+
     PVOID BaseToFree;
 
     // ExceptionBox(L"inject");
