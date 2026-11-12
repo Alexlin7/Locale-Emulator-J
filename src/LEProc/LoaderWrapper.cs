@@ -180,14 +180,10 @@ internal class LoaderWrapper
 
         AttachConsole(ATTACH_PARENT_PROCESS);
 
-        var startupInfo = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>() };
+        var startupInfo = new STARTUPINFO();
         var processInformation = new PROCESS_INFORMATION();
 
-        // LeCreateProcessDirect injects into the target without loading LocaleEmulator.dll
-        // into LEProc. LeCreateProcess loaded it here and patched the syscall stub shared
-        // by all CoreCLR threads, which crashed LEProc now and then with 0xC0000005
-        // (docs/superpowers/plans/2026-11-12-leproc-intermittent-crash.md).
-        var ret = LeCreateProcessDirect(locLEB,
+        var ret = LeCreateProcess(locLEB,
                                ApplicationName,
                                CommandLine,
                                CurrentDirectory,
@@ -273,7 +269,7 @@ internal class LoaderWrapper
         public uint dwThreadId;
     }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct STARTUPINFO
     {
         public int cb;
@@ -295,22 +291,6 @@ internal class LoaderWrapper
         public IntPtr hStdOutput;
         public IntPtr hStdError;
     }
-
-    /// <summary>
-    ///     Writes only the PROCESS_INFORMATION part of ML_PROCESS_INFORMATION.
-    /// </summary>
-    [DllImport("LoaderDll.dll", CharSet = CharSet.Unicode)]
-    public static extern uint LeCreateProcessDirect(IntPtr leb,
-                                                    [MarshalAs(UnmanagedType.LPWStr), In] string applicationName,
-                                                    [MarshalAs(UnmanagedType.LPWStr), In] string commandLine,
-                                                    [MarshalAs(UnmanagedType.LPWStr), In] string currentDirectory,
-                                                    uint creationFlags,
-                                                    ref STARTUPINFO startupInfo,
-                                                    out PROCESS_INFORMATION processInformation,
-                                                    IntPtr processAttributes,
-                                                    IntPtr threadAttributes,
-                                                    IntPtr environment,
-                                                    IntPtr token);
 
     [DllImport("LoaderDll.dll", CharSet = CharSet.Unicode)]
     public static extern uint LeCreateProcess(IntPtr leb,
