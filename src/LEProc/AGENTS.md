@@ -15,6 +15,7 @@ LEProc 是 LE 的啟動器（.NET 10，**x86**）：讀 profile、用 `CultureIn
 | 檔案 | 內容 |
 |---|---|
 | `Program.cs` | CLI 進入點：`-run %APP%`、`-runas %GUID% %APP%`、`-manage %APP%`、`-global`；組出 LEB 並呼叫 `LoaderWrapper` |
+| `LaunchPreconditions.cs` | 啟動前的檢查（不含 UI，可單元測試）：目標檔案是否存在、`.le.config` 是否不存在 / 讀到 / 讀不到 |
 | `LoaderWrapper.cs` | LEB 等結構的 C# 定義、`LeCreateProcess` 的 P/Invoke、把 LEB 與 registry 資料整理進 unmanaged 記憶體 |
 | `RegistryEntriesLoader.cs` | registry 轉向項目：基本（`HKLM\...\Nls\CodePage` 的 ACP / OEMCP / Default / InstallLanguage）與進階（`IsAdvancedRedirection` 的 HKCU 地區與 UI 語言） |
 | `LERegistryRedirector.cs` | 把 registry 項目轉成 `REGISTRY_REDIRECTION_ENTRY64` 的二進位格式 |
@@ -24,6 +25,7 @@ LEProc 是 LE 的啟動器（.NET 10，**x86**）：讀 profile、用 `CultureIn
 - `GetCharsetFromANSICodepage` 的結果會變成 LEB 的 `DefaultCharset`，影響 gdi32 hook 的字型 charset。
 - `RunWithSuspend` 對應 LEB 的 `DebugMode`；`RunAsAdmin` 會在需要時重新以系統管理員身分啟動自己。
 - .NET 端的全球化必須是 NLS 模式（根目錄鐵則 3），否則 `CultureInfo` 的 LCID 會變成 0x1000。
+- `Main` 最外層有空的 `catch {}`，例外會被靜默吞掉、使用者什麼都看不到。使用者可能碰到的失敗要在發生處明確給訊息（例如目標檔案不存在、`.le.config` 讀不到），判斷邏輯放進 `LaunchPreconditions` 並加測試。
 
 ## 測試
 
@@ -32,6 +34,6 @@ dotnet test tests/LEProc.Tests/ --arch x86     # 需要 x86 test host
 ```
 
 - `CharacterizationTests`：`CultureInfo` 查詢結果與 .NET Framework 4.0 基準值比對
-- `GetCharsetFromANSICodepageTests`、`RegistryEntriesLoaderTests`、`LEBStructLayoutTests`
+- `GetCharsetFromANSICodepageTests`、`RegistryEntriesLoaderTests`、`LEBStructLayoutTests`、`LaunchPreconditionsTests`
 
 端對端行為由 smoke test 驗證（[`tests/SmokeTest/AGENTS.md`](../../tests/SmokeTest/AGENTS.md)）。

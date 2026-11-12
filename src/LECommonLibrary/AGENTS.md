@@ -7,12 +7,12 @@ LECommonLibrary（.NET 10，AnyCPU）是 LEProc 與 LEGUI 共用的程式庫：�
 ## 鐵則
 
 1. **`RegionSupport` 是「這個地區能不能模擬」的唯一判斷入口**（`IsSupported`、`GetSupportedCultures`、`TryGetSupportedCulture`）。LEGUI 的地區清單與 LEProc 的解析都要經過它。
-2. **設定檔 schema 有兩個解析端**：這裡的 `LEConfig` / `LEProfile`（C#）與 ShellExtension 的 `ConfigReader`（C++，pugixml）。改 schema 要兩邊一起改，並考慮既有使用者的設定檔（目前只讀 `<Region>`，上游的 `<Location>` 沒有相容處理）。
+2. **設定檔 schema 有兩個解析端**：這裡的 `LEConfig` / `LEProfile`（C#）與 ShellExtension 的 `ConfigReader`（C++，pugixml）。改 schema 要兩邊一起改，並考慮既有使用者的設定檔（地區先讀 `<Region>`，沒有才讀舊版的 `<Location>`，兩邊規則相同；存檔一律寫 `<Region>`）。
 3. **AnyCPU**：會被 x86 的 LEProc 與 AnyCPU 的 LEGUI 載入，不要加入特定架構的原生相依。
 
 ## 設定檔格式
 
-`LEConfig.xml`（全域）與 `<程式路徑>.le.config`（單一程式）共用同一個 schema：
+`LEConfig.xml`（全域）與 `<程式路徑>.le.config`（單一程式）共用同一個 schema（舊版 LE 把 `<Region>` 寫成 `<Location>`，讀取時相容）：
 
 ```xml
 <LEConfig>
