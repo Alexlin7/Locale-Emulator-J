@@ -1,7 +1,7 @@
 # Roadmap：待辦、取捨與風險
 
 > **活文件**：每完成一項、做了新的取捨或發現新的風險，就更新這份文件（改勾選狀態或增刪項目，不必保留歷史；歷史在 git 與 `docs/superpowers/`）。
-> **最後整理**：2026-11-11（Phase 1 完成、Phase 2 Part A / Part C 進行中）
+> **最後整理**：2026-11-12（Phase 1、Part A 的 A1 / A2、Part C 已合回 `master`；接下來是 D7 定案與 LEProc 的小 bug）
 > **相關文件**：[`AGENTS.md`](../AGENTS.md)、[Core 模組化與 x64 設計](superpowers/specs/2026-11-11-core-modularization-and-x64-design.md)、[Phase 2 計畫](superpowers/plans/2026-11-11-core-phase2-hook-engine.md)
 
 ## 1. 現況摘要
@@ -12,7 +12,8 @@
 | x64 Core | 能編譯（`LoaderDll64.dll` / `LocaleEmulator64.dll`），不安裝 hook、不發佈 |
 | C++ 標準 | Core C++17（加 `/Zc:alignedNew-`）；ShellExtension 與 C++ 測試 C++23 |
 | D7 兩段式 Core | 時機實驗 E1、E2 在 smoke test 範圍內全 PASS；實際遊戲測試進行中（E2 測 5 款：3 款正常，2 款與 E2 無關或待查） |
-| 開發分支 | Phase 1 + Part A + Part C 已合回 `master` 並推上遠端 |
+| 開發分支 | Phase 1 + Part A（A1、A2）+ Part C、CodeQL（PR #5）、Debug 方案組態修正（PR #6）都已合回 `master` |
+| 靜態分析 | CodeQL（C# + C/C++）在 push / PR 到 `master`、每週排程時執行；第一次掃描 6 筆結果待處理（見下方「測試與 CI」） |
 
 ## 2. TODO
 
@@ -81,7 +82,7 @@
 | LEProc 維持 x86，另建 LEProc64（Q2） | x86 路徑完全不動 | 多一個執行檔要管 | — |
 | `/Zc:alignedNew-` | C++17 立刻可用 | 暫時沒有符合標準的對齊配置 | A2b |
 | Core 升 C++17 並保留非符合模式（`ConformanceMode=false` 等） | 不用動 ml.h | C++20 以後的語法還不能用 | A3 |
-| Core 只有 Release 組態 | 設定簡單 | 沒有 Debug 版可以除錯 | 加診斷 log 時一起考慮 |
+| Core 只有 Release 組態（方案的 Debug 組態也對應到 Core 的 Release，PR #6） | 設定簡單；VS 以 Debug 開方案時三個 Core 專案能正常載入與建置 | 沒有 Debug 版可以除錯 | 加診斷 log 時一起考慮 |
 | 只靠 CI 驗證 | 不受本機環境限制 | 回饋較慢；只測一種 Windows 版本與一種系統地區 | 使用者主機可用時補測 |
 | 時機實驗用編譯期開關 | 正式版完全不受影響 | 換時機要重新編譯 | — |
 
