@@ -21,7 +21,7 @@
 | 項目 | 狀態 |
 |---|---|
 | x86 Core | 正式使用；smoke test 6 個地區、每個地區 32 個 `CHECK_*` 加時區全綠 |
-| 已知有問題的遊戲 | 一款 ExHIBIT 引擎的遊戲在系統 ACP 65001（UTF-8 beta）下劇本亂碼（見下方第 1 項） |
+| 已知有問題的遊戲 | 無（ExHIBIT 遊戲在 65001 下的亂碼已確認由目前的 fork 版修好） |
 | x64 Core | **暫緩**。能編譯（`LoaderDll64.dll` / `LocaleEmulator64.dll`），不安裝 hook、不發佈 |
 | D7 兩段式 Core | **暫緩**。時機實驗 E1、E2 在 smoke test 範圍內全 PASS；E2 實測 5 款遊戲沒有任何一款比 E0 好或差 |
 | C++ 標準 | Core C++17（加 `/Zc:alignedNew-`）；ShellExtension 與 C++ 測試 C++23 |
@@ -33,20 +33,17 @@
 
 ### 優先：影響遊戲能不能玩
 
-- [ ] **系統 ACP 65001（UTF-8 beta）下 LE 有漏攔路徑**（已確認）：一款 ExHIBIT 引擎的遊戲（劇本 `.rld` 加密）在 LE ja 下 UI 正常、劇本呈「縺ゅ」型亂碼（UTF-8 位元組被當 CP932 顯示）；E0 / E2 相同；使用者關閉 UTF-8 beta（系統 ACP 回到 950）後劇本正常。代表引擎某處 W→A 轉換拿到了系統真正的 ACP 65001。smoke test 在 65001 下全 PASS，所以這條路徑不在現有 `CHECK_*` 裡。下一步：在 LocaleTestApp 加候選 API 的 `CHECK_*`（含 CRT `wcstombs` / `setlocale`、`WideCharToMultiByte(CP_ACP)` 往返、gdi32 `GetGlyphOutlineA` / `TextOutA` 等）在 65001 環境找出漏網的 API。注意：GitHub runner 是 ACP 1252 且無法重開機切 65001，重現只能在使用者主機上做。profile 的 `ja` 與 `ja-JP` 組出的 LEB 相同（`TextInfo.LCID` 0x0411、ACP 932），已排除。
-  - 進度：LocaleTestApp 已加入 32 個 `PROBE_*`（kernelbase / user32 / CRT 與 msvcrt.dll / gdi32 的 A↔W 路徑，含 `TextOut` / `DrawText` 逐像素比對）與 `Invoke-LocalProbe.ps1`（CI run 43254226628）。**下一步：使用者（或本機 agent）在開著 UTF-8 beta 的電腦上跑 `Invoke-LocalProbe.ps1`，把 `report.md` 貼回來**，步驟見 `tests/SmokeTest/AGENTS.md`「在使用者電腦上探測」。
-- [ ] **`CharNextA` 沒有照模擬的 code page 判斷雙位元組字元**（新發現，與 65001 無關）：`PROBE_USER32_CHARNEXT_A` 在 CI 的 ja / zh / ko 都失敗（例如 cp=932 預期 35 步、實際 50 步），表示 `CharNextA` 用的是系統的 code page，逐位元組前進。用 `CharNextA` / `CharPrevA` 走訪 Shift-JIS 文字的程式會把雙位元組字元切開。要修的話先查 user32 的實作從哪裡取得 code page。
 - [ ] **查 LEProc 偶發當機**：`LoaderWrapper.LeCreateProcess` 內存取違規（`0xc0000005`，faulting module 顯示 coreclr.dll），E0、E2 都會發生，本機 smoke test 的偶發逾時即此問題。CI 上也出現過：master 的 run 43066293655（主 smoke test 的 zh-CN 逾時）、run 43208011917（E1 的 zh-CN 失敗），同一份程式碼重跑就通過。症狀是「按了沒反應、要多按幾次」。
-- [ ] **新遊戲出問題時**：照第 1 項的做法，先在 LocaleTestApp 加能重現的 `CHECK_*`，再修。
+- [ ] **新遊戲出問題時**：照 65001 那次的做法，先在 LocaleTestApp 加能重現的 `PROBE_*` / `CHECK_*`，CI 測不到的環境用 `Invoke-LocalProbe.ps1` 在使用者主機上跑，找到漏攔的 API 再修。
 
 ### 其次：幫忙查出遊戲為什麼不正常
 
-- [ ] **Core 的可選診斷 log**（目前 `WriteLog` 不輸出任何東西）：遊戲沒效時目前沒有任何線索。建議用 ntdll 的 `DbgPrint`（用 DebugView 看），以環境變數開關，預設關閉。對查第 1 項也有幫助。
-- [ ] **smoke test 輸出 OS 版本與 build 號碼**：讓 CI 與使用者主機的結果可以對照。
+- [ ] **Core 的可選診斷 log**（目前 `WriteLog` 不輸出任何東西）：遊戲沒效時目前沒有任何線索。建議用 ntdll 的 `DbgPrint`（用 DebugView 看），以環境變數開關，預設關閉。PROBE 全部通過、遊戲卻仍不正常時，靠它找出遊戲實際呼叫的 API。
 - [ ] **smoke test 補上遊戲常用但還沒測的 API**：`SendMessageA` 等 user32 訊息轉換、`EnumFontFamilies*`（字型選單）、進階 registry 轉向（`IsAdvancedRedirection`）與 UI 語言 API。
 
 ### 順手或成本很低時再做
 
+- [ ] **`CharNextA` 在英文系統上沒有照模擬的 code page 判斷雙位元組字元**（低優先）：`PROBE_USER32_CHARNEXT_A` 在 CI（en-US、ACP 1252）的 ja / zh / ko 都失敗（例如 cp=932 預期 35 步、實際 50 步），但在使用者的中文系統（ACP 65001）上經 fork 版通過。推測 user32 在非雙位元組的系統上直接逐位元組前進、不查 code page（未驗證）。只影響在英文系統上用 LE 的人，對維護者自己玩遊戲沒有影響。
 - [ ] **LEGUI 也檢查 `.le.config` 所在目錄是否存在**：直接開 LEGUI 或把不存在的路徑拖進去時，仍會因目錄不存在而判定不可寫、觸發 UAC 後顯示「目錄無寫入權限」。要新增訊息字串，需處理 22 種語系。
 - [ ] **評估 LEProc `Main` 最外層的空 `catch {}`**：目前所有未預期的例外都被靜默吞掉（例如 `-runas` 的 GUID 在 `LEConfig.xml` 找不到時 `.First` 丟例外，什麼都不會發生）。改成顯示例外能幫助回報問題，但會讓過去一直靜默的錯誤全部浮上來，影響面要先評估。
 - [ ] LoaderDll / Loader 的 vcxproj 也改用 `$(OutDir)` / `$(IntDir)`（目前把 `.\Release\` 寫死）
@@ -68,6 +65,9 @@
 
 ### 已完成（最近）
 
+- [x] **系統 ACP 65001（UTF-8 beta）下的亂碼**：一款 ExHIBIT 引擎的遊戲在原版 LE 2.5.0.1 與較早的 fork 版下劇本呈「縺ゅ」型亂碼，**目前的 fork 版（3.0.0.0）正常**（使用者實測）。原因由使用者主機上的 `Invoke-LocalProbe.ps1`（OS build 26300、ACP 65001）確認：原版經 LE 後 `GetACP()` 回報 932，但 ntdll `Rtl*` 轉換仍用 UTF-8（「日」轉成 `E697A5` 而非 `93FA`），27 項 CHECK / PROBE 失敗，集中在 `Rtl*`、ANSI 檔案 API、user32 視窗文字、環境變數與目前目錄；fork 版同一組參數 0 項失敗。即 `src/Core/AGENTS.md` 鐵則 4 的 NLS 表替換失效，由 `LeRtl*` hook 修正。
+- [x] smoke test 輸出 OS 版本（`INFO_OS_VERSION`）
+- [x] LocaleTestApp 新增 32 個 `PROBE_*` 與本機探測腳本 `Invoke-LocalProbe.ps1`（CI run 43254226628），之後遇到「只在使用者主機才重現」的問題可以沿用
 - [x] LocaleTestApp 的測試樣本原本因原始碼編碼被讀成亂碼，`CHECK_*` 幾乎沒測到中日韓字元；改用 `\u` 跳脫後，現有 32 個 `CHECK_*` 在真正的雙位元組字元下仍全部通過（CI run 43254226628）
 - [x] `.le.config` 的 `<Location>` 相容（CI run 43208011917）
 - [x] `-run` 的路徑不存在時給錯誤訊息（CI run 43208011917）
@@ -107,7 +107,7 @@
 
 1. **Core 沒有診斷 log。** 遊戲沒效時會沒有線索，只能靠猜和反覆試。已列在 TODO「其次」的第一項。
 2. **只在一種 Windows 版本上測過。** 鐵則中「NLS 表替換失效」就是在特定 build 上發現的；Windows 更新可能讓原本能玩的遊戲失效。至少讓 smoke test 輸出 OS build，並在使用者主機上跑過一次 smoke test 作為對照。
-3. **系統 ACP 65001 只能在使用者主機重現。** CI 測不到，所以修好之後也沒有自動化的回歸保護；修好時要記下在使用者主機上驗證的步驟與結果。
+3. **系統 ACP 65001 只能在使用者主機重現。** CI 測不到，沒有自動化的回歸保護。改了 `LeRtl*` 或其他轉換相關的 hook 之後，請在使用者主機上跑一次 `Invoke-LocalProbe.ps1`（開著 UTF-8 beta）確認經 LE 仍是 0 項失敗。
 
 ### 重啟 x64 前要先處理的事
 
