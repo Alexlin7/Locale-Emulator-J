@@ -15,7 +15,10 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <locale.h>
+#include <mbctype.h>
 
 typedef LONG NTSTATUS_;
 
@@ -501,6 +504,513 @@ static void CheckConversions()
     CheckLocaleApis(acp, wide, wideChars, expectedMb, expectedMbLen);
 }
 
+// ============================================================================
+// PROBE_* / INFO_*: candidate APIs for the system-ACP-65001 (UTF-8 beta) leak
+// (docs/roadmap.md). PROBE_* uses the same OK / FAIL format as CHECK_* but the
+// smoke test only reports it; INFO_* is plain diagnostic output. The expected
+// values follow the CHECK_* rules: derived from GetACP() with explicit code
+// page numbers.
+// ============================================================================
+
+static void Probe(const char *name, bool ok, const char *detail)
+{
+    if (ok)
+        fprintf(g_Out, "PROBE_%s=OK\n", name);
+    else
+        fprintf(g_Out, "PROBE_%s=FAIL %s\n", name, detail);
+}
+
+static void Info(const char *name, const char *value)
+{
+    fprintf(g_Out, "INFO_%s=%s\n", name, (value && *value) ? value : "(empty)");
+}
+
+static void ProbeBytes(const char *name, UINT cp, const char *got, int gotLen, const char *expected, int expectedLen)
+{
+    char hex[520], detail[600];
+    bool ok = gotLen == expectedLen && memcmp(got, expected, expectedLen) == 0;
+    Hex(got, gotLen > 0 ? gotLen : 0, hex, sizeof(hex));
+    sprintf_s(detail, "cp=%u got=%s", cp, hex);
+    Probe(name, ok, detail);
+}
+
+static void ProbeWide(const char *name, UINT cp, const WCHAR *got, int gotChars, const WCHAR *expected, int expectedChars)
+{
+    char hex[520], detail[600];
+    bool ok = gotChars == expectedChars && memcmp(got, expected, expectedChars * sizeof(WCHAR)) == 0;
+    Hex(got, gotChars > 0 ? gotChars * (int)sizeof(WCHAR) : 0, hex, sizeof(hex));
+    sprintf_s(detail, "cp=%u got=%s", cp, hex);
+    Probe(name, ok, detail);
+}
+
+// Code page named by a CRT locale string such as "Japanese_Japan.932" or ".utf8".
+static UINT CodePageOfLocaleString(const char *locale)
+{
+    if (!locale) return 0;
+    const char *dot = strrchr(locale, '.');
+    if (!dot) return 0;
+    if (_stricmp(dot + 1, "utf8") == 0 || _stricmp(dot + 1, "utf-8") == 0) return CP_UTF8;
+    return (UINT)atoi(dot + 1);
+}
+
+struct ProbeData
+{
+    UINT  acp;
+    WCHAR wide[128];      // sample characters the ACP can represent
+    int   wideChars;
+    char  mb[512];        // the same text in the ACP (NUL-terminated)
+    int   mbLen;
+    int   firstNonAscii;  // index into wide, or -1
+};
+
+static void ProbeKernelbase(const ProbeData &d)
+{
+    char buf[512];
+
+    // W -> MB through CP_ACP / CP_THREAD_ACP (CHECK_KERNELBASE_* only covers MB -> W).
+    int n = WideCharToMultiByte(CP_ACP, 0, d.wide, d.wideChars, buf, sizeof(buf), NULL, NULL);
+    ProbeBytes("KERNELBASE_CP_ACP_W2MB", d.acp, buf, n, d.mb, d.mbLen);
+    n = WideCharToMultiByte(CP_THREAD_ACP, 0, d.wide, d.wideChars, buf, sizeof(buf), NULL, NULL);
+    ProbeBytes("KERNELBASE_CP_THREAD_ACP_W2MB", d.acp, buf, n, d.mb, d.mbLen);
+
+    // IsDBCSLeadByte (ACP) must agree with IsDBCSLeadByteEx(<explicit ACP>) for every byte.
+    {
+        int mismatch = -1;
+        for (int b = 0x80; b <= 0xFF && mismatch < 0; ++b)
+            if ((IsDBCSLeadByte((BYTE)b) != FALSE) != (IsDBCSLeadByteEx(d.acp, (BYTE)b) != FALSE))
+                mismatch = b;
+        char detail[64];
+        sprintf_s(detail, "cp=%u first mismatching byte=%02X", d.acp, mismatch);
+        Probe("KERNELBASE_ISDBCSLEADBYTE", mismatch < 0, detail);
+    }
+
+    // GetLocaleInfoA with LOCALE_USE_CP_ACP converts through CP_ACP.
+    {
+        WCHAR nameW[128] = {};
+        int wn = GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_SNATIVELANGUAGENAME, nameW, 128);
+        char expected[256];
+        int en = WideCharToMultiByte(d.acp, 0, nameW, wn > 0 ? wn - 1 : 0, expected, sizeof(expected), NULL, NULL);
+        char got[256] = {};
+        int gn = GetLocaleInfoA(LOCALE_USER_DEFAULT, LOCALE_SNATIVELANGUAGENAME | LOCALE_USE_CP_ACP, got, sizeof(got));
+        ProbeBytes("KERNELBASE_GETLOCALEINFO_A", d.acp, got, gn > 0 ? gn - 1 : 0, expected, en);
+    }
+
+    // Environment variable set as Unicode, read back as ANSI.
+    {
+        WCHAR value[129];
+        memcpy(value, d.wide, d.wideChars * sizeof(WCHAR));
+        value[d.wideChars] = 0;
+        SetEnvironmentVariableW(L"LE_PROBE_VALUE", value);
+        char got[512] = {};
+        DWORD gn = GetEnvironmentVariableA("LE_PROBE_VALUE", got, sizeof(got));
+        ProbeBytes("KERNELBASE_ENVIRONMENT_A", d.acp, got, (int)gn, d.mb, d.mbLen);
+        SetEnvironmentVariableW(L"LE_PROBE_VALUE", NULL);
+    }
+
+    // Current directory set as Unicode (non-ASCII name), read back as ANSI.
+    {
+        WCHAR nameChars[8];
+        int nameLen = 0;
+        for (int i = 0; i < d.wideChars && nameLen < 4; ++i)
+            if (d.wide[i] >= 0x80) nameChars[nameLen++] = d.wide[i];
+        nameChars[nameLen] = 0;
+
+        WCHAR tempDir[MAX_PATH], dirW[MAX_PATH], oldDir[MAX_PATH];
+        GetTempPathW(MAX_PATH, tempDir);
+        swprintf_s(dirW, L"%sLEProbe_%lu_%s", tempDir, GetCurrentProcessId(), nameChars);
+        CreateDirectoryW(dirW, NULL);
+        GetCurrentDirectoryW(MAX_PATH, oldDir);
+
+        if (SetCurrentDirectoryW(dirW))
+        {
+            WCHAR curW[MAX_PATH];
+            int cn = (int)GetCurrentDirectoryW(MAX_PATH, curW);
+            char expected[MAX_PATH * 2];
+            int en = WideCharToMultiByte(d.acp, 0, curW, cn, expected, sizeof(expected), NULL, NULL);
+            char got[MAX_PATH * 2] = {};
+            DWORD gn = GetCurrentDirectoryA(sizeof(got), got);
+            ProbeBytes("KERNELBASE_CURRENT_DIRECTORY_A", d.acp, got, (int)gn, expected, en);
+            SetCurrentDirectoryW(oldDir);
+        }
+        else
+        {
+            Info("KERNELBASE_CURRENT_DIRECTORY_A", "skipped: cannot enter test directory");
+        }
+        RemoveDirectoryW(dirW);
+    }
+}
+
+static void ProbeUser32(const ProbeData &d)
+{
+    char got[512];
+
+    HWND w = CreateWindowExW(0, L"STATIC", L"", 0, 0, 0, 10, 10, NULL, NULL, NULL, NULL);
+    if (w)
+    {
+        WCHAR title[129];
+        memcpy(title, d.wide, d.wideChars * sizeof(WCHAR));
+        title[d.wideChars] = 0;
+
+        // Unicode title read back through the ANSI paths.
+        SetWindowTextW(w, title);
+        memset(got, 0, sizeof(got));
+        int n = GetWindowTextA(w, got, sizeof(got));
+        ProbeBytes("USER32_GETWINDOWTEXT_A", d.acp, got, n, d.mb, d.mbLen);
+
+        memset(got, 0, sizeof(got));
+        n = (int)SendMessageA(w, WM_GETTEXT, sizeof(got), (LPARAM)got);
+        ProbeBytes("USER32_WM_GETTEXT_A", d.acp, got, n, d.mb, d.mbLen);
+
+        // ANSI title set through a message, read back as Unicode.
+        SetWindowTextW(w, L"");
+        SendMessageA(w, WM_SETTEXT, 0, (LPARAM)d.mb);
+        WCHAR back[256] = {};
+        int bn = GetWindowTextW(w, back, 256);
+        ProbeWide("USER32_WM_SETTEXT_A", d.acp, back, bn, d.wide, d.wideChars);
+
+        DestroyWindow(w);
+    }
+    else
+    {
+        Info("USER32_WINDOW", "skipped: CreateWindowExW failed");
+    }
+
+    // wsprintfA with a Unicode string argument.
+    {
+        WCHAR arg[129];
+        memcpy(arg, d.wide, d.wideChars * sizeof(WCHAR));
+        arg[d.wideChars] = 0;
+        char out[1024] = {};
+        int n = wsprintfA(out, "%ls", arg);
+        ProbeBytes("USER32_WSPRINTF_LS", d.acp, out, n, d.mb, d.mbLen);
+    }
+
+    // CharNextA must step over one ACP character at a time (two bytes for DBCS).
+    {
+        int steps = 0;
+        const char *p = d.mb;
+        while (*p && steps < 1000)
+        {
+            p = CharNextA(p);
+            ++steps;
+        }
+        char detail[64];
+        sprintf_s(detail, "cp=%u expected=%d got=%d", d.acp, d.wideChars, steps);
+        Probe("USER32_CHARNEXT_A", steps == d.wideChars, detail);
+    }
+}
+
+typedef char  *(__cdecl *crt_setlocale_t)(int, const char *);
+typedef size_t (__cdecl *crt_wcstombs_t)(char *, const wchar_t *, size_t);
+typedef size_t (__cdecl *crt_mbstowcs_t)(wchar_t *, const char *, size_t);
+typedef int    (__cdecl *crt_getmbcp_t)(void);
+typedef int    (__cdecl *crt_setmbcp_t)(int);
+typedef int    (__cdecl *crt_ismbblead_t)(unsigned int);
+
+struct CrtFunctions
+{
+    crt_setlocale_t setlocale_;
+    crt_wcstombs_t  wcstombs_;
+    crt_mbstowcs_t  mbstowcs_;
+    crt_getmbcp_t   getmbcp_;
+    crt_setmbcp_t   setmbcp_;
+    crt_ismbblead_t ismbblead_;
+};
+
+// Runs the same probes against one CRT: this program's static UCRT ("CRT") or
+// the system msvcrt.dll ("MSVCRT"), which is closer to what old games link.
+static void ProbeCrt(const char *prefix, const CrtFunctions &f, const ProbeData &d)
+{
+    char name[64], detail[256], value[128];
+
+    sprintf_s(value, "%d", f.getmbcp_());
+    sprintf_s(name, "%s_MBCP_INITIAL", prefix);
+    Info(name, value);
+
+    // Old CRTs call _setmbcp(_MB_CP_ANSI) at startup; the _mbs* functions use it.
+    f.setmbcp_(-3 /* _MB_CP_ANSI */);
+    int mbcp = f.getmbcp_();
+    sprintf_s(detail, "expected=%u got=%d", d.acp, mbcp);
+    sprintf_s(name, "%s_SETMBCP_ANSI", prefix);
+    Probe(name, mbcp == (int)d.acp, detail);
+
+    {
+        int mismatch = -1;
+        for (int b = 0x80; b <= 0xFF && mismatch < 0; ++b)
+            if ((f.ismbblead_((unsigned)b) != 0) != (IsDBCSLeadByteEx(d.acp, (BYTE)b) != FALSE))
+                mismatch = b;
+        sprintf_s(detail, "cp=%u first mismatching byte=%02X", d.acp, mismatch);
+        sprintf_s(name, "%s_ISMBBLEAD", prefix);
+        Probe(name, mismatch < 0, detail);
+    }
+
+    // setlocale(LC_ALL, "") picks the user default locale and its code page.
+    const char *loc = f.setlocale_(LC_ALL, "");
+    sprintf_s(name, "%s_SETLOCALE_DEFAULT", prefix);
+    Info(name, loc ? loc : "(null)");
+    UINT locCp = CodePageOfLocaleString(loc);
+    sprintf_s(detail, "expected=%u got=%u (%s)", d.acp, locCp, loc ? loc : "null");
+    sprintf_s(name, "%s_SETLOCALE_DEFAULT_CP", prefix);
+    Probe(name, locCp == d.acp, detail);
+
+    WCHAR wideZ[129];
+    memcpy(wideZ, d.wide, d.wideChars * sizeof(WCHAR));
+    wideZ[d.wideChars] = 0;
+    {
+        char out[512] = {};
+        size_t n = f.wcstombs_(out, wideZ, sizeof(out));
+        sprintf_s(name, "%s_WCSTOMBS", prefix);
+        ProbeBytes(name, d.acp, out, n == (size_t)-1 ? 0 : (int)n, d.mb, d.mbLen);
+    }
+    {
+        WCHAR out[256] = {};
+        size_t n = f.mbstowcs_(out, d.mb, 256);
+        sprintf_s(name, "%s_MBSTOWCS", prefix);
+        ProbeWide(name, d.acp, out, n == (size_t)-1 ? 0 : (int)n, d.wide, d.wideChars);
+    }
+
+    loc = f.setlocale_(LC_ALL, ".ACP");
+    sprintf_s(name, "%s_SETLOCALE_ACP", prefix);
+    Info(name, loc ? loc : "(null)");
+    locCp = CodePageOfLocaleString(loc);
+    sprintf_s(detail, "expected=%u got=%u (%s)", d.acp, locCp, loc ? loc : "null");
+    sprintf_s(name, "%s_SETLOCALE_ACP_CP", prefix);
+    Probe(name, locCp == d.acp, detail);
+
+    f.setlocale_(LC_ALL, "C");
+}
+
+static void ProbeCrts(const ProbeData &d)
+{
+    CrtFunctions ucrt = { setlocale, wcstombs, mbstowcs, _getmbcp, _setmbcp,
+                          [](unsigned c) -> int { return _ismbblead(c); } };
+    ProbeCrt("CRT", ucrt, d);
+
+    // sprintf("%ls") converts with the CRT locale's code page.
+    setlocale(LC_ALL, "");
+    {
+        WCHAR arg[129];
+        memcpy(arg, d.wide, d.wideChars * sizeof(WCHAR));
+        arg[d.wideChars] = 0;
+        char out[512] = {};
+        int n = sprintf_s(out, "%ls", arg);
+        ProbeBytes("CRT_SPRINTF_LS", d.acp, out, n < 0 ? 0 : n, d.mb, d.mbLen);
+    }
+    setlocale(LC_ALL, "C");
+
+    HMODULE msvcrt = LoadLibraryW(L"msvcrt.dll");
+    if (!msvcrt)
+    {
+        Info("MSVCRT", "skipped: msvcrt.dll not loaded");
+        return;
+    }
+    CrtFunctions old = {
+        (crt_setlocale_t)GetProcAddress(msvcrt, "setlocale"),
+        (crt_wcstombs_t)GetProcAddress(msvcrt, "wcstombs"),
+        (crt_mbstowcs_t)GetProcAddress(msvcrt, "mbstowcs"),
+        (crt_getmbcp_t)GetProcAddress(msvcrt, "_getmbcp"),
+        (crt_setmbcp_t)GetProcAddress(msvcrt, "_setmbcp"),
+        (crt_ismbblead_t)GetProcAddress(msvcrt, "_ismbblead"),
+    };
+    if (old.setlocale_ && old.wcstombs_ && old.mbstowcs_ && old.getmbcp_ && old.setmbcp_ && old.ismbblead_)
+        ProbeCrt("MSVCRT", old, d);
+    else
+        Info("MSVCRT", "skipped: missing exports");
+}
+
+// 32-bit top-down DIB to render text into and compare pixels.
+struct Canvas
+{
+    HDC     dc;
+    HBITMAP bitmap;
+    HGDIOBJ oldBitmap;
+    UINT32 *bits;
+    int     width, height;
+};
+
+static bool CreateCanvas(Canvas &c, int width, int height)
+{
+    c = {};
+    c.width = width;
+    c.height = height;
+    c.dc = CreateCompatibleDC(NULL);
+    if (!c.dc) return false;
+    BITMAPINFO bi = {};
+    bi.bmiHeader.biSize = sizeof(bi.bmiHeader);
+    bi.bmiHeader.biWidth = width;
+    bi.bmiHeader.biHeight = -height;
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+    c.bitmap = CreateDIBSection(c.dc, &bi, DIB_RGB_COLORS, (void **)&c.bits, NULL, 0);
+    if (!c.bitmap) { DeleteDC(c.dc); c.dc = NULL; return false; }
+    c.oldBitmap = SelectObject(c.dc, c.bitmap);
+    SetBkMode(c.dc, TRANSPARENT);
+    SetTextColor(c.dc, RGB(0, 0, 0));
+    return true;
+}
+
+static void ClearCanvas(Canvas &c)
+{
+    GdiFlush();
+    memset(c.bits, 0xFF, (size_t)c.width * c.height * 4);
+}
+
+static void DestroyCanvas(Canvas &c)
+{
+    if (!c.dc) return;
+    SelectObject(c.dc, c.oldBitmap);
+    DeleteObject(c.bitmap);
+    DeleteDC(c.dc);
+}
+
+static bool CanvasHasInk(const Canvas &c)
+{
+    for (int i = 0; i < c.width * c.height; ++i)
+        if ((c.bits[i] & 0x00FFFFFF) != 0x00FFFFFF) return true;
+    return false;
+}
+
+// Renders the sample once through the W API and once through the A API and
+// compares the pixels; `draw` is called with ansi=false / true.
+template <typename Draw>
+static void ProbeRender(const char *name, Canvas &c, UINT cp, Draw draw)
+{
+    const size_t pixels = (size_t)c.width * c.height;
+    UINT32 *wideRender = (UINT32 *)malloc(pixels * 4);
+    if (!wideRender) return;
+
+    ClearCanvas(c);
+    draw(false);
+    GdiFlush();
+    bool ink = CanvasHasInk(c);
+    memcpy(wideRender, c.bits, pixels * 4);
+
+    ClearCanvas(c);
+    draw(true);
+    GdiFlush();
+    size_t diff = 0;
+    for (size_t i = 0; i < pixels; ++i)
+        if (c.bits[i] != wideRender[i]) ++diff;
+    free(wideRender);
+
+    char detail[96];
+    sprintf_s(detail, "cp=%u differing pixels=%zu ink=%d", cp, diff, ink ? 1 : 0);
+    Probe(name, ink && diff == 0, detail);
+}
+
+static void ProbeGdiFont(const char *suffix, BYTE charset, Canvas &c, const ProbeData &d)
+{
+    char name[64], detail[256], value[64];
+
+    HFONT font = CreateFontW(-20, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, charset,
+                             OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+                             DEFAULT_PITCH | FF_DONTCARE, L"");
+    HGDIOBJ oldFont = SelectObject(c.dc, font);
+
+    sprintf_s(value, "requested=%u resolved=%d", charset, GetTextCharset(c.dc));
+    sprintf_s(name, "GDI32_FONT_CHARSET_%s", suffix);
+    Info(name, value);
+
+    // Text extent of the same text through A and W.
+    {
+        SIZE a = {}, w = {};
+        GetTextExtentPoint32A(c.dc, d.mb, d.mbLen, &a);
+        GetTextExtentPoint32W(c.dc, d.wide, d.wideChars, &w);
+        sprintf_s(detail, "cp=%u A=%ldx%ld W=%ldx%ld", d.acp, a.cx, a.cy, w.cx, w.cy);
+        sprintf_s(name, "GDI32_TEXTEXTENT_A_VS_W_%s", suffix);
+        Probe(name, a.cx == w.cx && a.cy == w.cy && w.cx > 0, detail);
+    }
+
+    // TextOutA vs TextOutW, pixel by pixel.
+    sprintf_s(name, "GDI32_TEXTOUT_A_VS_W_%s", suffix);
+    ProbeRender(name, c, d.acp, [&](bool ansi) {
+        if (ansi) TextOutA(c.dc, 2, 2, d.mb, d.mbLen);
+        else      TextOutW(c.dc, 2, 2, d.wide, d.wideChars);
+    });
+
+    // GetGlyphOutlineA (character code in the ACP) vs GetGlyphOutlineW.
+    if (d.firstNonAscii >= 0)
+    {
+        char bytes[8];
+        int bn = WideCharToMultiByte(d.acp, 0, &d.wide[d.firstNonAscii], 1, bytes, sizeof(bytes), NULL, NULL);
+        UINT code = bn == 2 ? (((BYTE)bytes[0] << 8) | (BYTE)bytes[1]) : (BYTE)bytes[0];
+        MAT2 identity = { {0, 1}, {0, 0}, {0, 0}, {0, 1} };
+        GLYPHMETRICS a = {}, w = {};
+        DWORD ra = GetGlyphOutlineA(c.dc, code, GGO_METRICS, &a, 0, NULL, &identity);
+        DWORD rw = GetGlyphOutlineW(c.dc, d.wide[d.firstNonAscii], GGO_METRICS, &w, 0, NULL, &identity);
+        bool ok = ra != GDI_ERROR && rw != GDI_ERROR && memcmp(&a, &w, sizeof(a)) == 0;
+        sprintf_s(detail, "cp=%u char=%04X code=%X A=%ux%u@%ld,%ld W=%ux%u@%ld,%ld",
+                  d.acp, d.wide[d.firstNonAscii], code,
+                  a.gmBlackBoxX, a.gmBlackBoxY, a.gmptGlyphOrigin.x, a.gmptGlyphOrigin.y,
+                  w.gmBlackBoxX, w.gmBlackBoxY, w.gmptGlyphOrigin.x, w.gmptGlyphOrigin.y);
+        sprintf_s(name, "GDI32_GLYPHOUTLINE_A_VS_W_%s", suffix);
+        Probe(name, ok, detail);
+    }
+
+    // DrawTextA vs DrawTextW (user32 on top of GDI), pixel by pixel.
+    sprintf_s(name, "USER32_DRAWTEXT_A_VS_W_%s", suffix);
+    ProbeRender(name, c, d.acp, [&](bool ansi) {
+        RECT rc = { 2, 2, c.width - 2, c.height - 2 };
+        UINT flags = DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX;
+        if (ansi) DrawTextA(c.dc, d.mb, d.mbLen, &rc, flags);
+        else      DrawTextW(c.dc, d.wide, d.wideChars, &rc, flags);
+    });
+
+    SelectObject(c.dc, oldFont);
+    DeleteObject(font);
+}
+
+static void ProbeGdi(const ProbeData &d)
+{
+    Canvas c;
+    if (!CreateCanvas(c, 1600, 48))
+    {
+        Info("GDI32", "skipped: cannot create canvas");
+        return;
+    }
+    // Font charset of the emulated code page, and DEFAULT_CHARSET, which may be
+    // resolved from the system code page instead of the emulated one.
+    ProbeGdiFont("CS", (BYTE)ExpectedCharset(d.acp), c, d);
+    ProbeGdiFont("DEFCS", DEFAULT_CHARSET, c, d);
+    DestroyCanvas(c);
+}
+
+static void RunProbes()
+{
+    ProbeData d = {};
+    d.acp = GetACP();
+    d.wideChars = RepresentableSample(d.acp, d.wide, 128);
+    d.mbLen = WideCharToMultiByte(d.acp, 0, d.wide, d.wideChars, d.mb, sizeof(d.mb) - 1, NULL, NULL);
+    d.mb[d.mbLen] = 0;
+    d.firstNonAscii = -1;
+    for (int i = 0; i < d.wideChars; ++i)
+        if (d.wide[i] >= 0x80) { d.firstNonAscii = i; break; }
+
+    // The sample actually used, so the log shows whether it contains DBCS characters.
+    {
+        char hex[520];
+        Hex(d.wide, d.wideChars * (int)sizeof(WCHAR), hex, sizeof(hex));
+        Info("SAMPLE_UTF16LE", hex);
+        Hex(d.mb, d.mbLen, hex, sizeof(hex));
+        Info("SAMPLE_ACP_BYTES", hex);
+    }
+
+    ProbeKernelbase(d);
+    ProbeUser32(d);
+    ProbeCrts(d);
+    ProbeGdi(d);
+}
+
+static void WriteOsVersion()
+{
+    typedef LONG (NTAPI *RtlGetVersion_t)(OSVERSIONINFOW *);
+    auto getVersion = (RtlGetVersion_t)GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlGetVersion");
+    OSVERSIONINFOW v = { sizeof(v) };
+    if (getVersion && getVersion(&v) == 0)
+        fprintf(g_Out, "INFO_OS_VERSION=%lu.%lu.%lu\n", v.dwMajorVersion, v.dwMinorVersion, v.dwBuildNumber);
+}
+
 int main(int argc, char* argv[])
 {
     // 決定輸出位置：若有參數則寫入指定檔案，否則寫入同目錄下的 locale_result.txt
@@ -543,7 +1053,9 @@ int main(int argc, char* argv[])
             fprintf(out, "LE_EXPERIMENT=%s\n", marker);
     }
 
+    WriteOsVersion();
     CheckConversions();
+    RunProbes();
 
     fclose(out);
     return 0;
