@@ -4,7 +4,7 @@
 
 現況與使用說明見 [`README.md`](README.md)；目前的待辦、取捨與風險見 [`docs/roadmap.md`](docs/roadmap.md)。
 
-**目前的目標：讓維護者自己玩的 32 位元遊戲能正常開、正常顯示。** 挑工作時以此為準（細節見 `docs/roadmap.md` §0）；x64 與兩段式 Core（D7）暫緩。
+**目前的目標：讓維護者自己玩的 32 位元遊戲能正常開、正常顯示。** 挑工作時以此為準（細節見 `docs/roadmap.md` §0）；x64 暫緩，兩段式 Core（D7）不做。
 
 ## 專案
 
@@ -100,7 +100,7 @@ dotnet test tests/LEProc.Tests/ --arch x86     # LEProc 是 x86，需要 x86 tes
 | Smoke test | PowerShell + LocaleTestApp | `tests/SmokeTest/` |
 | 靜態分析 | CodeQL（`security-extended` + 自訂查詢） | `.github/workflows/codeql.yml`、`.github/codeql/` |
 
-CI（`.github/workflows/ci.yml`，`workflow_dispatch` 觸發）用 `dotnet build` 建 .NET、用 `msbuild` 逐一建 C++ vcxproj（每個 msbuild 後都檢查結束碼），組出 `Build/Release/x86/` 後跑 C++ 測試與 smoke test，另外跑時機實驗（僅供參考）。操作說明見 `docs/guides/github-actions-ci.md`。
+CI（`.github/workflows/ci.yml`，`workflow_dispatch` 觸發）用 `dotnet build` 建 .NET、用 `msbuild` 逐一建 C++ vcxproj（每個 msbuild 後都檢查結束碼），組出 `Build/Release/x86/` 後跑 C++ 測試與 smoke test；時機實驗（D7，僅供參考）只在手動觸發並勾選 `timing_experiment` 時才跑。操作說明見 `docs/guides/github-actions-ci.md`。
 
 CodeQL（`.github/workflows/codeql.yml`）分析 C#（不建置）與 C/C++（Core x86、ShellExtension x64），結果在 GitHub 的 Security → Code scanning 與 PR 上；`ml.h` / `ml.cpp`、`pugixml` 的結果會被濾掉。另有專案自訂查詢（`.github/codeql/le-queries/`），把鐵則寫成自動檢查。說明見 `docs/guides/codeql.md`。
 

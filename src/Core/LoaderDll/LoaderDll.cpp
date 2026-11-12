@@ -78,9 +78,13 @@ LeCreateProcess2(
 		if (Leb == nullptr)
 		break;
 
-	ULONG_PTR   ExtraSize;
+	ULONG_PTR   ExtraSize, LebSize;
 	PVOID       MaximumAddress;
 	PREGISTRY_REDIRECTION_ENTRY64 Entry64;
+
+	// Bytes of the caller's buffer to copy. Without registry redirection entries,
+	// everything up to (not including) the entry count.
+	LebSize = FIELD_OFFSET(LEB, NumberOfRegistryRedirectionEntries);
 
 	ExtraSize = Leb->NumberOfRegistryRedirectionEntries * sizeof(Leb->RegistryReplacement[0]);
 
@@ -98,6 +102,12 @@ LeCreateProcess2(
 			MaximumAddress = ML_MAX(MaximumAddress, PtrAdd(PtrAdd((PVOID)Entry64->Redirected.Data,      Leb),   Entry64->Redirected.DataSize));
 		}
 
+		// The caller's buffer ends at MaximumAddress (LEB, entry count, entries,
+		// strings and data). ExtraSize below double-counts the header and entries,
+		// which only over-sizes the section; copying LEB + ExtraSize bytes read past
+		// the end of the caller's buffer and crashed LEProc with 0xC0000005 whenever
+		// that buffer ended near a page boundary (CI run 43275813726).
+		LebSize = PtrOffset(MaximumAddress, Leb);
 		ExtraSize += PtrOffset(MaximumAddress, Leb);
 	}
 
@@ -108,7 +118,7 @@ LeCreateProcess2(
 		break;
 	}
 
-	CopyMemory(&LePeb->Leb, Leb, FIELD_OFFSET(LEB, NumberOfRegistryRedirectionEntries) + ExtraSize);
+	CopyMemory(&LePeb->Leb, Leb, LebSize);
 
 	LePeb->LdrLoadDllAddress = GetCallDestination(ProcessInfo.FirstCallLdrLoadDll);
 	LePeb->LdrLoadDllBackupSize = LDR_LOAD_DLL_BACKUP_SIZE;
@@ -182,9 +192,13 @@ LeCreateProcess(
 		if (Leb == nullptr)
 		break;
 
-	ULONG_PTR   ExtraSize;
+	ULONG_PTR   ExtraSize, LebSize;
 	PVOID       MaximumAddress;
 	PREGISTRY_REDIRECTION_ENTRY64 Entry64;
+
+	// Bytes of the caller's buffer to copy. Without registry redirection entries,
+	// everything up to (not including) the entry count.
+	LebSize = FIELD_OFFSET(LEB, NumberOfRegistryRedirectionEntries);
 
 	ExtraSize = Leb->NumberOfRegistryRedirectionEntries * sizeof(Leb->RegistryReplacement[0]);
 
@@ -202,6 +216,12 @@ LeCreateProcess(
 			MaximumAddress = ML_MAX(MaximumAddress, PtrAdd(PtrAdd((PVOID)Entry64->Redirected.Data,      Leb),   Entry64->Redirected.DataSize));
 		}
 
+		// The caller's buffer ends at MaximumAddress (LEB, entry count, entries,
+		// strings and data). ExtraSize below double-counts the header and entries,
+		// which only over-sizes the section; copying LEB + ExtraSize bytes read past
+		// the end of the caller's buffer and crashed LEProc with 0xC0000005 whenever
+		// that buffer ended near a page boundary (CI run 43275813726).
+		LebSize = PtrOffset(MaximumAddress, Leb);
 		ExtraSize += PtrOffset(MaximumAddress, Leb);
 	}
 
@@ -212,7 +232,7 @@ LeCreateProcess(
 		break;
 	}
 
-	CopyMemory(&LePeb->Leb, Leb, FIELD_OFFSET(LEB, NumberOfRegistryRedirectionEntries) + ExtraSize);
+	CopyMemory(&LePeb->Leb, Leb, LebSize);
 
 	LePeb->LdrLoadDllAddress = LookupExportTable(GetNtdllHandle(), NTDLL_LdrLoadDll);
 	LePeb->LdrLoadDllBackupSize = LDR_LOAD_DLL_BACKUP_SIZE;

@@ -15,6 +15,15 @@ on:
     branches: [ master ]
   # 手動觸發：可在 Actions 頁面或用 `gh workflow run CI --ref <branch>` 跑任一分支
   workflow_dispatch:
+    inputs:
+      timing_experiment:
+        description: '另外跑時機實驗 E1、E2（D7 已決定不做，只在需要重新檢討時開）'
+        type: boolean
+        default: false
+      launch_stress:
+        description: 'LEProc 連續啟動壓力測試的次數（0 = 不跑；查偶發當機用）'
+        type: string
+        default: '0'
 
 permissions:
   contents: read
@@ -200,14 +209,36 @@ jobs:
           Get-Content Build\LocalProbe\report.md
         shell: pwsh
 
+      # ---- LEProc launch stress (docs/superpowers/plans/2026-11-12-leproc-intermittent-crash.md) ----
+      # Launches LocaleTestApp through LEProc N times to measure the intermittent
+      # access violation in LeCreateProcess. Only on manual runs with launch_stress > 0.
+
+      - name: LEProc launch stress
+        if: ${{ !cancelled() && inputs.launch_stress != '' && inputs.launch_stress != '0' }}
+        continue-on-error: true
+        env:
+          STRESS_COUNT: ${{ inputs.launch_stress }}
+        run: |
+          .\tests\SmokeTest\Invoke-LaunchStress.ps1 -Count ([int]$env:STRESS_COUNT)
+          $code = $LASTEXITCODE
+          if (Test-Path Build\LaunchStress\report.md) {
+            Get-Content Build\LaunchStress\report.md | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+            Write-Host "===== report.md ====="
+            Get-Content Build\LaunchStress\report.md
+          }
+          exit $code
+        shell: pwsh
+
       # ---- Timing experiment (D7, design spec section 4.5) ----
       # Rebuilds x86 LocaleEmulator.dll with LE_EXPERIMENT_TIMING=1 (E1) / 2 (E2)
       # into a separate directory and runs the smoke test against a copy of the
       # runtime directory. Informational only: failures do not fail the build.
+      # D7 was dropped (docs/roadmap.md), so this only runs when requested via
+      # the workflow_dispatch input `timing_experiment`.
 
       - name: Timing experiment (E1, E2)
         # Runs even when the main smoke test fails, so E0 and E1/E2 can be compared.
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && inputs.timing_experiment }}
         continue-on-error: true
         run: |
           $results = @()
@@ -239,6 +270,15 @@ jobs:
           path: |
             Build/Release/x86/
             Build/Release/x64/
+          retention-days: 7
+
+      - name: Upload launch stress report
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && inputs.launch_stress != '' && inputs.launch_stress != '0' }}
+        with:
+          name: launch-stress
+          path: Build/LaunchStress/
+          if-no-files-found: ignore
           retention-days: 7
 
       - name: Upload local probe report

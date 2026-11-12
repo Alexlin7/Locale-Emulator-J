@@ -51,9 +51,13 @@ msbuild tests/SmokeTest/LocaleTestApp/LocaleTestApp.vcxproj /p:Configuration=Rel
   - 不要對遊戲或使用者的其他程式執行或掃描；目標程式只有 LocaleTestApp。
   - 不要修改 LE 安裝目錄裡的檔案（腳本只讀取 `LEProc.exe` 等）。
 
+## LEProc 連續啟動壓力測試
+
+`Invoke-LaunchStress.ps1` 以 `LEProc -run` 連續啟動 LocaleTestApp N 次，統計 CRASH（LEProc 結束碼非 0）、TIMEOUT、NORESULT、WRONG，收集 WER full dump 與 Application Error 事件，找得到 cdb 時自動分析 dump，結果寫到 `Build/LaunchStress/report.md`。CI 只在手動觸發並把 `launch_stress` 設成大於 0 時執行（`continue-on-error`），用來查偶發、機率性的問題；改 LoaderDll 的 LEB 處理或 LEProc 的啟動流程後跑一次。
+
 ## 時機實驗
 
-CI 會另外建 `LE_EXPERIMENT_TIMING=1|2` 的 `LocaleEmulator.dll`，複製一份執行目錄後跑同一套 smoke test（`continue-on-error`）。實驗版會設定環境變數 `LE_EXPERIMENT`，LocaleTestApp 輸出、腳本顯示，用來證明延後路徑確實執行。詳見 `src/Core/AGENTS.md` 與 spec §4.5。
+手動觸發 CI 並勾選 `timing_experiment` 時（預設不跑，D7 已決定不做），會另外建 `LE_EXPERIMENT_TIMING=1|2` 的 `LocaleEmulator.dll`，複製一份執行目錄後跑同一套 smoke test（`continue-on-error`）。實驗版會設定環境變數 `LE_EXPERIMENT`，LocaleTestApp 輸出、腳本顯示，用來證明延後路徑確實執行。詳見 `src/Core/AGENTS.md` 與 spec §4.5。
 
 ## 注意
 
