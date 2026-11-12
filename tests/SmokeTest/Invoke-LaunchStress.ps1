@@ -8,14 +8,16 @@
 
     每次啟動記錄：
       OK       LEProc 結束碼 0，目標產生 locale_result.txt 且 ACP 正確
-      CRASH    LEProc 結束碼是 NTSTATUS 例外（0xC0000000 以上），例如 0xC0000005
-      EXIT     LEProc 結束碼不是 0、也不是例外
-      TIMEOUT  LEProc 沒有在 -TimeoutSeconds 內結束（被 kill）
+      CRASH    LEProc 結束碼不是 0（Main 回傳 void，正常結束一律是 0），記錄 hex 值，
+               例如 0xC0000005（存取違規）、0xC0000409、0x80131506（CoreCLR fatal error）
+      TIMEOUT  LEProc 沒有在 -TimeoutSeconds 內結束。kill 之前先用 createdump 取 full dump，
+               並記錄主視窗標題：LeCreateProcess 回傳錯誤時 LEProc 會跳 MessageBox（系統管理員），
+               所以 TIMEOUT 可能是卡住，也可能是錯誤對話框
       NORESULT LEProc 正常結束，但目標沒有產生 locale_result.txt
       WRONG    目標的 ACP 不是預期值
 
     另外：
-      - 設定 WER LocalDumps 收集 LEProc.exe 的 minidump（需要系統管理員；不行就略過），結束時還原
+      - 設定 WER LocalDumps 收集 LEProc.exe 的 full dump（需要系統管理員；不行就略過），結束時還原
       - 收集期間 Application 事件記錄中 LEProc.exe 的 Application Error（Event ID 1000），內含 faulting module 與 offset
       - 找得到 cdb.exe（Windows SDK Debugging Tools x86）時，對每個 dump 跑 !analyze -v 與所有執行緒的堆疊
 
@@ -93,12 +95,17 @@ $werSet = $false
 try {
     New-Item -Path $werKey -Force | Out-Null
     New-ItemProperty -Path $werKey -Name DumpFolder -Value $dumpDir -PropertyType ExpandString -Force | Out-Null
-    New-ItemProperty -Path $werKey -Name DumpType -Value 1 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $werKey -Name DumpType -Value 2 -PropertyType DWord -Force | Out-Null
     New-ItemProperty -Path $werKey -Name DumpCount -Value 5 -PropertyType DWord -Force | Out-Null
     $werSet = $true
 } catch {
     Write-Host "[INFO] 無法設定 WER LocalDumps（需要系統管理員），不收集 dump：$($_.Exception.Message)" -ForegroundColor Yellow
 }
+
+# createdump.exe ships with the x86 .NET runtime; used to dump a hung LEProc before killing it.
+$createDump = Get-ChildItem "${env:ProgramFiles(x86)}\dotnet\shared\Microsoft.NETCore.App" -Filter createdump.exe -Recurse -ErrorAction SilentlyContinue |
+    Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+$hangDumps = 0
 
 $startTime = Get-Date
 $results = New-Object System.Collections.Generic.List[object]
@@ -119,17 +126,19 @@ try {
 
         if (-not $exited) {
             $status = "TIMEOUT"
+            try { $p.Refresh(); $detail = "window='$($p.MainWindowTitle)'" } catch { }
+            if ($createDump -and $hangDumps -lt 3) {
+                & $createDump -f (Join-Path $dumpDir "LEProc.hang.$($p.Id).dmp") $p.Id 2>&1 | Out-Null
+                $hangDumps++
+            }
             try { $p.Kill() } catch { }
             Get-Process LocaleTestApp -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
         } else {
             $p.WaitForExit()
             $exitCode = $p.ExitCode
             $unsigned = [uint32]([int64]$exitCode -band 0xFFFFFFFF)
-            if ($unsigned -ge 0xC0000000) {
+            if ($exitCode -ne 0) {
                 $status = "CRASH"
-                $detail = ("0x{0:X8}" -f $unsigned)
-            } elseif ($exitCode -ne 0) {
-                $status = "EXIT"
                 $detail = ("0x{0:X8}" -f $unsigned)
             } else {
                 # LEProc waits for the target, so the result should already be there.
@@ -175,9 +184,15 @@ $cdb = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 $analyses = @()
 if ($dumps.Count -gt 0 -and $cdb) {
-    foreach ($d in $dumps) {
+    # Core PDBs (built next to the DLLs) + Microsoft symbol server.
+    $symDir = Join-Path $OutDir "symbols"
+    New-Item -ItemType Directory -Path $symDir -Force | Out-Null
+    Get-ChildItem (Join-Path $PSScriptRoot "..\..\src\Core") -Filter *.pdb -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -match '\\Release\\' } | Copy-Item -Destination $symDir -Force
+    $env:_NT_SYMBOL_PATH = "$symDir;srv*$(Join-Path $env:TEMP 'LeSymCache')*https://msdl.microsoft.com/download/symbols"
+    foreach ($d in ($dumps | Select-Object -First 5)) {
         $txt = Join-Path $OutDir ($d.BaseName + ".analyze.txt")
-        & $cdb -z $d.FullName -c ".symfix; .reload; !analyze -v; ~*kb 30; lm; q" 2>&1 | Out-File $txt -Encoding UTF8
+        & $cdb -z $d.FullName -c ".reload; !analyze -v; .ecxr; r; kb 40; ~*kb 30; lm; q" 2>&1 | Out-File $txt -Encoding UTF8
         $analyses += $txt
     }
 }
@@ -194,7 +209,7 @@ $lines += "- Failures: $failCount"
 foreach ($g in $groups) { $lines += "  - $($g.Name): $($g.Count)" }
 $avg = [int](($results | Measure-Object Ms -Average).Average)
 $lines += "- Average LEProc wall time: $avg ms"
-$lines += "- WER dumps: $($dumps.Count) (LocalDumps $(if ($werSet) { 'enabled' } else { 'not enabled' })); cdb: $(if ($cdb) { $cdb } else { 'not found' })"
+$lines += "- Dumps: $($dumps.Count) (WER LocalDumps $(if ($werSet) { 'enabled' } else { 'not enabled' }); createdump: $(if ($createDump) { 'found' } else { 'not found' })); cdb: $(if ($cdb) { $cdb } else { 'not found' })"
 $lines += "- Application Error events for LEProc.exe: $($events.Count)"
 $lines += ""
 if ($failCount -gt 0) {
