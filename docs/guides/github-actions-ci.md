@@ -128,7 +128,7 @@ permissions:
 ```
 
 - `push` / `pull_request` 到 `master` 時自動觸發
-- `workflow_dispatch`：可在 Actions 頁面手動對任一分支執行（例如功能分支還沒開 PR 時）；勾選 `timing_experiment` 才會另外跑時機實驗（見 3.9）
+- `workflow_dispatch`：可在 Actions 頁面手動對任一分支執行（例如功能分支還沒開 PR 時）；勾選 `timing_experiment` 才會另外跑時機實驗（見 3.9），`launch_stress` 大於 0 才會跑 LEProc 壓力測試（見 3.9.1）
 - `pull-requests: write`：讓覆蓋率報告能以留言貼在 PR 上
 
 ### 3.2 全域環境變數
@@ -246,6 +246,16 @@ jobs:
 - `inputs.timing_experiment`：只有手動觸發並勾選時為真；`push` / `pull_request` 沒有這個輸入，一律略過
 - `continue-on-error: true`：僅供參考，失敗不會讓整個 CI 變紅
 - 結果摘要寫進 Job Summary；設計與判讀見 `docs/superpowers/specs/2026-11-11-core-modularization-and-x64-design.md` §4.5
+
+### 3.9.1 LEProc 連續啟動壓力測試（`launch_stress`）
+
+```yaml
+- name: LEProc launch stress
+  if: ${{ !cancelled() && inputs.launch_stress != '' && inputs.launch_stress != '0' }}
+  continue-on-error: true
+```
+
+手動觸發時把 `launch_stress` 設成次數（例如 `200`）才會執行（`gh workflow run CI --ref <branch> -f launch_stress=200`）。跑 `tests/SmokeTest/Invoke-LaunchStress.ps1`：連續以 LEProc 啟動 LocaleTestApp，統計當機與逾時，收集 dump 並用 runner 上的 cdb 分析。報告會寫進 Job Summary、印在 log，並以 `launch-stress` artifact 上傳（含 dump）。
 
 ### 3.10 上傳產物
 

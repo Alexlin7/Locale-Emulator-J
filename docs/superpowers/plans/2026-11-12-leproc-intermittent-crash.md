@@ -1,7 +1,7 @@
 # 計畫：LEProc 偶發當機（`LeCreateProcess` 內存取違規）
 
 > **日期**：2026-11-12
-> **狀態**：執行中。S1 已依 agent review 修正；S3 的候選改為「LoaderDll 自行注入」（review 指出 `LeCreateProcess2` 走 debugger 注入，風險較大）
+> **狀態**：**已完成**（2026-11-12）。原因不是 H1，而是 LoaderDll 複製 LEB 時讀超過呼叫端緩衝區；見文末「結果」
 > **相關**：`docs/roadmap.md` §2「優先」第一項
 
 ## 1. 症狀
@@ -88,3 +88,11 @@ LEProc 是 .NET 10（CoreCLR）程序，此時已經有 GC、finalizer、tiered 
 2. `[Core] feat(loaderdll): 匯出 LeCreateProcess2`（必要時補 `LeDllDirPath`）。
 3. `fix(leproc): 改用 LeCreateProcess2，LEProc 不再載入 LocaleEmulator.dll`（含 `STARTUPINFO.cb`）→ smoke test + 壓力測試。
 4. `docs: ...`。
+
+## 7. 結果（2026-11-12）
+
+- **S1 基準**：壓力測試 200 次中 3 次 `0xC0000005`（run 43274267214、43275813726）。事件記錄的 faulting module 是 coreclr（offset `0x002c284e`，`ProcessCLRException`），但 cdb 對三個 dump 的分析一致指出原始例外在 **`LoaderDll!my_memcpy_inline` 讀取分頁起點**（例如 `0x009cf000`）——典型的讀超過緩衝區結尾。
+- **原因**：`LeCreateProcess` / `LeCreateProcess2` 計算 `ExtraSize` 時，`N × sizeof(entry)` 加上 `PtrOffset(MaximumAddress, Leb)`（後者已包含標頭與項目），再以 `FIELD_OFFSET(LEB, NumberOfRegistryRedirectionEntries) + ExtraSize` 為長度複製，多讀「標頭 + 項目」那麼多 bytes。呼叫端是 LEProc 以 `AllocHGlobal` 配置、大小剛好的緩衝區，落在分頁結尾時就當機。沒有 registry 轉向項目時不會發生。
+- **H1 不成立**（至少不是觀察到的當機原因）。依計畫「原因不是 H1 就不硬套」，S3 的 `LeCreateProcessDirect` 已寫好但退回（commit 9589b9d、8373db5），H1 改記為 roadmap §5 的風險。
+- **修正**：`[Core]` 只複製到 `MaximumAddress`（section 大小不變），commit ef140c7。
+- **驗證**：run 43277547131，smoke test 6 個地區全 PASS，壓力測試 400 次 0 次失敗、0 個 dump、0 筆 Application Error。以修正前 1.5% 的機率，400 次全過的機率約 0.25%。

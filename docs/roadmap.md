@@ -33,7 +33,6 @@
 
 ### 優先：影響遊戲能不能玩
 
-- [ ] **查 LEProc 偶發當機**：`LoaderWrapper.LeCreateProcess` 內存取違規（`0xc0000005`，faulting module 顯示 coreclr.dll），E0、E2 都會發生，本機 smoke test 的偶發逾時即此問題。CI 上也出現過：master 的 run 43066293655（主 smoke test 的 zh-CN 逾時）、run 43208011917（E1 的 zh-CN 失敗），同一份程式碼重跑就通過。症狀是「按了沒反應、要多按幾次」。
 - [ ] **新遊戲出問題時**：照 65001 那次的做法，先在 LocaleTestApp 加能重現的 `PROBE_*` / `CHECK_*`，CI 測不到的環境用 `Invoke-LocalProbe.ps1` 在使用者主機上跑，找到漏攔的 API 再修。
 
 ### 其次：幫忙查出遊戲為什麼不正常
@@ -66,6 +65,7 @@
 
 ### 已完成（最近）
 
+- [x] **LEProc 偶發當機（「按了沒反應、要多按幾次」）**：原因是 `LoaderDll` 的 `LeCreateProcess` 把 LEB 複製進 LePeb 時長度重複計算了標頭與 registry 轉向項目，多讀呼叫端緩衝區結尾之後數百 bytes；LEProc 的 `AllocHGlobal` 緩衝區剛好在分頁結尾時就存取違規（事件記錄顯示 coreclr 是因為例外經 CLR 的處理常式回報）。只在有 registry 轉向項目時發生（預設開啟）。修正前 CI 壓力測試 200 次中 3 次當機（run 43274267214、43275813726，dump 都停在 `LoaderDll!my_memcpy_inline`），修正後 400 次 0 次、smoke test 全綠（run 43277547131）。壓力測試：`tests/SmokeTest/Invoke-LaunchStress.ps1`，CI 以 `launch_stress` 輸入手動觸發。紀錄見 `docs/superpowers/plans/2026-11-12-leproc-intermittent-crash.md`
 - [x] **系統 ACP 65001（UTF-8 beta）下的亂碼**：一款 ExHIBIT 引擎的遊戲在原版 LE 2.5.0.1 與較早的 fork 版下劇本呈「縺ゅ」型亂碼，**目前的 fork 版（3.0.0.0）正常**（使用者實測）。原因由使用者主機上的 `Invoke-LocalProbe.ps1`（OS build 26300、ACP 65001）確認：原版經 LE 後 `GetACP()` 回報 932，但 ntdll `Rtl*` 轉換仍用 UTF-8（「日」轉成 `E697A5` 而非 `93FA`），27 項 CHECK / PROBE 失敗，集中在 `Rtl*`、ANSI 檔案 API、user32 視窗文字、環境變數與目前目錄；fork 版同一組參數 0 項失敗。即 `src/Core/AGENTS.md` 鐵則 4 的 NLS 表替換失效，由 `LeRtl*` hook 修正。
 - [x] smoke test 輸出 OS 版本（`INFO_OS_VERSION`）
 - [x] LocaleTestApp 新增 32 個 `PROBE_*` 與本機探測腳本 `Invoke-LocalProbe.ps1`（CI run 43254226628），之後遇到「只在使用者主機才重現」的問題可以沿用
@@ -110,7 +110,8 @@
 
 1. **Core 沒有診斷 log。** 遊戲沒效時會沒有線索，只能靠猜和反覆試。已列在 TODO「其次」的第一項。
 2. **只在一種 Windows 版本上測過。** 鐵則中「NLS 表替換失效」就是在特定 build 上發現的；Windows 更新可能讓原本能玩的遊戲失效。至少讓 smoke test 輸出 OS build，並在使用者主機上跑過一次 smoke test 作為對照。
-3. **系統 ACP 65001 只能在使用者主機重現。** CI 測不到，沒有自動化的回歸保護。改了 `LeRtl*` 或其他轉換相關的 hook 之後，請在使用者主機上跑一次 `Invoke-LocalProbe.ps1`（開著 UTF-8 beta）確認經 LE 仍是 0 項失敗。
+3. **LEProc 在自己的程序內載入 `LocaleEmulator.dll`。** `LeCreateProcess` 讓 LocaleEmulator 在 LEProc（CoreCLR，多執行緒）裡改寫 WOW64 共用的 syscall stub（非原子寫入、沒有暫停其他執行緒），之後 CLR 執行緒的 syscall 都繞經 LE 的 dispatcher。查當機時曾懷疑它，但 dump 顯示當機另有原因，修正後壓力測試 400 次 0 次，目前沒有觀察到問題。若再出現 LEProc 偶發當機且 dump 落在 syscall stub / HookPort，改成「LoaderDll 自己注入、不在 LEProc 載入」（做法見上述計畫文件 S3）。
+4. **系統 ACP 65001 只能在使用者主機重現。** CI 測不到，沒有自動化的回歸保護。改了 `LeRtl*` 或其他轉換相關的 hook 之後，請在使用者主機上跑一次 `Invoke-LocalProbe.ps1`（開著 UTF-8 beta）確認經 LE 仍是 0 項失敗。
 
 ### 重啟 x64 前要先處理的事
 
