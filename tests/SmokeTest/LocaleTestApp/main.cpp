@@ -36,15 +36,18 @@ typedef VOID (NTAPI *FreeAnsiString_t)(ANSI_STRING_ *);
 
 // Sample characters from several scripts; each check keeps only those that the
 // code page under test can represent exactly.
+// Written as \u escapes: the source file has no BOM and the project has no
+// /utf-8, so literal non-ASCII characters would be read in the build machine's
+// code page (1252 on CI) and turn into mojibake (INFO_SAMPLE_UTF16LE shows it).
 static const WCHAR kSample[] =
     L"ABC xyz 123 "
-    L"日本語 "              // 日本語
-    L"テストｱｲ "   // テスト + half-width katakana
-    L"繁體中文 "         // 繁體中文
-    L"简体中文 "         // 简体中文
-    L"한국어 "               // 한국어
-    L"éüß€£ "   // éüß€£
-    L"ЖΩ";                     // ЖΩ
+    L"\u65E5\u672C\u8A9E "
+    L"\u30C6\u30B9\u30C8\uFF71\uFF72 "
+    L"\u7E41\u9AD4\u4E2D\u6587 "
+    L"\u7B80\u4F53\u4E2D\u6587 "
+    L"\uD55C\uAD6D\uC5B4 "
+    L"\u00E9\u00FC\u00DF\u20AC\u00A3 "
+    L"\u0416\u03A9";
 
 static FILE *g_Out;
 
@@ -728,11 +731,15 @@ static void ProbeCrt(const char *prefix, const CrtFunctions &f, const ProbeData 
     Info(name, value);
 
     // Old CRTs call _setmbcp(_MB_CP_ANSI) at startup; the _mbs* functions use it.
+    // _getmbcp() returns 0 when the code page is not a multibyte one.
     f.setmbcp_(-3 /* _MB_CP_ANSI */);
     int mbcp = f.getmbcp_();
-    sprintf_s(detail, "expected=%u got=%d", d.acp, mbcp);
+    CPINFO cpInfo = {};
+    GetCPInfo(d.acp, &cpInfo);
+    int expectedMbcp = cpInfo.MaxCharSize > 1 ? (int)d.acp : 0;
+    sprintf_s(detail, "expected=%d got=%d", expectedMbcp, mbcp);
     sprintf_s(name, "%s_SETMBCP_ANSI", prefix);
-    Probe(name, mbcp == (int)d.acp, detail);
+    Probe(name, mbcp == expectedMbcp, detail);
 
     {
         int mismatch = -1;
