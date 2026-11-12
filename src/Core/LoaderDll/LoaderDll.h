@@ -106,28 +106,4 @@ LeCreateProcess2(
 	HANDLE                  Token = nullptr
 	);
 
-// Creates the target suspended and injects LocaleEmulator.dll into it the same
-// way LocaleEmulator's NtCreateUserProcess hook does (shadow image + JMP on
-// LdrLoadDll), WITHOUT loading LocaleEmulator.dll into the calling process.
-// Used by LEProc: loading it into a multi-threaded CoreCLR process patches the
-// shared syscall stub while other threads run (docs/superpowers/plans/
-// 2026-11-12-leproc-intermittent-crash.md). ProcessInformation receives a
-// PROCESS_INFORMATION-sized structure (FirstCallLdrLoadDll is not set).
-LE_API
-NTSTATUS
-WINAPI
-LeCreateProcessDirect(
-	PLEB                    Leb,
-	PCWSTR                  ApplicationName,
-	PWSTR                   CommandLine = nullptr,
-	PCWSTR                  CurrentDirectory = nullptr,
-	ULONG                   CreationFlags = 0,
-	LPSTARTUPINFOW          StartupInfo = nullptr,
-	PML_PROCESS_INFORMATION ProcessInformation = nullptr,
-	LPSECURITY_ATTRIBUTES   ProcessAttributes = nullptr,
-	LPSECURITY_ATTRIBUTES   ThreadAttributes = nullptr,
-	PVOID                   Environment = nullptr,
-	HANDLE                  Token = nullptr
-	);
-
 #endif // _LOADERDLL_H_586bc656_348b_4b12_ba74_d39366b67f23_
