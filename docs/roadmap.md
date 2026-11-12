@@ -34,6 +34,8 @@
 ### 優先：影響遊戲能不能玩
 
 - [ ] **系統 ACP 65001（UTF-8 beta）下 LE 有漏攔路徑**（已確認）：一款 ExHIBIT 引擎的遊戲（劇本 `.rld` 加密）在 LE ja 下 UI 正常、劇本呈「縺ゅ」型亂碼（UTF-8 位元組被當 CP932 顯示）；E0 / E2 相同；使用者關閉 UTF-8 beta（系統 ACP 回到 950）後劇本正常。代表引擎某處 W→A 轉換拿到了系統真正的 ACP 65001。smoke test 在 65001 下全 PASS，所以這條路徑不在現有 `CHECK_*` 裡。下一步：在 LocaleTestApp 加候選 API 的 `CHECK_*`（含 CRT `wcstombs` / `setlocale`、`WideCharToMultiByte(CP_ACP)` 往返、gdi32 `GetGlyphOutlineA` / `TextOutA` 等）在 65001 環境找出漏網的 API。注意：GitHub runner 是 ACP 1252 且無法重開機切 65001，重現只能在使用者主機上做。profile 的 `ja` 與 `ja-JP` 組出的 LEB 相同（`TextInfo.LCID` 0x0411、ACP 932），已排除。
+  - 進度：LocaleTestApp 已加入 32 個 `PROBE_*`（kernelbase / user32 / CRT 與 msvcrt.dll / gdi32 的 A↔W 路徑，含 `TextOut` / `DrawText` 逐像素比對）與 `Invoke-LocalProbe.ps1`（CI run 43254226628）。**下一步：使用者（或本機 agent）在開著 UTF-8 beta 的電腦上跑 `Invoke-LocalProbe.ps1`，把 `report.md` 貼回來**，步驟見 `tests/SmokeTest/AGENTS.md`「在使用者電腦上探測」。
+- [ ] **`CharNextA` 沒有照模擬的 code page 判斷雙位元組字元**（新發現，與 65001 無關）：`PROBE_USER32_CHARNEXT_A` 在 CI 的 ja / zh / ko 都失敗（例如 cp=932 預期 35 步、實際 50 步），表示 `CharNextA` 用的是系統的 code page，逐位元組前進。用 `CharNextA` / `CharPrevA` 走訪 Shift-JIS 文字的程式會把雙位元組字元切開。要修的話先查 user32 的實作從哪裡取得 code page。
 - [ ] **查 LEProc 偶發當機**：`LoaderWrapper.LeCreateProcess` 內存取違規（`0xc0000005`，faulting module 顯示 coreclr.dll），E0、E2 都會發生，本機 smoke test 的偶發逾時即此問題。CI 上也出現過：master 的 run 43066293655（主 smoke test 的 zh-CN 逾時）、run 43208011917（E1 的 zh-CN 失敗），同一份程式碼重跑就通過。症狀是「按了沒反應、要多按幾次」。
 - [ ] **新遊戲出問題時**：照第 1 項的做法，先在 LocaleTestApp 加能重現的 `CHECK_*`，再修。
 
@@ -66,6 +68,7 @@
 
 ### 已完成（最近）
 
+- [x] LocaleTestApp 的測試樣本原本因原始碼編碼被讀成亂碼，`CHECK_*` 幾乎沒測到中日韓字元；改用 `\u` 跳脫後，現有 32 個 `CHECK_*` 在真正的雙位元組字元下仍全部通過（CI run 43254226628）
 - [x] `.le.config` 的 `<Location>` 相容（CI run 43208011917）
 - [x] `-run` 的路徑不存在時給錯誤訊息（CI run 43208011917）
 - [x] CodeQL `cpp/alloca-in-loop`：`LeFindSectionObject` 改用 `NtAllocateVirtualMemory`（CI run 43236475905）
