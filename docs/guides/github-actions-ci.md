@@ -9,7 +9,7 @@
 
 1. [什麼是 GitHub Actions？](#1-什麼是-github-actions)
 2. [核心概念](#2-核心概念)
-3. [我們的 CI Workflow 逐行解說](#3-我們的-ci-workflow-逐行解說)
+3. [我們的 CI Workflow 逐段解說](#3-我們的-ci-workflow-逐段解說)
 4. [觸發條件詳解](#4-觸發條件詳解)
 5. [Runner 環境說明](#5-runner-環境說明)
 6. [如何在 GitHub 網頁查看結果](#6-如何在-github-網頁查看結果)
@@ -84,10 +84,10 @@ Workflow (工作流程)
 
 | Action | 用途 |
 |--------|------|
-| `actions/checkout@v4` | 把 repo 程式碼下載到 Runner |
-| `actions/setup-dotnet@v4` | 安裝指定版本的 .NET SDK |
-| `microsoft/setup-msbuild@v2` | 設定 MSBuild 路徑 |
-| `actions/upload-artifact@v4` | 上傳建置產物 |
+| `actions/checkout@v6` | 把 repo 程式碼下載到 Runner |
+| `actions/setup-dotnet@v5` | 安裝指定版本的 .NET SDK |
+| `microsoft/setup-msbuild@v3` | 設定 MSBuild 路徑 |
+| `actions/upload-artifact@v7` | 上傳建置產物 |
 
 ### 2.5 Runner（執行器）
 
@@ -100,148 +100,122 @@ Workflow (工作流程)
 
 ---
 
-## 3. 我們的 CI Workflow 逐行解說
+## 3. 我們的 CI Workflow 逐段解說
 
-以下是 `.github/workflows/ci.yml` 的完整逐行解說。
+以下對照 `.github/workflows/ci.yml` 逐段說明。完整內容以該檔為準；這裡只節錄關鍵的部分。
 
-### 3.1 Workflow 名稱
+整體流程：**.NET 用 `dotnet build` / `dotnet test`，C++ 用 `msbuild` 逐一建 vcxproj**（不建整個 `.sln`），組出 `Build/Release/x86/` 後跑 C++ 測試、smoke test 與時機實驗。
+
+### 3.1 名稱、觸發條件與權限
 
 ```yaml
 name: CI
-```
 
-這會顯示在 GitHub 的 Actions 頁面上。取個簡短、好辨識的名字。
-
-### 3.2 觸發條件
-
-```yaml
 on:
   push:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
 ```
 
-- `push` + `branches: [ master ]`：有人 push 到 `master` 分支時觸發
-- `pull_request` + `branches: [ master ]`：有人對 `master` 發 PR 時觸發（包含 PR 更新）
+- `push` / `pull_request` 到 `master` 時自動觸發
+- `workflow_dispatch`：可在 Actions 頁面手動對任一分支執行（例如功能分支還沒開 PR 時）
+- `pull-requests: write`：讓覆蓋率報告能以留言貼在 PR 上
 
-### 3.3 全域環境變數
+### 3.2 全域環境變數
 
 ```yaml
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
+  SOLUTION_DIR: ${{ github.workspace }}\
 ```
 
-- `DOTNET_NOLOGO`：不顯示 .NET CLI 的歡迎訊息，讓 log 更乾淨
-- `DOTNET_CLI_TELEMETRY_OPTOUT`：關閉 .NET CLI 遙測回報
+- `DOTNET_NOLOGO`、`DOTNET_CLI_TELEMETRY_OPTOUT`：讓 log 乾淨、關閉遙測
+- `SOLUTION_DIR`：逐一建 vcxproj 時沒有 `.sln`，要用 `/p:SolutionDir=...` 補上，vcxproj 裡的 `$(SolutionDir)` 輸出路徑才會正確
 
-### 3.4 Job 定義
+### 3.3 Job 與環境準備
 
 ```yaml
 jobs:
   build-and-test:
     name: Build & Test
     runs-on: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5      # .NET 10 SDK（x64）
+        with: { dotnet-version: '10.0.x' }
+      - uses: actions/setup-dotnet@v5      # .NET 10 SDK（x86）
+        with: { dotnet-version: '10.0.x', architecture: x86 }
+      - uses: microsoft/setup-msbuild@v3
 ```
 
-- `build-and-test`：Job 的 ID（用於引用）
-- `name`：顯示在 GitHub UI 上的名稱
-- `runs-on`：指定 Runner 環境
+- 裝兩份 .NET SDK：LEProc 是 x86，`dotnet test --arch x86` 需要 x86 的 SDK 與 runtime
+- `setup-msbuild` 把 Runner 上 VS 的 `msbuild.exe` 加進 `PATH`
 
-### 3.5 Step 1: Checkout
-
-```yaml
-- name: Checkout repository
-  uses: actions/checkout@v4
-```
-
-把 repo 的程式碼下載到 Runner 的工作目錄。沒有這步，Runner 上什麼都沒有。
-
-### 3.6 Step 2: Setup .NET 10
+### 3.4 .NET 建置與測試
 
 ```yaml
-- name: Setup .NET 10 SDK
-  uses: actions/setup-dotnet@v4
-  with:
-    dotnet-version: '10.0.x'
-```
-
-- `actions/setup-dotnet`：GitHub 官方的 .NET 安裝 Action
-- `dotnet-version: '10.0.x'`：安裝 .NET 10 的最新 patch 版本（例如 10.0.100）
-- `with:`：傳入 Action 的參數
-
-### 3.7 Step 3: Setup MSBuild
-
-```yaml
-- name: Setup MSBuild
-  uses: microsoft/setup-msbuild@v2
-```
-
-Microsoft 官方提供的 Action，尋找 Runner 上已安裝的 Visual Studio Build Tools，
-並把 `msbuild.exe` 加入 `PATH` 環境變數，讓後續 step 可以直接用 `msbuild` 指令。
-
-### 3.8 Step 4: Restore
-
-```yaml
-- name: Restore .NET dependencies
-  run: dotnet restore LocaleEmulator.sln
-```
-
-還原 NuGet 套件。`run:` 表示直接執行命令列指令（不是使用 Action）。
-
-### 3.9 Step 5: Build Debug|Win32
-
-```yaml
-- name: Build Solution (Debug|Win32)
-  run: msbuild LocaleEmulator.sln /p:Configuration=Debug /p:Platform=Win32 /m /v:minimal
-```
-
-- `/p:Configuration=Debug`：使用 Debug 組態（包含測試專案）
-- `/p:Platform=Win32`：建置 Win32 平台（C++ 專案編譯為 x86，.NET 專案映射為 AnyCPU，靠 csproj 的 PlatformTarget 控制實際位元數）
-- `/m`：啟用多核心平行建置
-- `/v:minimal`：最少輸出量（減少 log 雜訊）
-
-### 3.10 Step 6: .NET Tests
-
-```yaml
-- name: Run .NET tests
-  run: dotnet test LocaleEmulator.sln --no-build --configuration Debug --logger "console;verbosity=detailed"
-```
-
-- `dotnet test`：自動探索並執行所有 xUnit 測試專案
-- `--no-build`：不重複建置（已在 Step 5 以 Debug 建置過）
-- `--configuration Debug`：測試專案只在 Debug 組態建置（spec solution matrix 定義）
-- `--logger`：輸出詳細測試結果到 console
-
-### 3.11 Step 7: C++ Tests
-
-```yaml
-- name: Run C++ tests (Google Test)
+- name: Build .NET projects (Debug)
   run: |
-    $testExes = Get-ChildItem -Path "Build\Debug\x86" -Filter "*Tests*.exe" -Recurse
-    ...
+    dotnet build tests/LECommonLibrary.Tests/LECommonLibrary.Tests.csproj -c Debug --no-restore
+    dotnet build tests/LEProc.Tests/LEProc.Tests.csproj -c Debug --no-restore
+    dotnet build tests/LEGUI.Tests/LEGUI.Tests.csproj -c Debug --no-restore
+
+- name: Run .NET tests (x64)
+  run: |
+    dotnet test tests/LECommonLibrary.Tests/... --no-build -c Debug --collect:"XPlat Code Coverage" ...
+    dotnet test tests/LEGUI.Tests/... --no-build -c Debug --collect:"XPlat Code Coverage" ...
+
+- name: Run LEProc.Tests (x86)
+  run: dotnet test tests/LEProc.Tests/LEProc.Tests.csproj --arch x86 -c Debug ...
+```
+
+- 只建測試專案，被測的 `src/` 專案會以專案參考一起建出來
+- LEProc.Tests 必須用 x86 test host（`--arch x86`），所以獨立一步、沒有 `--no-build`
+- `--collect:"XPlat Code Coverage"` 收集覆蓋率；之後由 ReportGenerator 轉成 Markdown，寫進 Job Summary，PR 上另外貼成留言（`marocchino/sticky-pull-request-comment`）
+
+### 3.5 C++ 建置
+
+```yaml
+- name: Build Core (Release|Win32)
+  run: |
+    msbuild src/Core/LoaderDll/LoaderDll.vcxproj /p:Configuration=Release /p:Platform=Win32 "/p:SolutionDir=$env:SOLUTION_DIR" /v:minimal
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    # LocaleEmulator、Loader 同樣寫法
   shell: pwsh
 ```
 
-- `run: |`：多行指令
-- `shell: pwsh`：使用 PowerShell Core 執行
-- 在 `Build\Debug\x86` 中搜尋（測試專案只在 Debug 建置）
-- Google Test 的 exe 直接跑就好，不需要特別的 test runner
+- **每個 `msbuild` 之後都要檢查 `$LASTEXITCODE`**：PowerShell 的多行 `run` 只看最後一個指令的結束碼，不檢查的話前面的建置失敗會被忽略
+- Core 只有 Release 組態，所以 C++ 一律用 Release 建
+- 之後依序是：
+  - `Build Core (Release|x64)`：x64 Core 開發中、不發佈，只確認能編譯。舊程式碼在 x64 有大量截斷警告，所以只輸出錯誤（`/clp:ErrorsOnly`）
+  - `Build ShellExtension + C++ tests (Release|Win32)`：ShellExtension、LocaleTestApp、Core.Tests
+  - `Build ShellExtension + tests (Release|x64)`：ShellExtension、ShellExtension.Tests、Core.Tests
 
-### 3.12 Steps 8-9: Release Builds
+### 3.6 組出執行目錄
 
 ```yaml
-- name: Build Solution (Release|Win32)
-  run: msbuild LocaleEmulator.sln /p:Configuration=Release /p:Platform=Win32 /m /v:minimal
-
-- name: Build Solution (Release|x64)
-  run: msbuild LocaleEmulator.sln /p:Configuration=Release /p:Platform=x64 /m /v:minimal
+- name: Assemble runtime directory
+  run: |
+    dotnet publish src/LEProc/LEProc.csproj -c Release -o Build/Release/x86/
+    dotnet publish src/LEGUI/LEGUI.csproj -c Release -o Build/Release/x86/
+    Copy-Item src/Core/LoaderDll/Release/LoaderDll.dll Build/Release/x86/ -Force
+    Copy-Item src/Core/LocaleEmulator/Release/LocaleEmulator.dll Build/Release/x86/ -Force
 ```
 
-Release 建置用於產品輸出。x64 組態只會建置 ShellExtension（其他專案在 Solution 組態中標記為「不建置」）。
+`Build/Release/x86/` 就是完整的產品目錄（LEProc、LEGUI、LECommonLibrary、Core 的兩個 DLL、ShellExtension、LocaleTestApp），smoke test 直接在這裡跑。
 
-### 3.13 Step 10: Smoke Tests
+### 3.7 C++ 測試
+
+在 `Build\Release\x86` 與 `Build\Release\x64` 底下找 `*Tests*.exe` 逐一執行，任何一個結束碼非 0 就讓這步失敗。測試是獨立 exe（無框架），直接執行即可。
+
+### 3.8 Smoke test
 
 ```yaml
 - name: Smoke Tests
@@ -250,14 +224,27 @@ Release 建置用於產品輸出。x64 組態只會建置 ShellExtension（其�
   if: success()
 ```
 
-- `if: success()`：只在前面所有 step 都成功時才執行
-- 執行 Smoke Test 腳本，驗證 LEProc 的 locale hook 是否正確
+以 LEProc 啟動 LocaleTestApp，在多個地區下檢查 hook 是否真的生效。細節見 `tests/SmokeTest/AGENTS.md`。
 
-### 3.14 Step 11: Upload Artifacts
+### 3.9 時機實驗（E1、E2）
+
+```yaml
+- name: Timing experiment (E1, E2)
+  if: ${{ !cancelled() }}
+  continue-on-error: true
+```
+
+以 `/p:LeExperimentTiming=1`、`2` 另外建一份 `LocaleEmulator.dll`（輸出到 `Build/Experiment/`，不影響正式產物），複製一份執行目錄後再跑 smoke test。
+
+- `if: ${{ !cancelled() }}`：主 smoke test 失敗時也執行，方便對照 E0 與 E1 / E2
+- `continue-on-error: true`：僅供參考，失敗不會讓整個 CI 變紅
+- 結果摘要寫進 Job Summary；設計與判讀見 `docs/superpowers/specs/2026-11-11-core-modularization-and-x64-design.md` §4.5
+
+### 3.10 上傳產物
 
 ```yaml
 - name: Upload build artifacts
-  uses: actions/upload-artifact@v4
+  uses: actions/upload-artifact@v7
   if: always()
   with:
     name: build-output
@@ -267,9 +254,8 @@ Release 建置用於產品輸出。x64 組態只會建置 ShellExtension（其�
     retention-days: 7
 ```
 
-- `if: always()`：即使前面的 step 失敗，也執行這步（方便下載失敗時的建置產物來除錯）
-- `retention-days: 7`：artifact 保留 7 天後自動刪除
-- 上傳後可以在 GitHub Actions 的 run 頁面下載 zip
+- `if: always()`：前面失敗也上傳，方便下載下來除錯
+- 保留 7 天
 
 ---
 
@@ -283,6 +269,7 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
 ```
 
 這表示：
@@ -291,6 +278,9 @@ on:
 |------|----------|------|
 | `push` | 有人直接 push 到 `master` | `git push origin master` |
 | `pull_request` | 有人對 `master` 發 PR，或更新 PR | 建立 PR、push 新 commit 到 PR branch |
+| `workflow_dispatch` | 手動觸發，可選任一分支 | Actions 頁面 → CI → Run workflow |
+
+另外 `.github/workflows/codeql.yml`（CodeQL 靜態分析）除了上面三種，還有每週一次的排程；說明見 `docs/guides/codeql.md`。
 
 ### 4.2 常見觸發條件
 
@@ -381,7 +371,7 @@ Runner 是執行 CI 的虛擬機器。GitHub 提供免費的 Hosted Runner：
 
 1. 打開 GitHub repo 頁面
 2. 點選上方的 **Actions** 分頁
-3. 左側顯示所有 Workflow（我們只有「CI」）
+3. 左側顯示所有 Workflow（「CI」與「CodeQL」）
 4. 右側顯示每次執行的記錄
 
 ### 6.2 查看 Workflow Run
@@ -425,7 +415,7 @@ Runner 是執行 CI 的虛擬機器。GitHub 提供免費的 Hosted Runner：
 
 ### 6.5 下載 Artifact
 
-如果 Workflow 有上傳 artifact（我們的 Step 11）：
+如果 Workflow 有上傳 artifact（我們的「Upload build artifacts」）：
 
 1. 進入 Workflow Run 詳情頁面
 2. 頁面底部有「Artifacts」區塊
@@ -448,7 +438,7 @@ error : The current .NET SDK does not support targeting net10.0-windows.
 **解決**：確認 `setup-dotnet` 的 `dotnet-version` 設定正確：
 
 ```yaml
-- uses: actions/setup-dotnet@v4
+- uses: actions/setup-dotnet@v5
   with:
     dotnet-version: '10.0.x'    # 確認這裡寫 10.0.x
 ```
@@ -463,7 +453,7 @@ error : The current .NET SDK does not support targeting net10.0-windows.
 
 **原因**：`setup-msbuild` 沒有正確設定，或 Runner 上沒有 VS Build Tools。
 
-**解決**：確認 `microsoft/setup-msbuild@v2` step 在 `msbuild` 指令之前。
+**解決**：確認 `microsoft/setup-msbuild@v3` step 在 `msbuild` 指令之前。
 
 ### 7.3 C++ 平台工具組版本不符
 
@@ -589,7 +579,7 @@ jobs:
   release:
     runs-on: windows-2025-vs2026
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       # ... build steps ...
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -607,14 +597,11 @@ jobs:
 4. 選擇「CI / Build & Test」
 5. 這樣 PR 必須 CI 通過才能 Merge
 
-### 9.3 Code Coverage
+### 9.3 Code Coverage 上傳到外部服務
 
-加入測試覆蓋率報告：
+覆蓋率目前已經收集（`--collect:"XPlat Code Coverage"`），並寫進 Job Summary 與 PR 留言。若要追蹤長期趨勢，可以再上傳到外部服務：
 
 ```yaml
-- name: Run tests with coverage
-  run: dotnet test --collect:"XPlat Code Coverage"
-
 - name: Upload coverage
   uses: codecov/codecov-action@v4
 ```

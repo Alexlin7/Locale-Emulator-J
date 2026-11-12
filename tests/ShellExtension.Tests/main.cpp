@@ -1,5 +1,6 @@
 // tests/ShellExtension.Tests/main.cpp
-// Standalone COM export and registration test for ShellExtension.dll.
+// Standalone COM export and registration test for ShellExtension.dll,
+// plus ConfigReader unit tests (ConfigReaderTests.cpp).
 // No framework dependency -- exit code 0 = pass, 1 = fail.
 
 #define WIN32_LEAN_AND_MEAN
@@ -31,12 +32,18 @@ static bool FileExists(const wchar_t* path)
            !(attr & FILE_ATTRIBUTE_DIRECTORY);
 }
 
+int RunConfigReaderTests();
+
 // ========================================================================
 // Main
 // ========================================================================
 
 int wmain()
 {
+    // ConfigReader tests do not need ShellExtension.dll; run them first so
+    // their result is reported even if the DLL checks below bail out early.
+    const int configFailures = RunConfigReaderTests();
+
     int failures = 0;
 
     // ------------------------------------------------------------------
@@ -102,12 +109,18 @@ int wmain()
         return 1;
     }
 
+    if (configFailures > 0)
+    {
+        wprintf(L"\nRESULT: %d ConfigReader check(s) FAILED\n", configFailures);
+        return 1;
+    }
+
     // Registration test (DllRegisterServer / DllUnregisterServer round-trip)
     // is intentionally NOT automated. It modifies HKCR and could interfere
     // with an existing Shell Extension installation. Use manual testing:
     //   regsvr32 ShellExtension.dll
     //   regsvr32 /u ShellExtension.dll
 
-    wprintf(L"\nRESULT: all export checks passed\n");
+    wprintf(L"\nRESULT: all export and ConfigReader checks passed\n");
     return 0;
 }

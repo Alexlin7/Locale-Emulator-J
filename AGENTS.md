@@ -122,6 +122,8 @@ Build/Release/
 | Core.Tests | ✓ | ✓ | - | ✓ |
 | ShellExtension.Tests | - | - | ✓ | ✓ |
 
+Core 三個專案沒有 Debug 組態；`LocaleEmulator.sln` 的 Debug 方案組態把它們對應到同平台的 Release（Loader 只有 Win32），所以用 Debug 開方案也能建出 Core。
+
 ## 開發約定
 
 **工作流程（動手前必讀）：**

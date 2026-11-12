@@ -42,7 +42,7 @@ public static class LEConfig
                                                p.Attribute("Guid").Value,
                                                bool.Parse(p.Attribute("MainMenu").Value),
                                                p.Element("Parameter").Value,
-                                               p.Element("Region").Value,
+                                               GetRegion(p),
                                                p.Element("Timezone").Value,
                                                bool.Parse(p.TryGetValue("RunAsAdmin", "false")),
                                                bool.Parse(p.TryGetValue("RedirectRegistry", "true")),
@@ -106,6 +106,17 @@ public static class LEConfig
                               };
 
         WriteConfig(GlobalConfigPath, defaultProfiles);
+    }
+
+    /// <summary>
+    ///     Reads the profile's region. Old LE versions (upstream, and this fork before
+    ///     f29f84f) wrote it as &lt;Location&gt;; &lt;Region&gt; wins when both exist.
+    ///     Saving always writes &lt;Region&gt;, so re-saving a profile migrates it.
+    ///     Keep in sync with ShellExtension's ConfigReader.
+    /// </summary>
+    private static string GetRegion(XElement profile)
+    {
+        return (profile.Element("Region") ?? profile.Element("Location")).Value;
     }
 
     private static string TryGetValue(this XElement element, string name, string defaultValue = null)

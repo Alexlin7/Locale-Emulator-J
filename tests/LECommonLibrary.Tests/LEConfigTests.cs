@@ -157,4 +157,83 @@ public class LEConfigTests : IDisposable
         Assert.False(loaded[0].IsAdvancedRedirection);
         Assert.True(loaded[0].RunWithSuspend);
     }
+
+    // 舊版 LE（上游與本 fork f29f84f 之前）把地區寫成 <Location>，新版寫 <Region>。
+    // 讀不到時整個檔案會被當成空的，-run 什麼都不做（docs/roadmap.md）。
+    [Fact]
+    public void GetProfiles_LegacyLocationElement_ReadsAsRegion()
+    {
+        var xml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <LEConfig>
+              <Profiles>
+                <Profile Name="Legacy" Guid="guid-legacy" MainMenu="false">
+                  <Parameter></Parameter>
+                  <Location>ja-JP</Location>
+                  <Timezone>Tokyo Standard Time</Timezone>
+                  <RunAsAdmin>false</RunAsAdmin>
+                  <RedirectRegistry>true</RedirectRegistry>
+                  <IsAdvancedRedirection>false</IsAdvancedRedirection>
+                  <RunWithSuspend>false</RunWithSuspend>
+                </Profile>
+              </Profiles>
+            </LEConfig>
+            """;
+
+        var profiles = LEConfig.GetProfiles(CreateTempConfigFile(xml));
+
+        Assert.Single(profiles);
+        Assert.Equal("Legacy", profiles[0].Name);
+        Assert.Equal("ja-JP", profiles[0].Region);
+    }
+
+    [Fact]
+    public void GetProfiles_BothRegionAndLocation_RegionWins()
+    {
+        var xml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <LEConfig>
+              <Profiles>
+                <Profile Name="Both" Guid="guid-both" MainMenu="false">
+                  <Parameter></Parameter>
+                  <Location>ja-JP</Location>
+                  <Region>zh-TW</Region>
+                  <Timezone>Taipei Standard Time</Timezone>
+                </Profile>
+              </Profiles>
+            </LEConfig>
+            """;
+
+        var profiles = LEConfig.GetProfiles(CreateTempConfigFile(xml));
+
+        Assert.Single(profiles);
+        Assert.Equal("zh-TW", profiles[0].Region);
+    }
+
+    [Fact]
+    public void SaveAfterLoadingLegacyProfile_WritesRegionElement()
+    {
+        var xml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <LEConfig>
+              <Profiles>
+                <Profile Name="Legacy" Guid="guid-legacy" MainMenu="false">
+                  <Parameter></Parameter>
+                  <Location>ko-KR</Location>
+                  <Timezone>Korea Standard Time</Timezone>
+                </Profile>
+              </Profiles>
+            </LEConfig>
+            """;
+        var legacyPath = CreateTempConfigFile(xml);
+        var savedPath = Path.Combine(_tempDir, "migrated.xml");
+
+        var loaded = LEConfig.GetProfiles(legacyPath);
+        Assert.Single(loaded);
+        LEConfig.SaveApplicationConfigFile(savedPath, loaded[0]);
+
+        var profile = XDocument.Load(savedPath).Descendants("Profile").Single();
+        Assert.Equal("ko-KR", profile.Element("Region")?.Value);
+        Assert.Null(profile.Element("Location"));
+    }
 }

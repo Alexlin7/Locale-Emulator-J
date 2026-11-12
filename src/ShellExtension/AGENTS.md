@@ -35,4 +35,4 @@ msbuild src/ShellExtension/ShellExtension.vcxproj /p:Configuration=Release /p:Pl
 ```
 
 - C++23（`stdcpp23`），一般 CRT / STL 可用。
-- `tests/ShellExtension.Tests/`（x64）：COM 匯出存在、`LoadLibraryW` 成功、`DllRegisterServer` / `DllUnregisterServer` 來回測試。
+- `tests/ShellExtension.Tests/`（x64）：COM 匯出存在、`LoadLibraryW` 成功；`ConfigReaderTests.cpp` 把 `ConfigReader.cpp` 與 pugixml 直接編進測試 exe，測設定檔解析（含舊版 `<Location>`）。註冊（`DllRegisterServer` / `DllUnregisterServer`）會改 HKCR，刻意不自動測。

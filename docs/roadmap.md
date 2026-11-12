@@ -1,7 +1,7 @@
 # Roadmap：待辦、取捨與風險
 
 > **活文件**：每完成一項、做了新的取捨或發現新的風險，就更新這份文件（改勾選狀態或增刪項目，不必保留歷史；歷史在 git 與 `docs/superpowers/`）。
-> **最後整理**：2026-11-11（Phase 1 完成、Phase 2 Part A / Part C 進行中）
+> **最後整理**：2026-11-12（Phase 1、Part A 的 A1 / A2、Part C 已合回 `master`；接下來是 D7 定案與 LEProc 的小 bug）
 > **相關文件**：[`AGENTS.md`](../AGENTS.md)、[Core 模組化與 x64 設計](superpowers/specs/2026-11-11-core-modularization-and-x64-design.md)、[Phase 2 計畫](superpowers/plans/2026-11-11-core-phase2-hook-engine.md)
 
 ## 1. 現況摘要
@@ -12,7 +12,8 @@
 | x64 Core | 能編譯（`LoaderDll64.dll` / `LocaleEmulator64.dll`），不安裝 hook、不發佈 |
 | C++ 標準 | Core C++17（加 `/Zc:alignedNew-`）；ShellExtension 與 C++ 測試 C++23 |
 | D7 兩段式 Core | 時機實驗 E1、E2 在 smoke test 範圍內全 PASS；實際遊戲測試進行中（E2 測 5 款：3 款正常，2 款與 E2 無關或待查） |
-| 開發分支 | Phase 1 + Part A + Part C 已合回 `master` 並推上遠端 |
+| 開發分支 | Phase 1 + Part A（A1、A2）+ Part C、CodeQL（PR #5）、Debug 方案組態修正（PR #6）都已合回 `master` |
+| 靜態分析 | CodeQL（C# + C/C++）在 push / PR 到 `master`、每週排程時執行；第一次掃描 6 筆結果待處理（見下方「測試與 CI」） |
 
 ## 2. TODO
 
@@ -21,10 +22,12 @@
 ### 近期：D7 與 Phase 2
 
 - [ ] **實際遊戲測試 E2 版**（進行中，E2 測 5 款：KiriKiri、RealLive、FVP 各一款正常；一款漢化啟動器不經 LE 也會當，已排除；一款 ExHIBIT 遊戲的亂碼另列於下）：本機建置 `/p:LeExperimentTiming=2` 的 `LocaleEmulator.dll`，覆蓋到使用者的安裝目錄，同一份 profile 分別用 E0 / E2 測幾個 32 位元遊戲。結果寫回 spec §4.5。
-- [ ] **修 `.le.config` 的 `<Location>` 相容問題**：舊版 LE（與上游 fork `f29f84f` 之前）寫 `<Location>`，新版只讀 `<Region>`；讀不到時 `LEConfig.GetProfiles` 吞掉例外回傳空陣列：`-run`（`RunWithIndependentProfile`）的 `[0]` 越界被 `Main` 的空 `catch` 吞掉，**什麼都不發生、沒有任何訊息**；不帶參數直接給路徑時則靜默改用全域第一個 profile。
-- [ ] **`-run` 的路徑不存在時給錯誤訊息**：目前路徑打錯（例如路徑前段重複了一次，`X:\dir\X:\dir\...`）會去開 LEGUI 建 `.le.config`，因目錄不存在而判定不可寫，觸發 UAC 後顯示「目錄無寫入權限，請改用全域設定」，誤導使用者以為是權限問題。應先檢查目標 exe 是否存在。
+- [x] **修 `.le.config` 的 `<Location>` 相容問題**：`LEConfig`（C#）與 ShellExtension 的 `ConfigReader`（C++）都改成先讀 `<Region>`、沒有才讀舊版的 `<Location>`；存檔一律寫 `<Region>`，所以在 LEGUI 存一次就轉成新格式，LEProc 不會自動改寫檔案。`-run` 遇到存在但讀不到的 `.le.config` 改為顯示錯誤，並詢問是否開 LEGUI 重新設定。驗證：修正前的測試在 CI run 43207340367（ConfigReader 的 `<Location>` 那筆 FAIL）與 43207558406（`LEConfigTests` 兩筆 FAIL）紅燈，修正後 CI run 43208011917 全綠。
+- [x] **`-run` 的路徑不存在時給錯誤訊息**：LEProc 在 `-run`、`-runas`、`-manage` 與直接給路徑時都先檢查目標檔案存在，不存在就顯示「找不到目標程式」與完整路徑，不再去開 LEGUI 觸發 UAC 與誤導的「目錄無寫入權限」。驗證：CI run 43208011917（`LaunchPreconditionsTests` 11 筆全 PASS）。
+- [ ] **LEGUI 也檢查 `.le.config` 所在目錄是否存在**：直接開 LEGUI 或把不存在的路徑拖進去時，仍會因目錄不存在而判定不可寫、觸發 UAC 後顯示「目錄無寫入權限」。要新增訊息字串，需處理 22 種語系。
+- [ ] **評估 LEProc `Main` 最外層的空 `catch {}`**：目前所有未預期的例外都被靜默吞掉（例如 `-runas` 的 GUID 在 `LEConfig.xml` 找不到時 `.First` 丟例外，什麼都不會發生）。改成顯示例外能幫助回報問題，但會讓過去一直靜默的錯誤全部浮上來，影響面要先評估。
 - [ ] **系統 ACP 65001（UTF-8 beta）下 LE 有漏攔路徑**（已確認）：一款 ExHIBIT 引擎的遊戲（劇本 `.rld` 加密）在 LE ja 下 UI 正常、劇本呈「縺ゅ」型亂碼（UTF-8 位元組被當 CP932 顯示）；E0 / E2 相同；使用者關閉 UTF-8 beta（系統 ACP 回到 950）後劇本正常。代表引擎某處 W→A 轉換拿到了系統真正的 ACP 65001。smoke test 在 65001 下全 PASS，所以這條路徑不在現有 `CHECK_*` 裡。下一步：在 LocaleTestApp 加候選 API 的 `CHECK_*`（含 CRT `wcstombs` / `setlocale`、`WideCharToMultiByte(CP_ACP)` 往返、gdi32 `GetGlyphOutlineA` / `TextOutA` 等）在 65001 環境找出漏網的 API。注意：GitHub runner 是 ACP 1252 且無法重開機切 65001，重現只能在使用者主機上做。profile 的 `ja` 與 `ja-JP` 組出的 LEB 相同（`TextInfo.LCID` 0x0411、ACP 932），已排除。
-- [ ] **查 LEProc 偶發當機**：`LoaderWrapper.LeCreateProcess` 內存取違規（`0xc0000005`，faulting module 顯示 coreclr.dll），E0、E2 都會發生，本機 smoke test 的偶發逾時即此問題。
+- [ ] **查 LEProc 偶發當機**：`LoaderWrapper.LeCreateProcess` 內存取違規（`0xc0000005`，faulting module 顯示 coreclr.dll），E0、E2 都會發生，本機 smoke test 的偶發逾時即此問題。CI 上也出現過：master 的 run 43066293655（主 smoke test 的 zh-CN 逾時）、run 43208011917（E1 的 zh-CN 失敗），同一份程式碼重跑就通過。
 - [ ] **D7 定案**；成立的話，寫兩段式 Core 的實作計畫（第一段只負責在 kernel32 初始化後載入第二段，第二段可以用 CRT）。
 - [ ] **A2b**：盤點需要超出預設對齊的型別（開 C4316，或暫時拿掉 `/Zc:alignedNew-` 看連結錯誤），評估改成正式實作對齊版 `operator new/delete`。
 - [ ] **A3 / A4**：Core 升到 C++20、C++23（風險在 ml.h：`operator==` 改寫規則、`char8_t`、聚合初始化）。
@@ -81,7 +84,7 @@
 | LEProc 維持 x86，另建 LEProc64（Q2） | x86 路徑完全不動 | 多一個執行檔要管 | — |
 | `/Zc:alignedNew-` | C++17 立刻可用 | 暫時沒有符合標準的對齊配置 | A2b |
 | Core 升 C++17 並保留非符合模式（`ConformanceMode=false` 等） | 不用動 ml.h | C++20 以後的語法還不能用 | A3 |
-| Core 只有 Release 組態 | 設定簡單 | 沒有 Debug 版可以除錯 | 加診斷 log 時一起考慮 |
+| Core 只有 Release 組態（方案的 Debug 組態也對應到 Core 的 Release，PR #6） | 設定簡單；VS 以 Debug 開方案時三個 Core 專案能正常載入與建置 | 沒有 Debug 版可以除錯 | 加診斷 log 時一起考慮 |
 | 只靠 CI 驗證 | 不受本機環境限制 | 回饋較慢；只測一種 Windows 版本與一種系統地區 | 使用者主機可用時補測 |
 | 時機實驗用編譯期開關 | 正式版完全不受影響 | 換時機要重新編譯 | — |
 

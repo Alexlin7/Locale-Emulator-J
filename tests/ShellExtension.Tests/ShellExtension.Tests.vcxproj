@@ -60,13 +60,14 @@
     <ClCompile>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <PreprocessorDefinitions>WIN32;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\src\ShellExtension;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
       <SDLCheck>true</SDLCheck>
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>advapi32.lib;ole32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;ole32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 
@@ -101,6 +102,10 @@
   <!-- Source files -->
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ConfigReaderTests.cpp" />
+    <!-- Code under test, compiled into the test exe (not exported by ShellExtension.dll) -->
+    <ClCompile Include="..\..\src\ShellExtension\ConfigReader.cpp" />
+    <ClCompile Include="..\..\src\ShellExtension\pugixml\pugixml.cpp" />
   </ItemGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

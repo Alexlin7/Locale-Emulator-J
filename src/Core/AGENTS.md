@@ -35,7 +35,7 @@ Loader/                    命令列啟動器（只有 x86）
 | x86 | 正式使用，smoke test 全綠 |
 | x64 | 能編譯（`Release\|x64` 輸出 `LoaderDll64.dll` / `LocaleEmulator64.dll`），但不安裝任何 hook：`LeGlobalData::Initialize` 回傳 `STATUS_NOT_SUPPORTED`，`LeCreateProcess` 不建立程序；尚未組進 `Build/Release/` |
 | C++ 標準 | C++17，`ConformanceMode=false`，加上 `/Zc:templateScope- /Zc:strictStrings- /Zc:threadSafeInit- /Zc:alignedNew-` |
-| 組態 | 只有 Release |
+| 組態 | 只有 Release；方案的 Debug 組態也對應到 Release（`LocaleEmulator.sln`） |
 
 ## 常見陷阱
 
