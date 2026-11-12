@@ -776,8 +776,7 @@ HpServiceDispatcherInternal(
     PSYSCALL_FILTER_INFO        UserModeFltInfo
 )
 {
-    PVOID                   LocalArguments;
-    ULONG_PTR               ReturnValue, FilterBitmap, ArgumentSize;
+    ULONG_PTR               ReturnValue, FilterBitmap;
     NTSTATUS                Status;
     HpFilterStub            FilterStub;
     PSYSCALL_INFO           SystemCallInfo;
@@ -794,7 +793,6 @@ HpServiceDispatcherInternal(
         Dispatcher->SystemCallInfo = SystemCallInfo;
     }
 
-    ArgumentSize = SystemCallInfo->ArgumentSize;
     FltInfo.SsdtRoutine = Dispatcher->OriginalRoutine;
 
     Filters = SystemCallInfo->FilterCallbacks;
@@ -823,9 +821,6 @@ HpServiceDispatcherInternal(
         FilterStub = (HpFilterStub)Filters->Callback;
         if (FilterStub == NULL)
             continue;
-
-        LocalArguments = _alloca(ArgumentSize);
-        CopyMemory(LocalArguments, Arguments, ArgumentSize);
 
         UserModeFltInfo->FilterContext = Filters->Context;
         ReturnValue = FilterStub(SystemCallInfo, UserModeFltInfo);

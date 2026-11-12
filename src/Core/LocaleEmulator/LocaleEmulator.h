@@ -294,41 +294,65 @@ LeFindSectionObject(
     }
     else
     {
-        BufferSize = 0x400;
-        // XXX: Use _alloca instead of AllocStack for memory continuity
-        // XXX: Also do not use AllocateMemory
-        Buffer = (PDIRECTORY_BASIC_INFORMATION) _alloca(BufferSize);
-        do
+        // The directory listing goes into memory from NtAllocateVirtualMemory: it only
+        // needs ntdll and takes no heap lock (this can run inside an ntdll hook, where
+        // the heap lock may already be held). Upstream chained _alloca calls inside the
+        // retry loop and relied on them being contiguous on the stack, which nothing
+        // guarantees, and every recursion level kept its listing on the stack.
+        constexpr SIZE_T MaxQuerySize = 16 * 1024 * 1024;
+
+        PVOID   QueryBuffer;
+        SIZE_T  QuerySize   = 0x1000;
+        SIZE_T  FreeSize;
+        BOOL    Found       = FALSE;
+
+        for (;;)
         {
-            Buffer = (PDIRECTORY_BASIC_INFORMATION) _alloca(BufferSize);
-            BufferSize *= 2;
-            Status = NtQueryDirectoryObject(RootHandle, (PVOID)Buffer, BufferSize, FALSE, TRUE, &Context, &RetSize);
-        } while (Status == STATUS_MORE_ENTRIES || Status == STATUS_BUFFER_TOO_SMALL);
-        if (!NT_SUCCESS(Status))
-            return FALSE;
-        while ((Buffer->ObjectName.Length != 0) && (Buffer->ObjectTypeName.Length != 0))
-        {
-            if (memcmp(Buffer->ObjectTypeName.Buffer, L"Directory", Buffer->ObjectTypeName.Length))
-            {
-                ++Buffer;
-                continue;
-            }
-            InitializeObjectAttributes(&ObjectAttributes, &Buffer->ObjectName, OBJ_CASE_INSENSITIVE, RootHandle, nullptr);
-            Status = NtOpenDirectoryObject(&SubDirHandle, DIRECTORY_ALL_ACCESS, &ObjectAttributes);
+            QueryBuffer = nullptr;
+            Status = NtAllocateVirtualMemory(NtCurrentProcess(), &QueryBuffer, 0, &QuerySize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
             if (NT_FAILED(Status))
-            {
-                ++Buffer;
-                continue;
-            }
-            if(LeFindSectionObject(SectionHandle, SectionName, Depth-1, SubDirHandle)) {
-                NtClose(SubDirHandle);
-                return TRUE;
-            }
-            NtClose(SubDirHandle);
-            ++Buffer;
+                return FALSE;
+
+            // QuerySize may have been rounded up to the page size; pass what was allocated.
+            Context = 0;
+            BufferSize = (ULONG) QuerySize;
+            Status = NtQueryDirectoryObject(RootHandle, QueryBuffer, BufferSize, FALSE, TRUE, &Context, &RetSize);
+            if (Status != STATUS_MORE_ENTRIES && Status != STATUS_BUFFER_TOO_SMALL)
+                break;
+
+            FreeSize = 0;
+            NtFreeVirtualMemory(NtCurrentProcess(), &QueryBuffer, &FreeSize, MEM_RELEASE);
+
+            if (QuerySize >= MaxQuerySize)
+                return FALSE;
+            QuerySize *= 2;
         }
+
+        if (NT_SUCCESS(Status))
+        {
+            for (Buffer = (PDIRECTORY_BASIC_INFORMATION) QueryBuffer;
+                 (Buffer->ObjectName.Length != 0) && (Buffer->ObjectTypeName.Length != 0);
+                 ++Buffer)
+            {
+                if (memcmp(Buffer->ObjectTypeName.Buffer, L"Directory", Buffer->ObjectTypeName.Length))
+                    continue;
+
+                InitializeObjectAttributes(&ObjectAttributes, &Buffer->ObjectName, OBJ_CASE_INSENSITIVE, RootHandle, nullptr);
+                Status = NtOpenDirectoryObject(&SubDirHandle, DIRECTORY_ALL_ACCESS, &ObjectAttributes);
+                if (NT_FAILED(Status))
+                    continue;
+
+                Found = LeFindSectionObject(SectionHandle, SectionName, Depth - 1, SubDirHandle);
+                NtClose(SubDirHandle);
+                if (Found)
+                    break;
+            }
+        }
+
+        FreeSize = 0;
+        NtFreeVirtualMemory(NtCurrentProcess(), &QueryBuffer, &FreeSize, MEM_RELEASE);
+        return Found;
     }
-    return FALSE;
 }
 
 inline
