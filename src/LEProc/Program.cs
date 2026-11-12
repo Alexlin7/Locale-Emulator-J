@@ -86,6 +86,9 @@ internal static class Program
                     break;
 
                 case "-manage": //-manage %APP%
+                    if (!EnsureTargetExists(SystemHelper.EnsureAbsolutePath(Args[1])))
+                        break;
+
                     Process.Start(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
                             "LEGUI.exe"),
                         $"\"{Args[1]}.le.config\"");
@@ -101,7 +104,7 @@ internal static class Program
                     break;
 
                 default:
-                    if (File.Exists(Args[0]))
+                    if (EnsureTargetExists(SystemHelper.EnsureAbsolutePath(Args[0])))
                     {
                         RunWithDefaultProfile(Args[0]);
                     }
@@ -134,6 +137,9 @@ internal static class Program
     {
         path = SystemHelper.EnsureAbsolutePath(path);
 
+        if (!EnsureTargetExists(path))
+            return;
+
         // We do not check whether the config exists because only when it exists can this method be called.
 
         var profile = LEConfig.GetProfiles().First(p => p.Guid == guid);
@@ -145,19 +151,54 @@ internal static class Program
     {
         path = SystemHelper.EnsureAbsolutePath(path);
 
+        if (!EnsureTargetExists(path))
+            return;
+
         var conf = path + ".le.config";
 
-        if (!File.Exists(conf))
+        switch (LaunchPreconditions.LoadAppProfile(conf, out var profile))
         {
-            Process.Start(
-                Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "LEGUI.exe"),
-                $"\"{path}.le.config\"");
+            case LaunchPreconditions.AppProfileStatus.Loaded:
+                DoRunWithLEProfile(path, 2, profile);
+                break;
+
+            case LaunchPreconditions.AppProfileStatus.NoConfig:
+                OpenAppProfileEditor(conf);
+                break;
+
+            case LaunchPreconditions.AppProfileStatus.Unreadable:
+                if (DialogResult.Yes == MessageBox.Show(
+                        LaunchPreconditions.GetUnreadableConfigMessage(conf),
+                        "Locale Emulator Version " + GlobalHelper.GetVersionString(),
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Error))
+                    OpenAppProfileEditor(conf);
+                break;
         }
-        else
-        {
-            var profile = LEConfig.GetProfiles(conf)[0];
-            DoRunWithLEProfile(path, 2, profile);
-        }
+    }
+
+    private static void OpenAppProfileEditor(string configPath)
+    {
+        Process.Start(
+            Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "LEGUI.exe"),
+            $"\"{configPath}\"");
+    }
+
+    /// <summary>
+    ///     Shows an error and returns false when the target file does not exist.
+    /// </summary>
+    private static bool EnsureTargetExists(string absPath)
+    {
+        var message = LaunchPreconditions.GetMissingTargetMessage(absPath);
+        if (message == null)
+            return true;
+
+        MessageBox.Show(
+            message,
+            "Locale Emulator Version " + GlobalHelper.GetVersionString(),
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Error);
+        return false;
     }
 
     private static void DoRunWithLEProfile(string absPath, int argumentsStart, LEProfile profile)
