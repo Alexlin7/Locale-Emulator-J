@@ -187,6 +187,19 @@ jobs:
         shell: pwsh
         if: success()
 
+      # ---- Local probe script self-check ----
+      # tests/SmokeTest/Invoke-LocalProbe.ps1 is meant for the user's own machine
+      # (e.g. system ACP 65001). Running it here keeps the script working; the
+      # result is informational and does not fail the build.
+
+      - name: Local probe script (self-check)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: |
+          .\tests\SmokeTest\Invoke-LocalProbe.ps1 -LeDir Build\Release\x86 -TestApp Build\Release\x86\LocaleTestApp.exe -OutDir Build\LocalProbe
+          Get-Content Build\LocalProbe\report.md
+        shell: pwsh
+
       # ---- Timing experiment (D7, design spec section 4.5) ----
       # Rebuilds x86 LocaleEmulator.dll with LE_EXPERIMENT_TIMING=1 (E1) / 2 (E2)
       # into a separate directory and runs the smoke test against a copy of the
@@ -226,4 +239,13 @@ jobs:
           path: |
             Build/Release/x86/
             Build/Release/x64/
+          retention-days: 7
+
+      - name: Upload local probe report
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: local-probe
+          path: Build/LocalProbe/
+          if-no-files-found: ignore
           retention-days: 7

@@ -33,7 +33,7 @@ Loader/                    命令列啟動器（只有 x86）
 | 項目 | 狀態 |
 |---|---|
 | x86 | 正式使用，smoke test 全綠 |
-| x64 | 能編譯（`Release\|x64` 輸出 `LoaderDll64.dll` / `LocaleEmulator64.dll`），但不安裝任何 hook：`LeGlobalData::Initialize` 回傳 `STATUS_NOT_SUPPORTED`，`LeCreateProcess` 不建立程序；尚未組進 `Build/Release/` |
+| x64 | **暫緩開發**（目標只需要 32 位元，見 `docs/roadmap.md` §0）。能編譯（`Release\|x64` 輸出 `LoaderDll64.dll` / `LocaleEmulator64.dll`），但不安裝任何 hook：`LeGlobalData::Initialize` 回傳 `STATUS_NOT_SUPPORTED`，`LeCreateProcess` 不建立程序；尚未組進 `Build/Release/` |
 | C++ 標準 | C++17，`ConformanceMode=false`，加上 `/Zc:templateScope- /Zc:strictStrings- /Zc:threadSafeInit- /Zc:alignedNew-` |
 | 組態 | 只有 Release；方案的 Debug 組態也對應到 Release（`LocaleEmulator.sln`） |
 
@@ -45,6 +45,7 @@ Loader/                    命令列啟動器（只有 x86）
 - **ml 的 x64 路徑從未在上游使用過**，有已知錯誤（例如 x64 的 `OpPush` 編碼已停用）。用到 ml 的 x64 功能前先確認。
 - **vcxproj 的輸出路徑**：LocaleEmulator 的 Win32 組態已改用 `$(OutDir)` / `$(IntDir)`；LoaderDll、Loader 仍把 `.\Release\` 寫死，要另外建一份時 `/p:OutDir` 對它們無效。
 - **`WriteLog` 目前不輸出任何東西**，Core 沒有診斷 log。
+- **HookPort 的 filter 是靠堆疊位置拿參數的**：filter 宣告成 `HPARGS` 加上 syscall 本身的參數，但 `HpServiceDispatcherInternal` 只用兩個 FASTCALL 暫存器參數呼叫它，其餘參數由 filter 直接從堆疊頂端讀，也就是迴圈裡 `_alloca` 複製出來的那份。看起來沒被讀的 `LocalArguments` 不是死碼，`_alloca` 也必須留在迴圈內（FASTCALL 由被呼叫端清堆疊，每個 filter 都會彈掉自己那份）。曾經誤刪過，結果所有被 hook 的程式都起不來（CI run 43233800178）。
 
 ## 時機實驗（D7）
 

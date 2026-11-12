@@ -824,6 +824,13 @@ HpServiceDispatcherInternal(
         if (FilterStub == NULL)
             continue;
 
+        // NOT dead code. Filters are declared with the full syscall signature
+        // (HPARGS, then the syscall's own parameters) but are called through
+        // HpFilterStub with only the two FASTCALL register arguments; the rest are
+        // read straight from the top of the stack, i.e. from this copy. FASTCALL is
+        // callee-cleanup, so each filter pops the copy on return and the next filter
+        // needs a fresh one: the _alloca must stay inside the loop, and the stack
+        // does not grow across iterations. (CodeQL cpp/alloca-in-loop: by design.)
         LocalArguments = _alloca(ArgumentSize);
         CopyMemory(LocalArguments, Arguments, ArgumentSize);
 

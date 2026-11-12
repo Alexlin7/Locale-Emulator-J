@@ -189,6 +189,8 @@ try {
 $totalTests = 0
 $passedTests = 0
 $failedTests = 0
+# PROBE_* 只回報不判定（尋找 LE 漏攔的 API 用，見 tests/SmokeTest/AGENTS.md）
+$probeFailures = @()
 
 Write-Host ""
 Write-Host "Running locale smoke tests..." -ForegroundColor White
@@ -307,6 +309,18 @@ foreach ($test in $TestMatrix) {
             }
         }
 
+        # PROBE_*：列出失敗項目但不影響結果；-Verbose 時也列出 OK 與 INFO_*
+        $probeKeys = @($parsed.Keys | Where-Object { $_ -like 'PROBE_*' } | Sort-Object)
+        $probeFailed = @($probeKeys | Where-Object { $parsed[$_] -ne 'OK' })
+        Write-Host "  PROBE: $($probeKeys.Count - $probeFailed.Count)/$($probeKeys.Count) OK" -ForegroundColor Gray
+        foreach ($key in $probeFailed) {
+            Write-Host "  [PROBE FAIL] $($key -replace '^PROBE_', ''): $($parsed[$key])" -ForegroundColor Yellow
+            $probeFailures += "$($test.Region) $($key -replace '^PROBE_', '')"
+        }
+        foreach ($key in @($parsed.Keys | Where-Object { $_ -like 'INFO_*' } | Sort-Object)) {
+            Write-Verbose "  $key=$($parsed[$key])"
+        }
+
         if ($testPassed) {
             $passedTests++
             Write-TestResult -TestName $test.Name -Passed $true
@@ -335,6 +349,8 @@ Write-Host "============================================================" -Foreg
 Write-Host "  Total:  $totalTests" -ForegroundColor White
 Write-Host "  Passed: $passedTests" -ForegroundColor Green
 Write-Host "  Failed: $failedTests" -ForegroundColor $(if ($failedTests -gt 0) { "Red" } else { "Green" })
+Write-Host "  PROBE failures (informational): $($probeFailures.Count)" -ForegroundColor $(if ($probeFailures.Count -gt 0) { "Yellow" } else { "Gray" })
+foreach ($f in $probeFailures) { Write-Host "    $f" -ForegroundColor Yellow }
 Write-Host ""
 
 if ($failedTests -gt 0) {
