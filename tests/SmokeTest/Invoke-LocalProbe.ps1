@@ -9,12 +9,13 @@
     1. 把 LocaleTestApp.exe 複製到 -OutDir 的工作資料夾（不動建置目錄與任何遊戲資料夾）
     2. 直接執行一次，存成 baseline.txt
     3. 在旁邊寫 .le.config，經 -LeDir 的 LEProc.exe -run 執行一次，存成 le.txt
+       （地區同時寫 <Region> 與 <Location>：新版 LE 讀前者，原版 LE 2.x 讀後者，方便對照兩個版本）
     4. 產生 report.md：環境、ACP 等基本值、所有非 OK 的 CHECK_* / PROBE_*、INFO_* 對照
 
     本腳本不改系統設定。UTF-8 beta 的開關要改系統設定並重新開機，請使用者自己切換。
 
 .PARAMETER LeDir
-    含 LEProc.exe、LoaderDll.dll、LocaleEmulator.dll 的目錄：使用者安裝的 LE，或本機建置的 Build\Release\x86
+    含 LEProc.exe、LoaderDll.dll、LocaleEmulator.dll 的目錄：使用者安裝的 LE（本 fork 或原版 2.x 皆可），或本機建置的 Build\Release\x86
 
 .PARAMETER TestApp
     LocaleTestApp.exe 的路徑（預設 Build\Release\x86\LocaleTestApp.exe）
@@ -104,6 +105,7 @@ Write-Host "Running through LE ($Region)..." -ForegroundColor Cyan
     <Profile Name="LocalProbe_$Region" Guid="{$(New-Guid)}" MainMenu="false">
       <Parameter></Parameter>
       <Region>$Region</Region>
+      <Location>$Region</Location>
       <Timezone>$Timezone</Timezone>
       <RunAsAdmin>false</RunAsAdmin>
       <RedirectRegistry>$($RedirectRegistry.ToString().ToLower())</RedirectRegistry>

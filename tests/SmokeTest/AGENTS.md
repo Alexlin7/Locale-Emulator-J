@@ -28,6 +28,7 @@ Smoke test 是唯一能驗證「hook 真的生效」的測試：用不同地區�
 - `PROBE_*`：格式同 `CHECK_*`，用來**探測候選 API**（例如找系統 ACP 65001 下漏攔的 API）。`Invoke-SmokeTest.ps1` 只列出失敗項目與統計，**不影響結果**。在 CI 上穩定通過、確定要保護的行為，再升級成 `CHECK_*`。
 - `INFO_*`：只輸出不判斷的診斷資訊，例如 `INFO_SAMPLE_UTF16LE`（實際用到的測試樣本）、`INFO_OS_VERSION`、CRT 的 locale 字串、字型解析出的 charset。`-Verbose` 時會列出。
 - 目前在 CI 上就失敗的 PROBE（代表 LE 現有的缺口，與 65001 無關）記在 `docs/roadmap.md`。
+- 判讀注意：系統 ACP 是 65001 時，`PROBE_USER32_WSPRINTF_LS`、`PROBE_USER32_CHARNEXT_A` 在不經 LE 時本來就 FAIL（65001 不是雙位元組 code page），只看經 LE 的結果。
 
 ## 在使用者電腦上探測（給本機 agent）
 
@@ -41,6 +42,7 @@ msbuild tests/SmokeTest/LocaleTestApp/LocaleTestApp.vcxproj /p:Configuration=Rel
 .\tests\SmokeTest\Invoke-LocalProbe.ps1 -LeDir "<LE 安裝目錄>" -Region ja-JP
 ```
 
+- `-LeDir` 也可以指向原版 LE 2.x（設定檔同時寫 `<Region>` 與 `<Location>`），用來對照「原版壞、fork 好」。
 - 腳本把 LocaleTestApp 複製到 `%TEMP%\LEProbe_<時間>\work`，不經 LE 與經 LE 各跑一次，在 `%TEMP%\LEProbe_<時間>\` 留下 `baseline.txt`、`le.txt`、`report.md`。
 - profile 參數（`-Region`、`-Timezone`、`-RedirectRegistry`、`-AdvancedRedirection`）盡量和使用者玩那款遊戲時的 profile 相同；不確定就用預設值（ja-JP、Tokyo Standard Time、RedirectRegistry=true、AdvancedRedirection=false）。
 - **回報**：把 `report.md` 的完整內容貼回對話（裡面只有 code page、十六進位的測試結果與 OS 版本；`LE directory` 一行含安裝路徑，使用者不想公開可以刪掉）。
