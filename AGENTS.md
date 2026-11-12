@@ -4,6 +4,8 @@
 
 現況與使用說明見 [`README.md`](README.md)；目前的待辦、取捨與風險見 [`docs/roadmap.md`](docs/roadmap.md)。
 
+**目前的目標：讓維護者自己玩的 32 位元遊戲能正常開、正常顯示。** 挑工作時以此為準（細節見 `docs/roadmap.md` §0）；x64 與兩段式 Core（D7）暫緩。
+
 ## 專案
 
 Locale Emulator（LE）是 Windows 工具：不改系統地區設定，就能讓指定程式以另一個地區（code page、LCID、時區）執行。做法是把 DLL 注入目標程序、hook Windows API。
@@ -34,7 +36,7 @@ LECommonLibrary（.NET 10，AnyCPU）   ← 共用：LEConfig、LEProfile、Regi
 
 | 模組 | 語言 / 平台 | 職責 | 說明檔 |
 |---|---|---|---|
-| `src/Core/`（LoaderDll、LocaleEmulator、Loader） | C++，x86（x64 開發中） | 注入與 hook；無 CRT | [`src/Core/AGENTS.md`](src/Core/AGENTS.md) |
+| `src/Core/`（LoaderDll、LocaleEmulator、Loader） | C++，x86（x64 暫緩） | 注入與 hook；無 CRT | [`src/Core/AGENTS.md`](src/Core/AGENTS.md) |
 | `src/LEProc/` | C#，x86 | CLI 啟動器、組 LEB、呼叫 Core | [`src/LEProc/AGENTS.md`](src/LEProc/AGENTS.md) |
 | `src/LECommonLibrary/` | C#，AnyCPU | 設定檔、Profile、`RegionSupport` | [`src/LECommonLibrary/AGENTS.md`](src/LECommonLibrary/AGENTS.md) |
 | `src/LEGUI/` | C#（WPF），AnyCPU | Profile 管理、Shell Extension 安裝 | [`src/LEGUI/AGENTS.md`](src/LEGUI/AGENTS.md) |
@@ -45,7 +47,7 @@ LECommonLibrary（.NET 10，AnyCPU）   ← 共用：LEConfig、LEProfile、Regi
 
 ## 跨模組鐵則（改動前必讀）
 
-1. **架構分工固定。** LEProc 與 x86 版 Core 必須維持 x86；64 位元目標程式由 x64 版 Core（`LoaderDll64.dll` + `LocaleEmulator64.dll`）處理，x64 版尚在開發中、未納入發佈產物。ShellExtension 必須同時建 x86 與 x64（架構跟著 Explorer，與目標程式無關）。設計見 `docs/superpowers/specs/2026-11-11-core-modularization-and-x64-design.md`。
+1. **架構分工固定。** LEProc 與 x86 版 Core 必須維持 x86；64 位元目標程式由 x64 版 Core（`LoaderDll64.dll` + `LocaleEmulator64.dll`）處理，x64 版能編譯但**暫緩開發**、未納入發佈產物（目前的目標只需要 32 位元，見 `docs/roadmap.md` §0）。ShellExtension 必須同時建 x86 與 x64（架構跟著 Explorer，與目標程式無關）。設計見 `docs/superpowers/specs/2026-11-11-core-modularization-and-x64-design.md`。
 2. **跨模組的資料契約要一起改。**
    - **LEB 結構**：C#（`src/LEProc/LoaderWrapper.cs`）、C++（`src/Core/LocaleEmulator/LocaleEmulator.h`）、`tests/Core.Tests/main.cpp`、`tests/LEProc.Tests/LEBStructLayoutTests.cs` 四處必須一致，改任何一處都要同步其他三處，並跑 Core.Tests 與 LEProc.Tests。
    - **Shell Extension 的 CLSID**：`src/ShellExtension/dllmain.cpp` 與 `src/LEGUI/ShellExtensionConstants.cs` 必須相同。
@@ -114,8 +116,8 @@ Build/Release/
 
 | C++ 專案 | Debug\|Win32 | Release\|Win32 | Debug\|x64 | Release\|x64 |
 |---|:---:|:---:|:---:|:---:|
-| Core/LoaderDll | - | ✓ | - | ✓（開發中，未發佈） |
-| Core/LocaleEmulator | - | ✓ | - | ✓（開發中，hook 停用） |
+| Core/LoaderDll | - | ✓ | - | ✓（暫緩，未發佈） |
+| Core/LocaleEmulator | - | ✓ | - | ✓（暫緩，hook 停用） |
 | Core/Loader | - | ✓ | - | - |
 | ShellExtension | ✓ | ✓ | ✓ | ✓ |
 | LocaleTestApp | ✓ | ✓ | - | - |
