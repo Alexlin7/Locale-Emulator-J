@@ -25,7 +25,7 @@
 | x64 Core | **暫緩**。能編譯（`LoaderDll64.dll` / `LocaleEmulator64.dll`），不安裝 hook、不發佈 |
 | D7 兩段式 Core | **暫緩**。時機實驗 E1、E2 在 smoke test 範圍內全 PASS；E2 實測 5 款遊戲沒有任何一款比 E0 好或差 |
 | C++ 標準 | Core C++17（加 `/Zc:alignedNew-`）；ShellExtension 與 C++ 測試 C++23 |
-| 靜態分析 | CodeQL（C# + C/C++）在 push / PR 到 `master`、每週排程時執行；剩 4 筆結果，皆判斷為誤報或小問題 |
+| 靜態分析 | CodeQL（C# + C/C++）在 push / PR 到 `master`、每週排程時執行；剩 3 筆結果，皆判斷為誤報；另 2 筆已 dismiss 為 Won't fix（見 §2「已完成」） |
 
 ## 2. TODO
 
@@ -47,10 +47,7 @@
 - [ ] **LEGUI 也檢查 `.le.config` 所在目錄是否存在**：直接開 LEGUI 或把不存在的路徑拖進去時，仍會因目錄不存在而判定不可寫、觸發 UAC 後顯示「目錄無寫入權限」。要新增訊息字串，需處理 22 種語系。
 - [ ] **評估 LEProc `Main` 最外層的空 `catch {}`**：目前所有未預期的例外都被靜默吞掉（例如 `-runas` 的 GUID 在 `LEConfig.xml` 找不到時 `.First` 丟例外，什麼都不會發生）。改成顯示例外能幫助回報問題，但會讓過去一直靜默的錯誤全部浮上來，影響面要先評估。
 - [ ] LoaderDll / Loader 的 vcxproj 也改用 `$(OutDir)` / `$(IntDir)`（目前把 `.\Release\` 寫死）
-- [ ] CodeQL 剩下的結果：
-  - 刻意保留、可在 GitHub 上 dismiss：`cpp/alloca-in-loop`（`HookPort.cpp` 的 `HpServiceDispatcherInternal`）。filter 從堆疊頂端讀這份參數複本，FASTCALL 由被呼叫端清堆疊，所以 `_alloca` 必須在迴圈內，堆疊也不會增長；誤刪會讓所有被 hook 的程式起不來（CI run 43233800178），程式碼已加註解
-  - 判斷為誤報，可在 GitHub 上 dismiss：`cpp/incorrect-string-type-conversion`（`Utility.cpp` 的 atom 轉型）、`cpp/suspicious-pointer-scaling` 兩筆（`NtdllHook.cpp` 刻意以元素為單位的指標運算）
-  - 型別小問題：`cpp/wrong-type-format-argument`（`LocaleEmulator.h` 以 `%p` 格式化 `ULONG_PTR` 的 PID；同架構內寬度一致，只在跨架構時才有影響）
+- [ ] CodeQL 剩下的結果（皆判斷為誤報）：`cpp/incorrect-string-type-conversion`（`Utility.cpp` 的 atom 轉型）、`cpp/suspicious-pointer-scaling` 兩筆（`NtdllHook.cpp` 刻意以元素為單位的指標運算），可在 GitHub 上 dismiss
 - [ ] 更多 CodeQL 自訂查詢：例如 `LocaleEmulator.dll` 的 hook 裡不准呼叫 user32 / gdi32（延遲載入可能在 kernel32 之前觸發）
 
 ### 暫緩（遊戲都是 32 位元，目前沒有需求）
@@ -72,6 +69,8 @@
 - [x] `.le.config` 的 `<Location>` 相容（CI run 43208011917）
 - [x] `-run` 的路徑不存在時給錯誤訊息（CI run 43208011917）
 - [x] CodeQL `cpp/alloca-in-loop`：`LeFindSectionObject` 改用 `NtAllocateVirtualMemory`（CI run 43236475905）
+- [x] CodeQL alert #2 `cpp/alloca-in-loop`（`HookPort.cpp` 的 `HpServiceDispatcherInternal`）dismiss 為 Won't fix：filter 從堆疊頂端讀這份參數複本，FASTCALL 由被呼叫端清堆疊，所以 `_alloca` 必須在迴圈內，堆疊也不會增長；誤刪會讓所有被 hook 的程式起不來（CI run 43233800178），程式碼已加註解
+- [x] CodeQL alert #1 `cpp/wrong-type-format-argument`（`LocaleEmulator.h` 的 `GetLePebSectionName`）dismiss 為 Won't fix，留到重啟 x64 時處理（見 §5「重啟 x64 前要先處理的事」）
 - [x] CodeQL（C# + C/C++）與第一條自訂查詢 `le/core/kernelbase-nls-call`
 
 ## 3. 做得不錯、要維持的做法
@@ -116,3 +115,4 @@
 1. **D7 要在寫 x64 hook 之前定案。** 否則 x64 hook 可能先寫在無 CRT 的第一段，之後又要搬到可以用 CRT 的第二段，同一批程式碼寫兩次。
 2. **新模組不要直接依賴 ml。** HookEngine 與 x64 程式碼若一開始就到處用 ml 的 API，Phase 7 會越來越難。
 3. **LEB 契約在 x64 上的變化。** 指標大小會變，C# / C++ / 兩個測試專案是手抄的定義。做 LEProc64 之前，至少要讓 Core.Tests 與 LEProc.Tests 以 x64 檢查 LEProc64 看到的佈局。
+4. **LePeb 共享記憶體的名稱要跨架構一致。** `GetLePebSectionName`（`LocaleEmulator.h`）用 `%p` 格式化 `ULONG_PTR` 的 PID，x86 產生 8 位、x64 產生 16 位十六進位，x86 LoaderDll 建立的名稱與 x64 LocaleEmulator 找的名稱會不同（跨架構啟動子程序時就找不到 LEB）。改成固定寬度的格式（例如 `%08X` 搭配 `(ULONG)ProcessId`）（只有 `LocaleEmulator.h` 這一處，x86 與 x64 共用），改完跑 smoke test。CodeQL alert #1（`cpp/wrong-type-format-argument`）已先 dismiss 為 Won't fix。
