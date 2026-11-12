@@ -22,12 +22,12 @@
 ### 近期：D7 與 Phase 2
 
 - [ ] **實際遊戲測試 E2 版**（進行中，E2 測 5 款：KiriKiri、RealLive、FVP 各一款正常；一款漢化啟動器不經 LE 也會當，已排除；一款 ExHIBIT 遊戲的亂碼另列於下）：本機建置 `/p:LeExperimentTiming=2` 的 `LocaleEmulator.dll`，覆蓋到使用者的安裝目錄，同一份 profile 分別用 E0 / E2 測幾個 32 位元遊戲。結果寫回 spec §4.5。
-- [x] **修 `.le.config` 的 `<Location>` 相容問題**：`LEConfig`（C#）與 ShellExtension 的 `ConfigReader`（C++）都改成先讀 `<Region>`、沒有才讀舊版的 `<Location>`；存檔一律寫 `<Region>`，所以在 LEGUI 存一次就轉成新格式，LEProc 不會自動改寫檔案。`-run` 遇到存在但讀不到的 `.le.config` 改為顯示錯誤，並詢問是否開 LEGUI 重新設定。驗證：CI 驗證中。
-- [x] **`-run` 的路徑不存在時給錯誤訊息**：LEProc 在 `-run`、`-runas`、`-manage` 與直接給路徑時都先檢查目標檔案存在，不存在就顯示「找不到目標程式」與完整路徑，不再去開 LEGUI 觸發 UAC 與誤導的「目錄無寫入權限」。驗證：CI 驗證中。
+- [x] **修 `.le.config` 的 `<Location>` 相容問題**：`LEConfig`（C#）與 ShellExtension 的 `ConfigReader`（C++）都改成先讀 `<Region>`、沒有才讀舊版的 `<Location>`；存檔一律寫 `<Region>`，所以在 LEGUI 存一次就轉成新格式，LEProc 不會自動改寫檔案。`-run` 遇到存在但讀不到的 `.le.config` 改為顯示錯誤，並詢問是否開 LEGUI 重新設定。驗證：修正前的測試在 CI run 43207340367（ConfigReader 的 `<Location>` 那筆 FAIL）與 43207558406（`LEConfigTests` 兩筆 FAIL）紅燈，修正後 CI run 43208011917 全綠。
+- [x] **`-run` 的路徑不存在時給錯誤訊息**：LEProc 在 `-run`、`-runas`、`-manage` 與直接給路徑時都先檢查目標檔案存在，不存在就顯示「找不到目標程式」與完整路徑，不再去開 LEGUI 觸發 UAC 與誤導的「目錄無寫入權限」。驗證：CI run 43208011917（`LaunchPreconditionsTests` 11 筆全 PASS）。
 - [ ] **LEGUI 也檢查 `.le.config` 所在目錄是否存在**：直接開 LEGUI 或把不存在的路徑拖進去時，仍會因目錄不存在而判定不可寫、觸發 UAC 後顯示「目錄無寫入權限」。要新增訊息字串，需處理 22 種語系。
 - [ ] **評估 LEProc `Main` 最外層的空 `catch {}`**：目前所有未預期的例外都被靜默吞掉（例如 `-runas` 的 GUID 在 `LEConfig.xml` 找不到時 `.First` 丟例外，什麼都不會發生）。改成顯示例外能幫助回報問題，但會讓過去一直靜默的錯誤全部浮上來，影響面要先評估。
 - [ ] **系統 ACP 65001（UTF-8 beta）下 LE 有漏攔路徑**（已確認）：一款 ExHIBIT 引擎的遊戲（劇本 `.rld` 加密）在 LE ja 下 UI 正常、劇本呈「縺ゅ」型亂碼（UTF-8 位元組被當 CP932 顯示）；E0 / E2 相同；使用者關閉 UTF-8 beta（系統 ACP 回到 950）後劇本正常。代表引擎某處 W→A 轉換拿到了系統真正的 ACP 65001。smoke test 在 65001 下全 PASS，所以這條路徑不在現有 `CHECK_*` 裡。下一步：在 LocaleTestApp 加候選 API 的 `CHECK_*`（含 CRT `wcstombs` / `setlocale`、`WideCharToMultiByte(CP_ACP)` 往返、gdi32 `GetGlyphOutlineA` / `TextOutA` 等）在 65001 環境找出漏網的 API。注意：GitHub runner 是 ACP 1252 且無法重開機切 65001，重現只能在使用者主機上做。profile 的 `ja` 與 `ja-JP` 組出的 LEB 相同（`TextInfo.LCID` 0x0411、ACP 932），已排除。
-- [ ] **查 LEProc 偶發當機**：`LoaderWrapper.LeCreateProcess` 內存取違規（`0xc0000005`，faulting module 顯示 coreclr.dll），E0、E2 都會發生，本機 smoke test 的偶發逾時即此問題。
+- [ ] **查 LEProc 偶發當機**：`LoaderWrapper.LeCreateProcess` 內存取違規（`0xc0000005`，faulting module 顯示 coreclr.dll），E0、E2 都會發生，本機 smoke test 的偶發逾時即此問題。CI 上也出現過：master 的 run 43066293655（主 smoke test 的 zh-CN 逾時）、run 43208011917（E1 的 zh-CN 失敗），同一份程式碼重跑就通過。
 - [ ] **D7 定案**；成立的話，寫兩段式 Core 的實作計畫（第一段只負責在 kernel32 初始化後載入第二段，第二段可以用 CRT）。
 - [ ] **A2b**：盤點需要超出預設對齊的型別（開 C4316，或暫時拿掉 `/Zc:alignedNew-` 看連結錯誤），評估改成正式實作對齊版 `operator new/delete`。
 - [ ] **A3 / A4**：Core 升到 C++20、C++23（風險在 ml.h：`operator==` 改寫規則、`char8_t`、聚合初始化）。
