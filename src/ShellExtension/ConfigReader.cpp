@@ -109,8 +109,13 @@ std::vector<LEProfile> ConfigReader::LoadProfiles(const std::wstring& configPath
         // Read child elements
         profile.parameter = StringUtils::Utf8ToWide(
             profileNode.child_value("Parameter"));
-        profile.region = StringUtils::Utf8ToWide(
-            profileNode.child_value("Region"));
+        // Old LE versions (upstream, and this fork before f29f84f) wrote
+        // <Location>; <Region> wins when both exist. Keep in sync with
+        // LECommonLibrary's LEConfig.
+        pugi::xml_node regionNode = profileNode.child("Region");
+        if (!regionNode)
+            regionNode = profileNode.child("Location");
+        profile.region = StringUtils::Utf8ToWide(regionNode.child_value());
         profile.timezone = StringUtils::Utf8ToWide(
             profileNode.child_value("Timezone"));
         profile.runAsAdmin = ParseBool(
