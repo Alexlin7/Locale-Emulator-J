@@ -223,6 +223,8 @@ jobs:
           $code = $LASTEXITCODE
           if (Test-Path Build\LaunchStress\report.md) {
             Get-Content Build\LaunchStress\report.md | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+            Write-Host "===== report.md ====="
+            Get-Content Build\LaunchStress\report.md
           }
           exit $code
         shell: pwsh
