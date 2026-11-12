@@ -49,6 +49,7 @@
 - [ ] LoaderDll / Loader 的 vcxproj 也改用 `$(OutDir)` / `$(IntDir)`（目前把 `.\Release\` 寫死）
 - [ ] CodeQL 剩下的結果（皆判斷為誤報）：`cpp/incorrect-string-type-conversion`（`Utility.cpp` 的 atom 轉型）、`cpp/suspicious-pointer-scaling` 兩筆（`NtdllHook.cpp` 刻意以元素為單位的指標運算），可在 GitHub 上 dismiss
 - [ ] 更多 CodeQL 自訂查詢：例如 `LocaleEmulator.dll` 的 hook 裡不准呼叫 user32 / gdi32（延遲載入可能在 kernel32 之前觸發）
+- [ ] **LocaleTestApp 的輸出改用 `std::format`**（下次加 probe 時順手做第一片）：目前有 83 處 `sprintf_s` / `fprintf` 搭配固定大小的 `char` 緩衝區。先寫一個以 `std::format` 為基礎的 `Emit(name, fmt, args...)`，把 `Check` / `Probe` / `Info` 改過去，其餘呼叫點逐步替換。好處：不用算緩衝區大小；格式與參數型別在編譯期檢查；`std::format` 預設與地區無關，不會被 `ProbeCrt` 呼叫的 `setlocale` 影響輸出。其他 C++（ShellExtension、測試專案、LoaderDll）不為了換成新寫法而改：程式碼量小、效能不在這裡，真的要改功能時再順手用
 
 ### 暫緩（遊戲都是 32 位元，目前沒有需求）
 
