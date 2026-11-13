@@ -190,7 +190,7 @@ NTSTATUS LeGlobalData::Initialize()
 
 #endif // _M_X64
 
-    BOOL            IsLoader;
+    BOOL            IsLoader, UsingDefaultLeb;
     PLEPEB          LePeb;
     PLDR_MODULE     Ntdll;
     PPEB_BASE       Peb;
@@ -207,6 +207,7 @@ NTSTATUS LeGlobalData::Initialize()
     LOOP_ONCE
     {
         LePeb = OpenOrCreateLePeb();
+        UsingDefaultLeb = LePeb == nullptr;
         if (LePeb == nullptr)
         {
             ULONG_PTR       DefaultACPLength, DefaultLCIDLength, DefaultOEMCPLength;
@@ -273,10 +274,25 @@ NTSTATUS LeGlobalData::Initialize()
             CloseLePeb(LePeb);
         }
 
+        if (LeDiagLogEnabled())
+        {
+            PLEB Leb = GetLeb();
+
+            WriteLog(L"leb: %s", UsingDefaultLeb ? L"none from launcher, using defaults" : L"from launcher");
+            WriteLog(L"wow64: %d", (ULONG)this->Wow64);
+            WriteLog(L"emulate: ACP=%u OEMCP=%u LCID=0x%04X Charset=%u HookUILanguageApi=%u",
+                Leb->AnsiCodePage, Leb->OemCodePage, Leb->LocaleID, Leb->DefaultCharset, Leb->HookUILanguageApi);
+            WriteLog(L"emulate: FaceName=%.32s", Leb->DefaultFaceName);
+            WriteLog(L"emulate: TimeZone Bias=%d Standard=%.32s", Leb->Timezone.Bias, Leb->Timezone.StandardName);
+            WriteLog(L"emulate: RegistryRedirection entries=%u (init status=0x%08X)",
+                (ULONG)this->RegistryRedirectionEntry.GetSize(), Status);
+        }
+
         if (IsLoader)
             break;
 
         Status = this->TextMetricCache.Initialize();
+        WriteLog(L"TextMetricCache: status=0x%08X", Status);
         FAIL_RETURN(Status);
 
         PVOID           NlsBaseAddress;
@@ -284,13 +300,14 @@ NTSTATUS LeGlobalData::Initialize()
         LARGE_INTEGER   DefaultCasingTableSize;
 
         Status = NtInitializeNlsFiles(&NlsBaseAddress, &DefaultLocaleID, &DefaultCasingTableSize);
+        WriteLog(L"NtInitializeNlsFiles: status=0x%08X system LCID=0x%04X", Status, NT_SUCCESS(Status) ? DefaultLocaleID : 0);
         FAIL_RETURN(Status);
 
         this->GetLePeb()->OriginalLocaleID = DefaultLocaleID;
 
         NtUnmapViewOfSection(CurrentProcess, NlsBaseAddress);
 
-        WriteLog(L"init leb %s", GetLePeb()->LeDllFullPath);
+        WriteLog(L"le dll (from leb): %s", GetLePeb()->LeDllFullPath);
 
         SystemDirectory = Ntdll->FullDllName;
         SystemDirectory.Length -= Ntdll->BaseDllName.Length;
@@ -316,9 +333,11 @@ NTSTATUS LeGlobalData::Initialize()
         SCOPE_EXIT_END;
 
         Status = GetNlsFile(&NlsFileName, GetLeb()->AnsiCodePage, REGPATH_CODEPAGE);
+        WriteLog(L"nls file for ACP %u: status=0x%08X %wZ", GetLeb()->AnsiCodePage, Status, &NlsFileName);
         FAIL_RETURN(Status);
 
         Status = GetNlsFile(&OemNlsFileName, GetLeb()->OemCodePage, REGPATH_CODEPAGE);
+        WriteLog(L"nls file for OEMCP %u: status=0x%08X %wZ", GetLeb()->OemCodePage, Status, &OemNlsFileName);
         FAIL_RETURN(Status);
 
         // Windows 10 1803 removed all keys under "HKLM\SYSTEM\CurrentControlSet\Control\Nls\Language".
@@ -332,12 +351,15 @@ NTSTATUS LeGlobalData::Initialize()
         NtFileMemory AnsiFile, OemFile, LangFile;
 
         Status = ReadFileInSystemDirectory(AnsiFile, &NlsFileName);
+        WriteLog(L"read %wZ: status=0x%08X", &NlsFileName, Status);
         FAIL_RETURN(Status);
 
         Status = ReadFileInSystemDirectory(OemFile, &OemNlsFileName);
+        WriteLog(L"read %wZ: status=0x%08X", &OemNlsFileName, Status);
         FAIL_RETURN(Status);
 
         Status = ReadFileInSystemDirectory(LangFile, &LangFileName);
+        WriteLog(L"read %wZ: status=0x%08X", &LangFileName, Status);
         FAIL_RETURN(Status);
 
         AnsiCodePageOffset      = 0;
@@ -345,6 +367,7 @@ NTSTATUS LeGlobalData::Initialize()
         UnicodeCaseTableOffset  = OemCodePageOffset + ROUND_UP(OemFile.GetSize32(), 16);
 
         Status = AllocVirtualMemory(&CodePageMapView, UnicodeCaseTableOffset + LangFile.GetSize32(), PAGE_READWRITE, MEM_COMMIT | MEM_TOP_DOWN);
+        WriteLog(L"alloc nls view: status=0x%08X", Status);
         FAIL_RETURN(Status);
 
         CopyMemory(PtrAdd(CodePageMapView, AnsiCodePageOffset),     AnsiFile.GetBuffer(),   AnsiFile.GetSize32());
@@ -368,7 +391,7 @@ NTSTATUS LeGlobalData::Initialize()
         RtlInitCodePageTable((PUSHORT)PtrAdd(CodePageMapView, AnsiCodePageOffset), &AnsiTableInfo);
         RtlInitCodePageTable((PUSHORT)PtrAdd(CodePageMapView, OemCodePageOffset), &OemTableInfo);
 
-        WriteLog(L"reset nls");
+        WriteLog(L"nls tables applied");
 
 #if LE_EXPERIMENT_TIMING == 1
 
@@ -391,7 +414,7 @@ NTSTATUS LeGlobalData::Initialize()
 
         // LdrInitShimEngineDynamic(&__ImageBase);
 
-        LdrRegisterDllNotification(0,
+        Status = LdrRegisterDllNotification(0,
             [] (ULONG NotificationReason, PCLDR_DLL_NOTIFICATION_DATA NotificationData, PVOID Context)
             {
                 return ((PLeGlobalData)Context)->DllNotification(NotificationReason, NotificationData);
@@ -399,15 +422,16 @@ NTSTATUS LeGlobalData::Initialize()
             this,
             &DllNotificationCookie
         );
+        WriteLog(L"LdrRegisterDllNotification: status=0x%08X", Status);
     }
 
     Status = InstallHookPort();
-    WriteLog(L"inst hp: %08X", Status);
+    WriteLog(L"InstallHookPort: status=0x%08X", Status);
     FAIL_RETURN(Status);
 
-    HookNtdllRoutines(Ntdll->DllBase);
-
-    WriteLog(L"hook ntdll");
+    // Not FAIL_RETURN: keep the original behaviour (the result was ignored).
+    NTSTATUS NtdllStatus = HookNtdllRoutines(Ntdll->DllBase);
+    WriteLog(L"HookNtdllRoutines: status=0x%08X", NtdllStatus);
 
     if (IsLoader)
         return Status;
@@ -423,7 +447,7 @@ NTSTATUS LeGlobalData::Initialize()
             Kernel32Ldr->EntryPoint = DelayInitDllEntry;
     }
 
-    WriteLog(L"init %p", Status);
+    WriteLog(L"kernel32 at init: %s", Kernel32Ldr == nullptr ? L"not loaded" : FLAG_ON(Kernel32Ldr->Flags, LDRP_PROCESS_ATTACH_CALLED) ? L"initialized, hooked now" : L"loaded, hook deferred");
 
     return Status;
 }
@@ -577,7 +601,7 @@ VOID LeGlobalData::HookModule(PVOID DllBase, PCUNICODE_STRING DllName, BOOL DllL
     NTSTATUS Status = DllLoad ? (this->*Entry->HookRoutine)(DllBase) : (this->*Entry->UnHookRoutine)();
 
     UNREFERENCED_PARAMETER(Status);
-    WriteLog(L"hook %s: %p", Entry->DllName.Buffer, Status);
+    WriteLog(L"%s %s: status=0x%08X", DllLoad ? L"hook" : L"unhook", Entry->DllName.Buffer, Status);
 }
 
 VOID LeGlobalData::DllNotification(ULONG NotificationReason, PCLDR_DLL_NOTIFICATION_DATA NotificationData)
@@ -608,6 +632,8 @@ VOID LeGlobalData::DllNotification(ULONG NotificationReason, PCLDR_DLL_NOTIFICAT
         default:
             return;
     }
+
+    WriteLog(L"%s %wZ at %p", NotificationReason == LDR_DLL_NOTIFICATION_REASON_LOADED ? L"dll load" : L"dll unload", DllName, DllBase);
 
     //if (!RtlEqualUnicodeString(&SystemDirectory, &DllPath, TRUE))
     //    return;
@@ -648,7 +674,9 @@ NTSTATUS LeGlobalData::UnInitialize()
 
 inline BOOL UnInitialize(PVOID BaseAddress)
 {
+    WriteLog(L"uninitialize");
     LeReleaseGlobalData();
+    LeDiagLogClose();
     ml::MlUnInitialize();
     return FALSE;
 }
@@ -723,7 +751,7 @@ static BOOL NTAPI LeExperimentKernel32Entry(PVOID BaseAddress, ULONG Reason, PVO
         return Success;
 
     Status = LeGetGlobalData()->Initialize();
-    WriteLog(L"E2: init after kernel32: %p", Status);
+    WriteLog(L"E2: init after kernel32: status=0x%08X", Status);
     if (NT_SUCCESS(Status))
         LeExperimentMark(L"E2:init-after-kernel32");
 
@@ -772,11 +800,15 @@ BOOL Initialize(PVOID BaseAddress)
 
     ml::MlInitialize();
 
+    // Before anything that can fail, so failures below are logged.
+    LeDiagLogOpen();
+
     if (FindThreadFrame(LE_LOADER_PROCESS) == nullptr)
     {
         Kernel32 = GetKernel32Ldr();
         if (Kernel32 != nullptr && FLAG_ON(Kernel32->Flags, LDRP_PROCESS_ATTACH_CALLED))
         {
+            WriteLog(L"init failed: kernel32 was initialized before LE");
             ml::String ModuleList = L"kernel32 has been loaded before the initialization of LE\n\nModule list:\n\n";
             GenerateModuleList(ModuleList);
             ExceptionBox(ModuleList);
@@ -788,7 +820,10 @@ BOOL Initialize(PVOID BaseAddress)
 
     GlobalData = new LeGlobalData;
     if (GlobalData == nullptr)
+    {
+        WriteLog(L"init failed: out of memory");
         return FALSE;
+    }
 
     LeSetGlobalData(GlobalData);
 
@@ -799,7 +834,7 @@ BOOL Initialize(PVOID BaseAddress)
     if (FindThreadFrame(LE_LOADER_PROCESS) == nullptr)
     {
         Status = LdrRegisterDllNotification(0, LeExperimentDllNotification, nullptr, &g_ExperimentNotificationCookie);
-        WriteLog(L"E2: defer init: %p", Status);
+        WriteLog(L"E2: defer init: status=0x%08X", Status);
         return NT_SUCCESS(Status);
     }
 
@@ -807,9 +842,12 @@ BOOL Initialize(PVOID BaseAddress)
 
     Status = GlobalData->Initialize();
     if (NT_FAILED(Status))
+    {
+        WriteLog(L"init failed: status=0x%08X", Status);
         return FALSE;
+    }
 
-    WriteLog(L"init ret");
+    WriteLog(L"init ok");
 
     return TRUE;
 }

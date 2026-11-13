@@ -4,6 +4,7 @@
 #include "ml.h"
 #include <CommCtrl.h>
 #include "LocaleEmulator.h"
+#include "DiagLog.h"
 #include "Hooks\NtdllHook.h"
 #include "Hooks\User32Hook.h"
 #include "Hooks\Gdi32Hook.h"

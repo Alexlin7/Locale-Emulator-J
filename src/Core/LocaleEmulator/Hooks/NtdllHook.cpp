@@ -268,7 +268,10 @@ NTSTATUS LeGlobalData::InjectSelfToChildProcess(HANDLE Process, PCLIENT_ID Cid)
     // Process = CurrentProcess;
 
     if (this->Wow64 && !Ps::IsWow64Process(Process))
+    {
+        WriteLog(L"inject: skipped, child is not a 32-bit process");
         return STATUS_NOT_SUPPORTED;
+    }
 
     LePeb = GetLePeb();
 
@@ -276,12 +279,12 @@ NTSTATUS LeGlobalData::InjectSelfToChildProcess(HANDLE Process, PCLIENT_ID Cid)
 
     SelfShadow = nullptr;
     Status = AllocVirtualMemoryEx(Process, &SelfShadow, SizeOfImage);
-    WriteLog(L"AllocVirtualMemoryEx: %p", Status);
+    WriteLog(L"inject: AllocVirtualMemoryEx status=0x%08X", Status);
     if (NT_FAILED(Status))
         return Status;
 
     Status = LoadPeImage(LePeb->LeDllFullPath, &LocalSelfShadow, nullptr, 0);
-    WriteLog(L"LocalSelfShadow: %p", Status);
+    WriteLog(L"inject: LoadPeImage status=0x%08X", Status);
     if (NT_FAILED(Status))
         return Status;
 
@@ -290,7 +293,7 @@ NTSTATUS LeGlobalData::InjectSelfToChildProcess(HANDLE Process, PCLIENT_ID Cid)
     Status = WriteMemory(Process, SelfShadow, LocalSelfShadow, SizeOfImage);
     UnloadPeImage(LocalSelfShadow);
 
-    WriteLog(L"WriteMemory: %p", Status);
+    WriteLog(L"inject: WriteMemory status=0x%08X", Status);
 
     if (NT_FAILED(Status))
     {
@@ -302,8 +305,7 @@ NTSTATUS LeGlobalData::InjectSelfToChildProcess(HANDLE Process, PCLIENT_ID Cid)
     BYTE ooxxBuffer[16];
 
     Status = ReadMemory(Process, ooxxAddress, Backup, LDR_LOAD_DLL_BACKUP_SIZE);
-    WriteLog(L"ReadMemory: %p", Status);
-    WriteLog(L"ooxxAddress: %p", ooxxAddress);
+    WriteLog(L"inject: ReadMemory LdrLoadDll at %p status=0x%08X", ooxxAddress, Status);
     if (NT_FAILED(Status))
     {
         Mm::FreeVirtualMemory(SelfShadow, Process);
@@ -317,7 +319,7 @@ NTSTATUS LeGlobalData::InjectSelfToChildProcess(HANDLE Process, PCLIENT_ID Cid)
     *(PULONG)&ooxxBuffer[1] = Offset;
 
     Status = WriteProtectMemory(Process, ooxxAddress, ooxxBuffer, 5);
-    WriteLog(L"WriteProtectMemory: %p", Status);
+    WriteLog(L"inject: WriteProtectMemory status=0x%08X", Status);
     if (NT_FAILED(Status))
     {
         Mm::FreeVirtualMemory(SelfShadow, Process);
@@ -437,7 +439,8 @@ LeNtCreateUserProcess(
 
     HpSetFilterAction(BlockSystemCall);
 
-    WriteLog(L"create proc");
+    if (ProcessParameters != nullptr)
+        WriteLog(L"create process: %wZ", &ProcessParameters->ImagePathName);
 
     LocalAttributeList = nullptr;
     Attribute = nullptr;
@@ -501,7 +504,7 @@ LeNtCreateUserProcess(
                 AttributeList
             );
 
-    WriteLog(L"create proc %p", Status);
+    WriteLog(L"create process: status=0x%08X pid=%u", Status, NT_SUCCESS(Status) ? (ULONG)(ULONG_PTR)Cid->UniqueProcess : 0);
 
     if (NT_FAILED(Status))
         return Status;
@@ -510,7 +513,7 @@ LeNtCreateUserProcess(
 
     Status2 = GlobalData->InjectSelfToChildProcess(*ProcessHandle, Cid);
 
-    WriteLog(L"inject %p", Status2);
+    WriteLog(L"inject: pid=%u status=0x%08X", (ULONG)(ULONG_PTR)Cid->UniqueProcess, Status2);
 
     return Status;
 }
@@ -635,13 +638,11 @@ LeNtQueryValueKey(
 
     GlobalData = (PLeGlobalData)HpGetFilterContext();
     
-    WriteLog(L"lookup %s", ValueName->Buffer);
-
     Status = GlobalData->LookupRegistryRedirectionEntry(KeyHandle, ValueName, &Entry);
 
-    WriteLog(L"lookup %s: %p", ValueName->Buffer, Status);
-
     FAIL_RETURN(Status);
+
+    WriteLog(L"registry redirect: %wZ", ValueName);
 
     HpSetFilterAction(BlockSystemCall);
 
@@ -1096,9 +1097,12 @@ NTSTATUS LeGlobalData::HookNtdllRoutines(PVOID Ntdll)
 
     LdrInitNtContinue = SearchLdrInitNtContinue();
     if (LdrInitNtContinue == nullptr)
+    {
+        WriteLog(L"HookNtdllRoutines: LdrInitNtContinue not found");
         return STATUS_NOT_SUPPORTED;
+    }
 
-	WriteLog(L"LdrInitNtContinue %08X", LdrInitNtContinue);
+    WriteLog(L"LdrInitNtContinue at %p", LdrInitNtContinue);
 
     ADD_FILTER_(NtCreateUserProcess,        LeNtCreateUserProcess,      this);
 
@@ -1118,7 +1122,7 @@ NTSTATUS LeGlobalData::HookNtdllRoutines(PVOID Ntdll)
     if (LeGetGlobalData()->GetLeb()->HookUILanguageApi != 0)
     {
         ADD_FILTER_(NtQueryInstallUILanguage, LeNtQueryInstallUILanguage, this);
-        WriteLog(L"NtQueryInstallUILanguage hooked");
+        WriteLog(L"NtQueryInstallUILanguage filter installed");
     }
     //ADD_FILTER_(NtQueryInformationThread,   LeNtQueryInformationThread, this);
     //ADD_FILTER_(NtTerminateThread,          LeNtTerminateThread,        this);

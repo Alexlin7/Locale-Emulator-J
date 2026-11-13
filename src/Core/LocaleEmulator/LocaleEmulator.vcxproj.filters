@@ -28,6 +28,7 @@
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="ml.cpp" />
     <ClCompile Include="HandleTable.cpp" />
+    <ClCompile Include="DiagLog.cpp" />
     <ClCompile Include="HookPort.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -53,6 +54,7 @@
     <ClInclude Include="MyLibrary.h" />
     <ClInclude Include="SectionProtector.h" />
     <ClInclude Include="HandleTable.h" />
+    <ClInclude Include="DiagLog.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Hooks\genmsgtbl.py">

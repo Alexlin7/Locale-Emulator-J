@@ -472,69 +472,7 @@ OpenOrCreateLePeb(
     return LePeb;
 }
 
-#define ENABLE_LOG 0
-
-#if ENABLE_LOG
-
-inline VOID InitLog(NtFileDisk &LogFile)
-{
-    WCHAR LogFilePath[MAX_NTPATH];
-    UNICODE_STRING SelfPath;
-    PLDR_MODULE Self, Target;
-    PLEPEB LePeb = nullptr;
-
-    Target = FindLdrModuleByHandle(nullptr);
-    Self = FindLdrModuleByHandle(&__ImageBase);
-
-    if (!Target)
-    {
-        LogFile = 0;
-        return;
-    }
-
-    if (Self)
-    {
-        SelfPath = Self->FullDllName;
-        SelfPath.Length -= Self->BaseDllName.Length;
-    }
-    else
-    {
-        LePeb = OpenOrCreateLePeb();
-        if (LePeb == nullptr)
-        {
-            LogFile = 0;
-            return;
-        }
-        RtlInitUnicodeString(&SelfPath, LePeb->LeDllDirPath);
-    }
-
-    swprintf(LogFilePath, L"%wZ\\%wZ.%p.log.txt", &SelfPath, &Target->BaseDllName, CurrentPid());
-
-    if (LePeb != nullptr)
-    {
-        CloseLePeb(LePeb);
-    }
-
-    ULONG BOM = BOM_UTF16_LE;
-    LogFile.Create(LogFilePath);
-    LogFile.Write(&BOM, 2);
-
-    PROCESS_IMAGE_FILE_NAME2 proc;
-    //NtQueryInformationProcess(CurrentProcess, ProcessImageFileName, &proc, sizeof(proc), NULL);
-    proc.ImageFileName = Target->FullDllName;
-    LogFile.Write(proc.ImageFileName.Buffer, proc.ImageFileName.Length);
-    LogFile.Write(L"\r\n", 4);
-}
-
-#define WriteLog(...) { if (LeGetGlobalData() != nullptr && LeGetGlobalData()->LogFile) LeGetGlobalData()->LogFile.Print(NULL, __VA_ARGS__), LeGetGlobalData()->LogFile.Print(NULL, L"\r\n"); }
-
-#else
-
-inline VOID InitLog(...) {}
-
-#define WriteLog(...)
-
-#endif // ENABLE_LOG
+// Diagnostic log: WriteLog(...) is defined in DiagLog.h (LE_DIAG_LOG at run time).
 
 class LeGlobalData
 {
@@ -653,11 +591,6 @@ public:
         ZeroMemory(this, sizeof(*this));
 
         new (&this->TextMetricCache) TYPE_OF(this->TextMetricCache);
-
-        IF_EXIST(LeGlobalData::LogFile)
-        {
-            InitLog(this->LogFile);
-        }
     }
 
     ~LeGlobalData()
