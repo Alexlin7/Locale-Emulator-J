@@ -37,7 +37,7 @@
 
 ### 其次：幫忙查出遊戲為什麼不正常
 
-- [ ] **Core 的可選診斷 log**：Slice 1（環境變數 `LE_DIAG_LOG`、初始化步驟、模擬值、DLL 載入、hook 安裝、子程序注入）進行中，計畫見 `docs/superpowers/plans/2026-11-13-diagnostic-log.md`。之後的 Slice 2（hook 命中統計）等實際用過再決定：PROBE 全部通過、遊戲卻仍不正常時，用它找出遊戲實際呼叫的 API。
+- [ ] **Core 的可選診斷 log**：Slice 1（環境變數 `LE_DIAG_LOG`、初始化步驟、模擬值、DLL 載入、hook 安裝、子程序注入）已完成（CI run 43376375906），計畫見 `docs/superpowers/plans/2026-11-13-diagnostic-log.md`。之後的 Slice 2（hook 命中統計）等實際用過再決定：PROBE 全部通過、遊戲卻仍不正常時，用它找出遊戲實際呼叫的 API。
 - [ ] **smoke test 補上遊戲常用但還沒測的 API**：`SendMessageA` 等 user32 訊息轉換、`EnumFontFamilies*`（字型選單）、進階 registry 轉向（`IsAdvancedRedirection`）與 UI 語言 API。
 
 ### 順手或成本很低時再做

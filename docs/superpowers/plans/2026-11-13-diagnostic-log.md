@@ -1,7 +1,7 @@
 # 計畫：執行期開關的診斷 log（`LE_DIAG_LOG`）
 
 > **日期**：2026-11-13
-> **狀態**：進行中（Slice 1）
+> **狀態**：Slice 1 完成（2026-11-13，CI run 43376375906）；Slice 2 待定
 > **相關**：`docs/roadmap.md`；舊的 `ENABLE_LOG`（`src/Core/LocaleEmulator/LocaleEmulator.h`，編譯期開關、早已壞掉）
 
 ## 1. 目的
@@ -68,6 +68,10 @@
 - 檔案用 `FILE_OVERWRITE_IF`（PID 重用時覆寫舊檔）。
 - CI：主測試期間把 `TEMP` / `TMP` 指到空目錄，檢查預設關閉時確實沒有 log；`LE_DIAG_LOG=1` 與絕對路徑各測一次；結束後還原環境變數；等 LocaleTestApp 結束再讀 log。
 - README 註明 log 含完整路徑（通常有 Windows 使用者名稱）、不會自動刪除。
+
+## 3.2 結果（2026-11-13）
+
+CI run 43376375906：smoke test 7/7 PASS（6 個地區 + Diagnostic log：預設關閉時沒有 log、`LE_DIAG_LOG=1` 與絕對路徑都產生 LEProc 與 LocaleTestApp 的 log，且含 `emulate: ACP=932 OEMCP=932 LCID=0x0411`、`init ok`、`hook USER32.dll: status=0x00000000`、`inject: pid=… status=0x00000000` 等字樣）；壓力測試 200 次 0 失敗、0 個 dump。
 
 ## 4. 不做
 
