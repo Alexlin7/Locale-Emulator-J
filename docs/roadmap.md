@@ -37,7 +37,7 @@
 
 ### 其次：幫忙查出遊戲為什麼不正常
 
-- [ ] **Core 的可選診斷 log**（目前 `WriteLog` 不輸出任何東西）：遊戲沒效時目前沒有任何線索。建議用 ntdll 的 `DbgPrint`（用 DebugView 看），以環境變數開關，預設關閉。PROBE 全部通過、遊戲卻仍不正常時，靠它找出遊戲實際呼叫的 API。
+- [ ] **Core 的可選診斷 log**：Slice 1（環境變數 `LE_DIAG_LOG`、初始化步驟、模擬值、DLL 載入、hook 安裝、子程序注入）進行中，計畫見 `docs/superpowers/plans/2026-11-13-diagnostic-log.md`。之後的 Slice 2（hook 命中統計）等實際用過再決定：PROBE 全部通過、遊戲卻仍不正常時，用它找出遊戲實際呼叫的 API。
 - [ ] **smoke test 補上遊戲常用但還沒測的 API**：`SendMessageA` 等 user32 訊息轉換、`EnumFontFamilies*`（字型選單）、進階 registry 轉向（`IsAdvancedRedirection`）與 UI 語言 API。
 
 ### 順手或成本很低時再做
@@ -108,7 +108,7 @@
 
 依影響排序。
 
-1. **Core 沒有診斷 log。** 遊戲沒效時會沒有線索，只能靠猜和反覆試。已列在 TODO「其次」的第一項。
+1. **Core 的診斷 log 只記初始化。** `LE_DIAG_LOG` 能看出 LE 有沒有注入、初始化卡在哪、hook 有沒有裝上，但還看不出遊戲實際呼叫了哪些 API（Slice 2 的 hook 命中統計，見 TODO「其次」）。
 2. **只在一種 Windows 版本上測過。** 鐵則中「NLS 表替換失效」就是在特定 build 上發現的；Windows 更新可能讓原本能玩的遊戲失效。至少讓 smoke test 輸出 OS build，並在使用者主機上跑過一次 smoke test 作為對照。
 3. **LEProc 在自己的程序內載入 `LocaleEmulator.dll`。** `LeCreateProcess` 讓 LocaleEmulator 在 LEProc（CoreCLR，多執行緒）裡改寫 WOW64 共用的 syscall stub（非原子寫入、沒有暫停其他執行緒），之後 CLR 執行緒的 syscall 都繞經 LE 的 dispatcher。查當機時曾懷疑它，但 dump 顯示當機另有原因，修正後壓力測試 400 次 0 次，目前沒有觀察到問題。若再出現 LEProc 偶發當機且 dump 落在 syscall stub / HookPort，改成「LoaderDll 自己注入、不在 LEProc 載入」（做法見上述計畫文件 S3）。
 4. **系統 ACP 65001 只能在使用者主機重現。** CI 測不到，沒有自動化的回歸保護。改了 `LeRtl*` 或其他轉換相關的 hook 之後，請在使用者主機上跑一次 `Invoke-LocalProbe.ps1`（開著 UTF-8 beta）確認經 LE 仍是 0 項失敗。
