@@ -10,6 +10,7 @@ Smoke test 是唯一能驗證「hook 真的生效」的測試：用不同地區�
 2. 對每個地區（ja-JP、zh-TW、zh-CN、zh-Hant-TW、ko-KR、en-US）在 `LocaleTestApp.exe` 旁邊產生 `LocaleTestApp.exe.le.config`（`RedirectRegistry=true`、時區 Tokyo Standard Time），用 `LEProc.exe -run` 啟動。
 3. LocaleTestApp 把結果寫到同目錄的 `locale_result.txt`（`KEY=VALUE`，因為 LEProc 啟動的程序的 stdout 拿不到）。
 4. 腳本檢查 `ACP`、`OEMCP`、`LCID` 與地區表相符、`TZBIAS=-540`，且所有 `CHECK_*` 都是 `OK`。
+5. 最後一項「Diagnostic log」：地區測試期間 `TEMP` / `TMP` 指到空目錄、不設 `LE_DIAG_LOG`，確認沒有產生 log（預設關閉）；再以 ja-JP 分別用 `LE_DIAG_LOG=1`（`%TEMP%\LocaleEmulator`）與 `LE_DIAG_LOG=<絕對路徑>` 各跑一次，檢查 LEProc 與 LocaleTestApp 的 log 都有初始化、hook 與注入成功的字樣。改了 `WriteLog` 的訊息文字要一起改這裡的比對。
 
 ## `CHECK_*` 的寫法（新增檢查時必讀）
 
