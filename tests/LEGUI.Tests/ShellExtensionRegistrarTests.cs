@@ -273,4 +273,27 @@ public class ShellExtensionRegistrarTests
 
         Assert.Equal(allUsersKeys, currentUserKeys);
     }
+
+    // ---- DLL location (single product folder, docs/superpowers/specs/2026-11-16-flat-product-layout.md) ----
+
+    [Theory]
+    [InlineData(true, "ShellExtension64.dll")]
+    [InlineData(false, "ShellExtension.dll")]
+    public void GetShellExtensionDllPath_PicksDllForOsBitness_InTheSameFolder(bool is64BitOs, string expectedName)
+    {
+        var path = ShellExtensionRegistrar.GetShellExtensionDllPath(@"D:\Tools\LocaleEmulator-J", is64BitOs);
+
+        Assert.Equal(System.IO.Path.Combine(@"D:\Tools\LocaleEmulator-J", expectedName), path);
+    }
+
+    [Fact]
+    public void GetInstallDirectory_IsTheFolderOfLEGUI()
+    {
+        // LEGUI.exe, LEProc.exe, ShellExtension*.dll and LEConfig.xml share one folder.
+        var dir = ShellExtensionRegistrar.GetInstallDirectory();
+
+        Assert.Equal(
+            System.IO.Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory),
+            System.IO.Path.TrimEndingDirectorySeparator(dir));
+    }
 }
