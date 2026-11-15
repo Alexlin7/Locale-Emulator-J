@@ -169,6 +169,7 @@ jobs:
       #   LoaderDll.dll, LocaleEmulator.dll (Core native)
       #   ShellExtension.dll (C++, already here via vcxproj OutDir)
       #   LocaleTestApp.exe (C++ test app, already here via vcxproj OutDir)
+      # Build/Release/LEInstaller.exe sits next to x86/ and x64/ (vcxproj OutDir).
 
       - name: Assemble runtime directory
         run: |
@@ -176,6 +177,9 @@ jobs:
           dotnet publish src/LEGUI/LEGUI.csproj -c Release -o Build/Release/x86/
           Copy-Item src/Core/LoaderDll/Release/LoaderDll.dll Build/Release/x86/ -Force
           Copy-Item src/Core/LocaleEmulator/Release/LocaleEmulator.dll Build/Release/x86/ -Force
+          # Symbols for crash dumps (published in the release's -symbols.zip)
+          Copy-Item src/Core/LoaderDll/Release/LoaderDll.pdb Build/Release/x86/ -Force
+          Copy-Item src/Core/LocaleEmulator/Release/LocaleEmulator.pdb Build/Release/x86/ -Force
           Write-Host "Assembled files:" -ForegroundColor Cyan
           Get-ChildItem Build/Release/x86/ -Name | ForEach-Object { Write-Host "  $_" }
         shell: pwsh
@@ -283,6 +287,8 @@ jobs:
           path: |
             Build/Release/x86/
             Build/Release/x64/
+            Build/Release/LEInstaller.exe
+            Build/Release/LEInstaller.pdb
           retention-days: 7
 
       - name: Upload launch stress report

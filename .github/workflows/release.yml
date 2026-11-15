@@ -95,6 +95,7 @@ jobs:
 
       # 產品目錄的結構必須是 <root>/x86 與 <root>/x64：LEGUI 以 LEGUI.exe 的上兩層
       # 找 x64\ShellExtension.dll（ShellExtensionRegistrar.GetBuildOutputRoot）。
+      # LEInstaller.exe 放在 <root>，它開啟 x86\LEGUI.exe --installer。
       # 不放 LEConfig.xml（使用者的全域 profile 在這個檔，解壓覆蓋時才不會被蓋掉），
       # 也不放測試程式、.pdb、.ilk、.exp、.lib。
       - name: Package
@@ -116,9 +117,11 @@ jobs:
           done
           cp -r "$src86/Lang" "$pkg/x86/"
           cp "$src64/ShellExtension.dll" "$pkg/x64/"
+          cp build-output/LEInstaller.exe "$pkg/"
           cp README.md COPYING COPYING.LESSER "$pkg/"
 
-          for f in LEProc.pdb LEGUI.pdb LECommonLibrary.pdb ShellExtension.pdb; do
+          cp build-output/LEInstaller.pdb "$sym/" || echo "::warning::LEInstaller.pdb 不在輸出裡"
+          for f in LEProc.pdb LEGUI.pdb LECommonLibrary.pdb ShellExtension.pdb LoaderDll.pdb LocaleEmulator.pdb; do
             cp "$src86/$f" "$sym/x86/" || echo "::warning::$f 不在 x86 輸出裡"
           done
           cp "$src64/ShellExtension.pdb" "$sym/x64/" || echo "::warning::x64 ShellExtension.pdb 不在輸出裡"
