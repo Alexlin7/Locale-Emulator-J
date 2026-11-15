@@ -6,10 +6,11 @@ ShellExtension 是 C++ 的 COM Shell Extension（`IShellExtInit` + `IContextMenu
 
 ## 鐵則
 
-1. **x86 與 x64 都要建。** 架構跟著 Explorer：x64 給 64 位元 Windows，x86 給 32 位元 Windows，和目標程式的架構無關。
+1. **x86 與 x64 都要建。** 架構跟著 Explorer：x64 給 64 位元 Windows，x86 給 32 位元 Windows，和目標程式的架構無關。輸出檔名 x86 為 `ShellExtension.dll`、x64 為 `ShellExtension64.dll`，兩個都放在產品資料夾（與 `LEProc.exe`、`LEConfig.xml`、`Lang\` 同一層），因為 DLL 在**自己的資料夾**找這些檔案（`ConfigReader::GetModuleDirectory`）。設計見 `docs/superpowers/specs/2026-11-16-flat-product-layout.md`。
 2. **CLSID**（`dllmain.cpp` 的 `CLSID_ShellExtension`，`{A8B4F5C2-7E3D-4F1A-9C6B-2D8E0F5A3B71}`）必須與 `src/LEGUI/ShellExtensionConstants.cs` 相同。
 3. **字串改動要處理全部 22 種語系**（`Lang/` 的 XML，`DefaultLanguage.xml` 加 21 種翻譯）。
 4. **它跑在 Explorer 程序裡**：不能崩潰、不能長時間阻塞，例外不能丟出 COM 邊界。設定檔讀不到或格式錯誤時要安靜地退回預設行為。
+5. **靜態 CRT（`/MT`）**：使用者的電腦不一定有 VC++ 可轉散發套件，動態 CRT 時 Explorer 會載入失敗、選單安靜地消失。改完用 `dumpbin /dependents` 確認沒有 `VCRUNTIME*` / `MSVCP*` / `api-ms-win-crt-*`。
 
 ## 結構
 
@@ -35,4 +36,4 @@ msbuild src/ShellExtension/ShellExtension.vcxproj /p:Configuration=Release /p:Pl
 ```
 
 - C++23（`stdcpp23`），一般 CRT / STL 可用。
-- `tests/ShellExtension.Tests/`（x64）：COM 匯出存在、`LoadLibraryW` 成功；`ConfigReaderTests.cpp` 把 `ConfigReader.cpp` 與 pugixml 直接編進測試 exe，測設定檔解析（含舊版 `<Location>`）。註冊（`DllRegisterServer` / `DllUnregisterServer`）會改 HKCR，刻意不自動測。
+- `tests/ShellExtension.Tests/`（x64）：`ShellExtension64.dll` 的 COM 匯出存在、`LoadLibraryW` 成功、DLL 旁邊有 `Lang\DefaultLanguage.xml`（語系檔由建置後步驟複製；這一步曾因寫在 `PropertyGroup` 而從未執行，選單只顯示鍵名）；`ConfigReaderTests.cpp` 把 `ConfigReader.cpp` 與 pugixml 直接編進測試 exe，測設定檔解析（含舊版 `<Location>`）。註冊（`DllRegisterServer` / `DllUnregisterServer`）會改 HKCR，刻意不自動測。

@@ -79,7 +79,9 @@
   <PropertyGroup Condition="'$(Platform)'=='x64'">
     <OutDir>$(SolutionDir)Build\$(Configuration)\x64\</OutDir>
     <IntDir>$(SolutionDir)Build\Intermediate\ShellExtension\$(Configuration)\x64\</IntDir>
-    <TargetName>ShellExtension</TargetName>
+    <!-- "64" suffix: shipped next to the x86 ShellExtension.dll in one product folder
+         (docs/superpowers/specs/2026-11-16-flat-product-layout.md). -->
+    <TargetName>ShellExtension64</TargetName>
   </PropertyGroup>
 
   <!-- Compiler settings: All configurations -->
@@ -97,6 +99,13 @@
       <ModuleDefinitionFile>ShellExtension.def</ModuleDefinitionFile>
       <AdditionalDependencies>shlwapi.lib;shell32.lib;ole32.lib;uuid.lib;advapi32.lib;gdi32.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <!-- The menu text is read from Lang\ next to the DLL (I18n::GetLangDirectory).
+         A PostBuildEvent must be an item definition: as a property (as it was before)
+         MSBuild ignores it and no language file ever reached the output. -->
+    <PostBuildEvent>
+      <Command>xcopy /Y /I "$(ProjectDir)Lang\*.xml" "$(OutDir)Lang\"</Command>
+      <Message>Copy context menu language files to $(OutDir)Lang\</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
 
   <!-- Debug-specific -->
@@ -104,7 +113,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -116,7 +125,9 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <!-- Static CRT: Explorer loads this DLL on machines that may not have the
+           VC++ Redistributable; with /MD it would silently fail to load. -->
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
@@ -166,12 +177,6 @@
     </None>
   </ItemGroup>
 
-  <!-- Post-build: copy Lang files to output directory -->
-  <PropertyGroup>
-    <PostBuildEvent>
-      xcopy /Y /I "$(ProjectDir)Lang\*.xml" "$(OutDir)Lang\"
-    </PostBuildEvent>
-  </PropertyGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
