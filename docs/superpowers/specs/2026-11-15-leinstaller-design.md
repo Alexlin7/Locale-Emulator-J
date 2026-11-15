@@ -42,7 +42,7 @@ LEInstaller.exe
 - **x86、`/MT`**：在 32 / 64 位元 Windows 都能執行，也不需要 VC++ 可轉散發套件。
 - 加 manifest：comctl32 v6（TaskDialog）、`asInvoker`（只有安裝 runtime 時才由安裝程式自己提權）、per-monitor DPI。
 - **runtime 檢查**（純函式，可測試）：
-  1. 從 `HKLM\SOFTWARE\dotnet\Setup\InstalledVersions\<arch>` 的 32 位元 registry view 讀 `InstallLocation`；讀不到就用預設位置（x86：`%ProgramFiles(x86)%\dotnet`，x64：`%ProgramW6432%\dotnet`）。
+  1. 從 `HKLM\SOFTWARE\dotnet\Setup\InstalledVersions\<arch>` 的 32 位元 registry view 讀 `InstallLocation`；讀不到就用預設位置（x86：此 x86 程序看到的 `%ProgramFiles%\dotnet`，在 64 位元 Windows 上即 Program Files (x86)；x64：`%ProgramW6432%\dotnet`）。不讀 `DOTNET_ROOT` 環境變數。
   2. 檢查 `<InstallLocation>\shared\Microsoft.WindowsDesktop.App\` 底下是否有 `10.` 開頭的資料夾。**不信任 registry 的 `sharedfx` 版本清單**：實測它會殘留已移除的版本。
 - **下載與安裝**：
   - 網址：`https://aka.ms/dotnet/10.0/windowsdesktop-runtime-win-{x86,x64}.exe`（微軟的固定連結，轉到最新的 10.0.x）。
