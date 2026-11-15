@@ -32,6 +32,17 @@ public class ShellExtCliCommandTests
     }
 
     [Fact]
+    public void IsInstallerMode_OnlyForTheInstallerSwitchAlone()
+    {
+        Assert.True(ShellExtCliCommand.IsInstallerMode(new[] { "--installer" }));
+
+        Assert.False(ShellExtCliCommand.IsInstallerMode(Array.Empty<string>()));
+        Assert.False(ShellExtCliCommand.IsInstallerMode(new[] { "game.exe" }));
+        Assert.False(ShellExtCliCommand.IsInstallerMode(new[] { "--installer", "extra" }));
+        Assert.False(ShellExtCliCommand.IsInstallerMode(new[] { "--shell-ext", "install", "current-user" }));
+    }
+
+    [Fact]
     public void Parse_NonShellExtArgs_ReturnsNull()
     {
         Assert.Null(ShellExtCliCommand.Parse(new[] { "game.exe" }));
