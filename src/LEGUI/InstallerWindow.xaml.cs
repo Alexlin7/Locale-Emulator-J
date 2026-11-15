@@ -6,7 +6,8 @@ namespace LEGUI;
 
 /// <summary>
 ///     Window for <c>LEGUI.exe --installer</c>: installs / uninstalls the context menu
-///     without the profile editor. It does not read or create LEConfig.xml.
+///     without the profile editor, and imports an old LEConfig.xml ("Import ..."). It only
+///     touches LEConfig.xml when importing (ProfileImportDialog).
 /// </summary>
 public partial class InstallerWindow : Window
 {
@@ -18,5 +19,10 @@ public partial class InstallerWindow : Window
         Title = $"{I18n.AppName} - {I18n.GetString("InstallShellExtTitle")}";
 
         shellExtPanel.InitializeForThisInstallation();
+    }
+
+    private void bImportProfiles_Click(object sender, RoutedEventArgs e)
+    {
+        ProfileImportDialog.Run(this);
     }
 }

@@ -48,24 +48,8 @@ public partial class GlobalConfig
 
     private void bImportProfiles_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new Microsoft.Win32.OpenFileDialog
-        {
-            Title = I18n.GetString("ImportProfiles").TrimEnd('.', '…', ' '),
-            Filter = "LEConfig.xml|LEConfig.xml|XML (*.xml)|*.xml",
-            CheckFileExists = true
-        };
-        if (dialog.ShowDialog(this) != true)
-            return;
-
-        var result = LEConfig.ImportGlobalProfiles(dialog.FileName);
-        if (result.Imported > 0)
+        if (ProfileImportDialog.Run(this))
             ReloadProfiles();
-
-        MessageBox.Show(this,
-                        result.Imported + result.Skipped > 0
-                            ? I18n.Format("ImportProfilesResult", result.Imported, result.Skipped)
-                            : I18n.Format("ImportProfilesNone", dialog.FileName),
-                        I18n.AppName);
     }
 
     private void ShowSavedStatus()

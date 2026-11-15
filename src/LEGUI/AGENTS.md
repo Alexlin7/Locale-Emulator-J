@@ -16,9 +16,10 @@ LEGUI（.NET 10，WPF，AnyCPU）是 Profile 管理介面，也負責安裝與�
 |---|---|
 | `GlobalConfig.xaml`、`AppConfig.xaml` | 全域設定（`LEConfig.xml`）與單一程式設定（`*.le.config`）的視窗 |
 | `ProfileEditorControl.xaml` | Profile 編輯元件（兩個視窗共用） |
-| `ShellExtensionPanel.xaml`、`ShellExtensionRegistrar.cs` | Shell Extension 的安裝 / 解除（以 Registry API 註冊，經 `IRegistryOperations` 抽象以便測試） |
+| `ShellExtensionPanel.xaml`、`ShellExtensionRegistrar.cs` | Shell Extension 的安裝 / 解除（以 Registry API 註冊，經 `IRegistryOperations` 抽象以便測試）；註冊 `LEGUI.exe` 同資料夾的 `ShellExtension64.dll`（64 位元 Windows）或 `ShellExtension.dll`（`GetShellExtensionDllPath`） |
 | `ShellExtCliCommand.cs` | 以命令列參數執行安裝 / 解除（`--shell-ext ...`），以及 `--installer` 的判斷 |
-| `InstallerWindow.xaml` | `LEGUI.exe --installer`（由 LEInstaller.exe 開啟）：只有 `ShellExtensionPanel` 的小視窗；不檢查目錄寫入權限、不建立 `LEConfig.xml` |
+| `InstallerWindow.xaml` | `LEGUI.exe --installer`（由 LEInstaller.exe 開啟）：`ShellExtensionPanel` 加上「設定 → 匯入...」；不檢查目錄寫入權限，只有匯入時才碰 `LEConfig.xml` |
+| `ProfileImportDialog.cs` | 「匯入...」：選舊的 `LEConfig.xml` 匯入全域 profile（全域設定與安裝視窗共用）；目錄不可寫時顯示錯誤，匯入前先以預設 profile 建立 `LEConfig.xml`（否則只剩匯入的 profile） |
 | `LegacyInstallation.cs` | 從原版 LE 2.x 的右鍵選單註冊（舊 CLSID 的 `InprocServer32` 與版本子機碼的 `CodeBase`，HKCU / HKLM × 64 / 32 位元 view）找出舊版資料夾的 `LEConfig.xml` |
 | `InputBox.xaml` | 單行輸入對話框（另存全域 profile 的名稱）：依內容排版、套用 `UIFont`；Enter / Esc 用按鈕的 `IsDefault` / `IsCancel`；空白時確認鈕停用 |
 | `I18n.cs`、`Lang/` | 語系載入 |
@@ -37,4 +38,4 @@ LEGUI（.NET 10，WPF，AnyCPU）是 Profile 管理介面，也負責安裝與�
 dotnet test tests/LEGUI.Tests/
 ```
 
-`ShellExtensionRegistrarTests`、`ShellExtCliCommandTests`、`ShellExtensionPanelTests`、`ShellExtensionPanelImportTests`、`LegacyInstallationTests`、`InputBoxTests`、`ProfileEditorControlTests`、`I18nTests`、`LocaleCompletenessTests`。
+`ShellExtensionRegistrarTests`、`ShellExtCliCommandTests`、`ShellExtensionPanelTests`、`ShellExtensionPanelImportTests`、`LegacyInstallationTests`、`InstallerWindowTests`、`InputBoxTests`、`ProfileEditorControlTests`、`I18nTests`、`LocaleCompletenessTests`。
