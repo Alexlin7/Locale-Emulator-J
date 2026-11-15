@@ -3,6 +3,7 @@ using Xunit;
 
 namespace LEGUI.Tests;
 
+[Collection(WpfUiCollection.Name)]
 public class ProfileEditorControlTests
 {
     // All booleans deliberately set to values that differ from an un-toggled CheckBox default (false),

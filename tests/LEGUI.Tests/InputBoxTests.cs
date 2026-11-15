@@ -2,6 +2,7 @@ using Xunit;
 
 namespace LEGUI.Tests;
 
+[Collection(WpfUiCollection.Name)]
 public class InputBoxTests
 {
     [WpfFact]
