@@ -43,7 +43,7 @@
 
 ### 順手或成本很低時再做
 
-- [ ] **評估程式碼簽章**：exe / dll 沒有簽章，從網路下載後 Microsoft Defender 會在每個程式第一次執行時做雲端掃描，SmartScreen 也會警告。候選：Azure Trusted Signing（付費）、SignPath Foundation（開源專案免費，需審核）。在那之前 README / Release 說明請使用者解壓前先「解除封鎖」zip
+- [ ] **評估程式碼簽章**：exe / dll 沒有簽章，從網路下載後 Microsoft Defender 會在每個程式第一次執行時做雲端掃描，SmartScreen 也會警告。候選：Azure Trusted Signing（付費）、SignPath Foundation（開源專案免費，需審核）。在那之前 README / Release 說明請使用者解壓前先「解除封鎖」zip；另外安裝 Shell Extension 時 LEGUI 會移除產品資料夾的 `Zone.Identifier`（`DownloadMark`），右鍵啟動 LEProc 不再每次跳「開啟檔案 - 安全性警告」。網域對簽章沒有幫助：OV / EV 要驗證公司登記，個人可考慮 Certum 的開源個人憑證；Azure Trusted Signing 的個人身分有地區限制（台灣可能不適用，待查證）
 - [ ] **`CharNextA` 在英文系統上沒有照模擬的 code page 判斷雙位元組字元**（低優先）：`PROBE_USER32_CHARNEXT_A` 在 CI（en-US、ACP 1252）的 ja / zh / ko 都失敗（例如 cp=932 預期 35 步、實際 50 步），但在使用者的中文系統（ACP 65001）上經 fork 版通過。推測 user32 在非雙位元組的系統上直接逐位元組前進、不查 code page（未驗證）。只影響在英文系統上用 LE 的人，對維護者自己玩遊戲沒有影響。
 - [ ] **全域 profile 名稱不能重複**：「另存為」目前接受與現有 profile 相同的名稱，右鍵選單會出現兩個同名項目、分不出來。要新增錯誤訊息字串，需處理 22 種語系。
 - [ ] **LEGUI 也檢查 `.le.config` 所在目錄是否存在**：直接開 LEGUI 或把不存在的路徑拖進去時，仍會因目錄不存在而判定不可寫、觸發 UAC 後顯示「目錄無寫入權限」。要新增訊息字串，需處理 22 種語系。
