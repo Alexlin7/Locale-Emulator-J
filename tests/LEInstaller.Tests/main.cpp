@@ -1,6 +1,7 @@
 // tests/LEInstaller.Tests/main.cpp
-// Unit tests for LEInstaller's .NET runtime detection (src/LEInstaller/RuntimeCheck.cpp,
-// compiled into this exe). No framework dependency -- exit code 0 = pass, 1 = fail.
+// Unit tests for LEInstaller (src/LEInstaller/*.cpp except main.cpp, compiled into this exe):
+// .NET runtime detection here, strings and signature checks in StringsAndSignatureTests.cpp.
+// No framework dependency -- exit code 0 = pass, 1 = fail.
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -14,17 +15,20 @@
 namespace fs = std::filesystem;
 using namespace LeInstaller;
 
-namespace
-{
+static int g_failures = 0;
 
-int g_failures = 0;
-
+// Shared with StringsAndSignatureTests.cpp.
 void Check(bool condition, const wchar_t* name)
 {
     wprintf(L"%s: %s\n", condition ? L"PASS" : L"FAIL", name);
     if (!condition)
         ++g_failures;
 }
+
+void RunStringsAndSignatureTests();
+
+namespace
+{
 
 // A fresh temporary "dotnet root" that is deleted when the test ends.
 struct TempDotnetRoot
@@ -170,6 +174,7 @@ int wmain()
     TestHasDesktopRuntime();
     TestRuntimeStatus();
     TestDefaultDotnetRoot();
+    RunStringsAndSignatureTests();
     PrintMachineInfo();
 
     if (g_failures == 0)
