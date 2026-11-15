@@ -35,8 +35,14 @@ public partial class ShellExtensionPanel : UserControl
 
     /// <summary>
     /// Imports a config file into this installation's global profiles. Replaceable in tests.
+    /// LEConfig.xml is created with the default profiles first: in the installer window it
+    /// may not exist yet, and the import would otherwise leave only the imported profiles.
     /// </summary>
-    internal Func<string, LEConfig.ImportResult> ImportProfiles = LEConfig.ImportGlobalProfiles;
+    internal Func<string, LEConfig.ImportResult> ImportProfiles = path =>
+    {
+        LEConfig.CheckGlobalConfigFile(true);
+        return LEConfig.ImportGlobalProfiles(path);
+    };
 
     /// <summary>
     /// Raised after profiles were imported, so a window showing the profile list can reload it.
