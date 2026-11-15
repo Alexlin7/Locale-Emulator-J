@@ -129,8 +129,8 @@ public partial class App : Application
     {
         try
         {
-            var dllPath = ShellExtensionRegistrar.GetShellExtensionDllPath(
-            ShellExtensionRegistrar.GetInstallDirectory());
+            var installDir = ShellExtensionRegistrar.GetInstallDirectory();
+            var dllPath = ShellExtensionRegistrar.GetShellExtensionDllPath(installDir);
             var registrar = new ShellExtensionRegistrar(
                 new RegistryOperations(),
                 ShellExtensionConstants.NewClsid);
@@ -139,6 +139,9 @@ public partial class App : Application
             {
                 case ShellExtCliCommand.Verb.Install:
                     registrar.Register(cli.Mode, dllPath);
+                    // Elevated, so this also works for a folder only administrators can write
+                    // (e.g. Program Files). See DownloadMark.
+                    DownloadMark.RemoveFromDirectory(installDir);
                     break;
                 case ShellExtCliCommand.Verb.Uninstall:
                     registrar.Unregister(cli.Mode);

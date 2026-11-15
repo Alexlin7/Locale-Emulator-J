@@ -45,6 +45,13 @@ public partial class ShellExtensionPanel : UserControl
     };
 
     /// <summary>
+    /// Removes the Mark of the Web from this LE folder after a successful install
+    /// (see <see cref="DownloadMark"/>). No-op until InitializeForThisInstallation, so tests
+    /// never touch real files. Replaceable in tests.
+    /// </summary>
+    internal Action RemoveDownloadMark = () => { };
+
+    /// <summary>
     /// Raised after profiles were imported, so a window showing the profile list can reload it.
     /// </summary>
     public event EventHandler ProfilesImported;
@@ -71,12 +78,13 @@ public partial class ShellExtensionPanel : UserControl
     /// </summary>
     public void InitializeForThisInstallation()
     {
-        var dllPath = ShellExtensionRegistrar.GetShellExtensionDllPath(
-            ShellExtensionRegistrar.GetInstallDirectory());
+        var installDir = ShellExtensionRegistrar.GetInstallDirectory();
+        var dllPath = ShellExtensionRegistrar.GetShellExtensionDllPath(installDir);
         var registrar = new ShellExtensionRegistrar(
             new RegistryOperations(),
             ShellExtensionConstants.NewClsid);
 
+        RemoveDownloadMark = () => DownloadMark.RemoveFromDirectory(installDir);
         FindOldConfig = () => LegacyInstallation.FindOldGlobalConfig(new RegistryOperations(), File.Exists);
         SetCommand(registrar, dllPath, SystemHelper.IsAdministrator());
         RefreshStatus();
@@ -164,6 +172,9 @@ public partial class ShellExtensionPanel : UserControl
                 return;
             }
         }
+        // The user chose to trust this folder: stop the "Open File - Security Warning" dialog
+        // that ShellExecute shows for every downloaded, unsigned LEProc.exe launch.
+        RemoveDownloadMark();
         RefreshStatus();
         if (_command != null)
             ShowMessage(I18n.GetString("InstallSuccess"));
