@@ -1,5 +1,6 @@
 ; src/ShellExtension/ShellExtension.def
-LIBRARY "ShellExtension"
+; No name: the linker uses the output name (ShellExtension.dll on x86, ShellExtension64.dll on x64).
+LIBRARY
 
 EXPORTS
     DllGetClassObject   PRIVATE
