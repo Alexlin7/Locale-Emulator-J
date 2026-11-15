@@ -41,7 +41,7 @@ The native hooking core (`src/Core/`) originates from [Locale-Emulator-Core](htt
 
 ## Install
 
-1. **Before extracting**, right-click the downloaded zip → **Properties** → check **Unblock** → **OK**. Otherwise every program extracted from it is marked as coming from the Internet, and Microsoft Defender runs a cloud security scan the first time each one starts (the binaries are not code-signed).
+1. **Before extracting**, right-click the downloaded zip → **Properties** → check **Unblock** → **OK**. Otherwise every program extracted from it is marked as coming from the Internet, and Microsoft Defender runs a cloud security scan the first time each one starts (the binaries are not code-signed). If you forget, installing the context menu (step 4) removes the mark from this folder for you.
 2. Extract all files to one folder you can write to, for example `D:\Tools\LocaleEmulator-J\`.
 3. Run `LEInstaller.exe`. It checks for the .NET 10 Desktop Runtime (x86 and x64) and, if one is missing, can download Microsoft's official installer and run it (administrator permission required) or open the download page.
 4. In the Shell Extension window it opens, choose **Install (Current User)** or **Install (All Users)**, then restart Explorer or sign out and in.
