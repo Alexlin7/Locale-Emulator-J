@@ -25,8 +25,8 @@
 
 | 檔案 | 內容 |
 |---|---|
-| `LocaleEmulator-J-v<版本>.zip` | `x86/`（LEProc、LEGUI、LECommonLibrary、LoaderDll、LocaleEmulator、ShellExtension、`Lang/`）、`x64/ShellExtension.dll`、README 與授權 |
-| `LocaleEmulator-J-v<版本>-symbols.zip` | LEProc、LEGUI、LECommonLibrary、ShellExtension（x86 / x64）的 `.pdb`，查 dump 用 |
+| `LocaleEmulator-J-v<版本>.zip` | `LEInstaller.exe`、`x86/`（LEProc、LEGUI、LECommonLibrary、LoaderDll、LocaleEmulator、ShellExtension、`Lang/`）、`x64/ShellExtension.dll`、README 與授權 |
+| `LocaleEmulator-J-v<版本>-symbols.zip` | LEInstaller、LEProc、LEGUI、LECommonLibrary、LoaderDll、LocaleEmulator、ShellExtension（x86 / x64）的 `.pdb`，查 dump 用；符號必須與同一次建置的檔案對應，事後重建的 pdb 通常對不上 |
 | `SHA256SUMS.txt` | 兩個 zip 的 SHA-256 |
 
 - **目錄結構必須是 `x86/` 與 `x64/` 並列**：LEGUI 以 `LEGUI.exe` 的上兩層找 `x64\ShellExtension.dll`（`ShellExtensionRegistrar.GetBuildOutputRoot`）。
@@ -37,4 +37,4 @@
 ## 尚未處理
 
 - 沒有程式碼簽章：SmartScreen 與防毒可能警告，說明裡有寫。
-- `.NET 10 Desktop Runtime` 要使用者自己裝（x86 + x64），framework-dependent 部署的取捨見 `docs/roadmap.md`。
+- `.NET 10 Desktop Runtime`（x86 + x64）沒有打包進 zip：`LEInstaller.exe` 會檢查並可代為下載安裝（framework-dependent 部署的取捨見 `docs/roadmap.md`）。
