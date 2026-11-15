@@ -34,6 +34,22 @@ public partial class ShellExtensionPanel : UserControl
         _isAdmin = isAdmin;
     }
 
+    /// <summary>
+    /// Wires the panel to the real registry and the ShellExtension.dll of this LE folder
+    /// (shared by the global config window and the installer window).
+    /// </summary>
+    public void InitializeForThisInstallation()
+    {
+        var dllPath = ShellExtensionRegistrar.AutoDetectDllPath(
+            ShellExtensionRegistrar.GetBuildOutputRoot());
+        var registrar = new ShellExtensionRegistrar(
+            new RegistryOperations(),
+            ShellExtensionConstants.NewClsid);
+
+        SetCommand(registrar, dllPath, LECommonLibrary.SystemHelper.IsAdministrator());
+        RefreshStatus();
+    }
+
     public void RefreshStatus()
     {
         if (_command == null) return;

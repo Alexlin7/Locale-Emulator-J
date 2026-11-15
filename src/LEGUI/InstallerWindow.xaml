@@ -1,0 +1,10 @@
+<Window x:Class="LEGUI.InstallerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:legui="clr-namespace:LEGUI"
+        SizeToContent="WidthAndHeight" MinWidth="380"
+        WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize">
+    <!-- Installer mode (LEGUI.exe with the installer switch, started by LEInstaller.exe):
+         only the Shell Extension panel. -->
+    <legui:ShellExtensionPanel x:Name="shellExtPanel" Margin="12" />
+</Window>

@@ -17,7 +17,9 @@ LEGUI（.NET 10，WPF，AnyCPU）是 Profile 管理介面，也負責安裝與�
 | `GlobalConfig.xaml`、`AppConfig.xaml` | 全域設定（`LEConfig.xml`）與單一程式設定（`*.le.config`）的視窗 |
 | `ProfileEditorControl.xaml` | Profile 編輯元件（兩個視窗共用） |
 | `ShellExtensionPanel.xaml`、`ShellExtensionRegistrar.cs` | Shell Extension 的安裝 / 解除（以 Registry API 註冊，經 `IRegistryOperations` 抽象以便測試） |
-| `ShellExtCliCommand.cs` | 以命令列參數執行安裝 / 解除 |
+| `ShellExtCliCommand.cs` | 以命令列參數執行安裝 / 解除（`--shell-ext ...`），以及 `--installer` 的判斷 |
+| `InstallerWindow.xaml` | `LEGUI.exe --installer`（由 LEInstaller.exe 開啟）：只有 `ShellExtensionPanel` 的小視窗；不檢查目錄寫入權限、不建立 `LEConfig.xml` |
+| `InputBox.xaml` | 單行輸入對話框（另存全域 profile 的名稱）：依內容排版、套用 `UIFont`；Enter / Esc 用按鈕的 `IsDefault` / `IsCancel`；空白時確認鈕停用 |
 | `I18n.cs`、`Lang/` | 語系載入 |
 | `AboutPanel.xaml` | 關於頁；**對外連結只放可信來源**（根目錄開發約定） |
 
@@ -27,4 +29,4 @@ LEGUI（.NET 10，WPF，AnyCPU）是 Profile 管理介面，也負責安裝與�
 dotnet test tests/LEGUI.Tests/
 ```
 
-`ShellExtensionRegistrarTests`、`ShellExtCliCommandTests`、`ShellExtensionPanelTests`、`ProfileEditorControlTests`、`I18nTests`、`LocaleCompletenessTests`。
+`ShellExtensionRegistrarTests`、`ShellExtCliCommandTests`、`ShellExtensionPanelTests`、`InputBoxTests`、`ProfileEditorControlTests`、`I18nTests`、`LocaleCompletenessTests`。

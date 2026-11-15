@@ -31,19 +31,7 @@ public partial class GlobalConfig
             _statusClearTimer.Stop();
         };
 
-        InitializeShellExtPanel();
-    }
-
-    private void InitializeShellExtPanel()
-    {
-        var dllPath = ShellExtensionRegistrar.AutoDetectDllPath(
-            ShellExtensionRegistrar.GetBuildOutputRoot());
-        var registrar = new ShellExtensionRegistrar(
-            new RegistryOperations(),
-            ShellExtensionConstants.NewClsid);
-
-        shellExtPanel.SetCommand(registrar, dllPath, SystemHelper.IsAdministrator());
-        shellExtPanel.RefreshStatus();
+        shellExtPanel.InitializeForThisInstallation();
     }
 
     private void ShowSavedStatus()
@@ -80,7 +68,8 @@ public partial class GlobalConfig
         var ib = new InputBox
         {
             Owner = this,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            // "Save As ..." without the trailing ellipsis, which only belongs on the button.
+            Title = I18n.GetString("SaveAs").TrimEnd('.', '…', ' '),
             Instruction = I18n.GetString("SaveAsInstruction"),
             OkText = I18n.GetString("Save"),
             CancelText = I18n.GetString("Cancel")

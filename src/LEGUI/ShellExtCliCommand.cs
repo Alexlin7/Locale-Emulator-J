@@ -22,6 +22,17 @@ public sealed class ShellExtCliCommand
     public const string ScopeAllUsers = "all-users";
 
     /// <summary>
+    /// Opens only the Shell Extension panel (used by LEInstaller.exe).
+    /// </summary>
+    public const string InstallerSwitch = "--installer";
+
+    /// <summary>
+    /// True when LEGUI was started as <c>LEGUI.exe --installer</c>.
+    /// </summary>
+    public static bool IsInstallerMode(string[] args) =>
+        args.Length == 1 && args[0] == InstallerSwitch;
+
+    /// <summary>
     /// Verb (action) for Shell Extension command.
     /// </summary>
     public enum Verb { Install, Uninstall, CleanupOld }
