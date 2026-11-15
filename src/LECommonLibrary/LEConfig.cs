@@ -77,6 +77,71 @@ public static class LEConfig
         WriteConfig(path, profile);
     }
 
+    /// <summary>Number of profiles imported and skipped (already existing).</summary>
+    public readonly record struct ImportResult(int Imported, int Skipped);
+
+    /// <summary>
+    ///     Appends the incoming profiles to the existing ones. A profile is skipped when its Guid
+    ///     (ignoring case) or Name is already present, so existing profiles always win and no
+    ///     duplicate names appear in the context menu. Imported profiles keep their Guid, which
+    ///     the context menu uses to find them (-runas {guid}); a missing Guid gets a new one.
+    /// </summary>
+    public static LEProfile[] MergeProfiles(LEProfile[] existing, LEProfile[] incoming, out ImportResult result)
+    {
+        var merged = existing.ToList();
+        var guids = new HashSet<string>(existing.Select(p => p.Guid ?? string.Empty), StringComparer.OrdinalIgnoreCase);
+        var names = new HashSet<string>(existing.Select(p => p.Name ?? string.Empty), StringComparer.Ordinal);
+        int imported = 0, skipped = 0;
+
+        foreach (var profile in incoming)
+        {
+            var p = profile;
+            if (string.IsNullOrEmpty(p.Guid))
+                p.Guid = Guid.NewGuid().ToString();
+
+            if (guids.Contains(p.Guid) || names.Contains(p.Name ?? string.Empty))
+            {
+                skipped++;
+                continue;
+            }
+
+            merged.Add(p);
+            guids.Add(p.Guid);
+            names.Add(p.Name ?? string.Empty);
+            imported++;
+        }
+
+        result = new ImportResult(imported, skipped);
+        return merged.ToArray();
+    }
+
+    /// <summary>
+    ///     Imports the profiles of another config file (e.g. LEConfig.xml of the original LE 2.x)
+    ///     into targetConfigPath with <see cref="MergeProfiles" />. The target is only rewritten
+    ///     when something was imported. An unreadable source, or the target itself, imports nothing.
+    /// </summary>
+    public static ImportResult ImportProfiles(string sourceConfigPath, string targetConfigPath)
+    {
+        if (string.Equals(Path.GetFullPath(sourceConfigPath), Path.GetFullPath(targetConfigPath),
+                          StringComparison.OrdinalIgnoreCase))
+            return new ImportResult(0, 0);
+
+        var incoming = GetProfiles(sourceConfigPath);
+        if (incoming.Length == 0)
+            return new ImportResult(0, 0);
+
+        var merged = MergeProfiles(GetProfiles(targetConfigPath), incoming, out var result);
+        if (result.Imported > 0)
+            WriteConfig(targetConfigPath, merged);
+        return result;
+    }
+
+    /// <summary>Imports into this installation's global LEConfig.xml.</summary>
+    public static ImportResult ImportGlobalProfiles(string sourceConfigPath)
+    {
+        return ImportProfiles(sourceConfigPath, GlobalConfigPath);
+    }
+
     private static void BuildGlobalConfigFile()
     {
         var defaultProfiles = new[]
