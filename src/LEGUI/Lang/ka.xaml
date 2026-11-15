@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">საქაღალდეში ჩაწერა შეუძლებელია.&#x0A;გთხოვთ, ნაცვლად გამოიყენოთ გლობალური პროფილი.&#x0A;მიმდინარე საქაღალდე: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">დაყენების საქაღალდეში ჩაწერა შეუძლებელია.&#x0A;გთხოვთ, გადაიტანოთ LE სხვა ადგილას და სცადოთ თავიდან.&#x0A;დაყენების საქაღალდე: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportProfiles">იმპორტი...</system:String>
+    <system:String x:Key="ImportProfilesNone">პროფილები ვერ მოიძებნა:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">იმპორტირებულია {0} პროფილი. გამოტოვებულია {1} უკვე არსებული (იგივე სახელი ან GUID).</system:String>
     <system:String x:Key="InstallAllUsers">დაყენება (ყველა მომხმარებელი)</system:String>
     <system:String x:Key="InstallCurrentUser">დაყენება (მიმდინარე მომხმარებელი)</system:String>
     <system:String x:Key="Installed">დაყენებული</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">ყველა მომხმარებელი &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">ძველი რეგისტრაციის გაწმენდა</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">მიმდინარე მომხმარებელი</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">ასევე ძველი ვერსიის პროფილების იმპორტი აქედან:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; აღმოჩენილია ძველი ვერსიის ნარჩენები</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension-ის ოპერაცია ვერ შესრულდა: {0}</system:String>
     <system:String x:Key="Shortcut">მალსახმობის შექმნა</system:String>

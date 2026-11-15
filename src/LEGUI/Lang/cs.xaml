@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">Do adresáře nelze zapisovat.&#x0A;Použijte místo toho globální profil.&#x0A;Aktuální adresář: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Do instalačního adresáře nelze zapisovat.&#x0A;Přesuňte LE na jiné místo a zkuste to znovu.&#x0A;Instalační adresář: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportProfiles">Importovat...</system:String>
+    <system:String x:Key="ImportProfilesNone">Nebyly nalezeny žádné profily v:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">Importováno profilů: {0}. Přeskočeno již existujících (stejné jméno nebo GUID): {1}.</system:String>
     <system:String x:Key="InstallAllUsers">Instalovat (všichni uživatelé)</system:String>
     <system:String x:Key="InstallCurrentUser">Instalovat (aktuální uživatel)</system:String>
     <system:String x:Key="Installed">Nainstalováno</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Všichni uživatelé &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Vyčistit starou registraci</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Aktuální uživatel</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">Importovat také profily staré verze z:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Zjištěny zbytky staré verze</system:String>
     <system:String x:Key="ShellExtOperationFailed">Operace Shell Extension selhala: {0}</system:String>
     <system:String x:Key="Shortcut">Vytvořit zástupce</system:String>

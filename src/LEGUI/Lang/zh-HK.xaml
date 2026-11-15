@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">目錄無寫入權限。&#x0A;請改用全域設定。&#x0A;目前目錄：{0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">安裝目錄無寫入權限。&#x0A;請將 LE 移至其他位置後重試。&#x0A;安裝目錄：{0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI 全域設定</system:String>
+    <system:String x:Key="ImportProfiles">匯入...</system:String>
+    <system:String x:Key="ImportProfilesNone">在以下檔案中找不到設定：&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">已匯入 {0} 個設定，略過 {1} 個已存在的設定（名稱或 GUID 相同）。</system:String>
     <system:String x:Key="InstallAllUsers">安裝（所有使用者）</system:String>
     <system:String x:Key="InstallCurrentUser">安裝（目前使用者）</system:String>
     <system:String x:Key="Installed">已安裝</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">所有使用者 &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">清理舊版註冊</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">目前使用者</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">同時匯入舊版的設定：</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; 偵測到舊版殘留</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension 操作失敗：{0}</system:String>
     <system:String x:Key="Shortcut">在桌面放置捷徑</system:String>

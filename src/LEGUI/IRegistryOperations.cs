@@ -22,6 +22,16 @@ public interface IRegistryOperations
     /// Check if the specified registry subkey exists.
     /// </summary>
     bool SubKeyExists(RegistryHive hive, string subKey, RegistryView view);
+
+    /// <summary>
+    /// Read a string value; null when the key or value does not exist or is not a string.
+    /// </summary>
+    string? GetStringValue(RegistryHive hive, string subKey, RegistryView view, string? name);
+
+    /// <summary>
+    /// Names of the subkeys of the specified key; empty when the key does not exist.
+    /// </summary>
+    string[] GetSubKeyNames(RegistryHive hive, string subKey, RegistryView view);
 }
 
 /// <summary>

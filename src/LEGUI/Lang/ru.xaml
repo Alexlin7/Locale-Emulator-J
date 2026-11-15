@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">Каталог недоступен для записи.&#x0A;Используйте глобальный профиль.&#x0A;Текущий каталог: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Каталог установки недоступен для записи.&#x0A;Переместите LE в другое расположение и повторите попытку.&#x0A;Каталог установки: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportProfiles">Импорт ...</system:String>
+    <system:String x:Key="ImportProfilesNone">Профили не найдены в:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">Импортировано профилей: {0}. Пропущено уже существующих (то же имя или GUID): {1}.</system:String>
     <system:String x:Key="InstallAllUsers">Установить (все пользователи)</system:String>
     <system:String x:Key="InstallCurrentUser">Установить (текущий пользователь)</system:String>
     <system:String x:Key="Installed">Установлено</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Все пользователи &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Очистить старую регистрацию</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Текущий пользователь</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">Также импортировать профили старой версии из:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Обнаружены остатки старой версии</system:String>
     <system:String x:Key="ShellExtOperationFailed">Ошибка операции Shell Extension: {0}</system:String>
     <system:String x:Key="Shortcut">Создать ярлык</system:String>

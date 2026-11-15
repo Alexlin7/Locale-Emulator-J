@@ -22,7 +22,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <ComboBox x:Name="cbGlobalProfiles" Grid.Row="0" Grid.ColumnSpan="3"
+                        <ComboBox x:Name="cbGlobalProfiles" Grid.Row="0" Grid.ColumnSpan="2"
                                   VerticalContentAlignment="Center" Margin="3,3,3,4"
                                   SelectionChanged="cbGlobalProfiles_SelectionChanged" />
                         <Button x:Name="bSaveGlobalSetting" Grid.Row="1" Grid.Column="0"
@@ -34,6 +34,12 @@
                         <Button x:Name="bDeleteGlobalSetting" Grid.Row="1" Grid.Column="2"
                                 Content="{DynamicResource Delete}" Margin="3,0,3,5"
                                 Click="bDeleteGlobalSetting_Click" />
+                        <!-- Import profiles from another LEConfig.xml, e.g. of the original LE 2.x.
+                             Next to the list rather than a fourth button in the row below, where
+                             the longer translations of "Save As" would no longer fit. -->
+                        <Button x:Name="bImportProfiles" Grid.Row="0" Grid.Column="2"
+                                Content="{DynamicResource ImportProfiles}" Margin="3,3,3,4"
+                                Click="bImportProfiles_Click" />
                     </Grid>
                     <legui:ProfileEditorControl x:Name="profileEditor" />
                 </DockPanel>

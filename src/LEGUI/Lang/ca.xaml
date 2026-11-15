@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">El directori no es pot escriure.&#x0A;Utilitzeu el perfil global en lloc d'aquest.&#x0A;Directori actual: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">El directori d'instal·lació no es pot escriure.&#x0A;Moveu LE a una altra ubicació i torneu-ho a provar.&#x0A;Directori d'instal·lació: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportProfiles">Importa...</system:String>
+    <system:String x:Key="ImportProfilesNone">No s'ha trobat cap perfil a:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">S'han importat {0} perfils. S'han omès {1} que ja existien (mateix nom o GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Instal·lar (Tots els usuaris)</system:String>
     <system:String x:Key="InstallCurrentUser">Instal·lar (Usuari actual)</system:String>
     <system:String x:Key="Installed">Instal·lat</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Tots els usuaris &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Netejar el registre antic</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Usuari actual</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">Importa també els perfils de la versió antiga des de:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; S'han detectat restes d'una versió antiga</system:String>
     <system:String x:Key="ShellExtOperationFailed">L'operació de Shell Extension ha fallat: {0}</system:String>
     <system:String x:Key="Shortcut">Crear accés directe</system:String>

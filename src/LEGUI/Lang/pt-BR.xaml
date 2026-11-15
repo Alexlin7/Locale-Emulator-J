@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">O diretório não permite gravação.&#x0A;Use o perfil global em vez disso.&#x0A;Diretório atual: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">O diretório de instalação não permite gravação.&#x0A;Mova o LE para outro local e tente novamente.&#x0A;Diretório de instalação: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportProfiles">Importar ...</system:String>
+    <system:String x:Key="ImportProfilesNone">Nenhum perfil encontrado em:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">{0} perfil(is) importado(s). {1} ignorado(s) por já existir(em) (mesmo nome ou GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Instalar (todos os usuários)</system:String>
     <system:String x:Key="InstallCurrentUser">Instalar (usuário atual)</system:String>
     <system:String x:Key="Installed">Instalada</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Todos os usuários &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Limpar registro antigo</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Usuário atual</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">Importar também os perfis da versão antiga de:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Resíduo de versão antiga detectado</system:String>
     <system:String x:Key="ShellExtOperationFailed">Falha na operação da Shell Extension: {0}</system:String>
     <system:String x:Key="Shortcut">Criar atalho</system:String>

@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">La directory non è scrivibile.&#x0A;Utilizza invece il profilo globale.&#x0A;Directory corrente: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">La directory di installazione non è scrivibile.&#x0A;Sposta LE in un'altra posizione e riprova.&#x0A;Directory di installazione: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBALE</system:String>
+    <system:String x:Key="ImportProfiles">Importa ...</system:String>
+    <system:String x:Key="ImportProfilesNone">Nessun profilo trovato in:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">Importati {0} profili. Saltati {1} già esistenti (stesso nome o GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Installa (tutti gli utenti)</system:String>
     <system:String x:Key="InstallCurrentUser">Installa (utente corrente)</system:String>
     <system:String x:Key="Installed">Installata</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Tutti gli utenti &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Rimuovi registrazione precedente</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Utente corrente</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">Importa anche i profili della versione precedente da:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Rilevati residui di versione precedente</system:String>
     <system:String x:Key="ShellExtOperationFailed">Operazione Shell Extension non riuscita: {0}</system:String>
     <system:String x:Key="Shortcut">Crea collegamento</system:String>

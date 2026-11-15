@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">De map is niet beschrijfbaar.&#x0A;Gebruik in plaats daarvan het globale profiel.&#x0A;Huidige map: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Installatiemap is niet beschrijfbaar.&#x0A;Verplaats LE naar een andere locatie en probeer het opnieuw.&#x0A;Installatiemap: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAAL</system:String>
+    <system:String x:Key="ImportProfiles">Importeren ...</system:String>
+    <system:String x:Key="ImportProfilesNone">Geen profielen gevonden in:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">{0} profiel(en) geïmporteerd. {1} overgeslagen die al bestaan (zelfde naam of GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Installeren (alle gebruikers)</system:String>
     <system:String x:Key="InstallCurrentUser">Installeren (huidige gebruiker)</system:String>
     <system:String x:Key="Installed">Geïnstalleerd</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Alle gebruikers &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Oude registratie opschonen</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Huidige gebruiker</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">Ook de profielen van de oude versie importeren uit:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Resten van oude versie gedetecteerd</system:String>
     <system:String x:Key="ShellExtOperationFailed">Bewerking Shell Extension mislukt: {0}</system:String>
     <system:String x:Key="Shortcut">Sneltoets maken</system:String>

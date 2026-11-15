@@ -2,8 +2,10 @@
 
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using LECommonLibrary;
 
 namespace LEGUI;
 
@@ -19,6 +21,29 @@ public partial class ShellExtensionPanel : UserControl
     /// </summary>
     internal Action<string> ShowMessage = text =>
         MessageBox.Show(text, I18n.AppName);
+
+    /// <summary>
+    /// Finds the original LE 2.x LEConfig.xml (null when there is none). Replaceable in tests.
+    /// </summary>
+    internal Func<string> FindOldConfig = () => null;
+
+    /// <summary>
+    /// Formats a localized message (key, arguments). Replaceable in tests, which have no
+    /// WPF Application and therefore no language dictionary.
+    /// </summary>
+    internal Func<string, object[], string> FormatMessage = I18n.Format;
+
+    /// <summary>
+    /// Imports a config file into this installation's global profiles. Replaceable in tests.
+    /// </summary>
+    internal Func<string, LEConfig.ImportResult> ImportProfiles = LEConfig.ImportGlobalProfiles;
+
+    /// <summary>
+    /// Raised after profiles were imported, so a window showing the profile list can reload it.
+    /// </summary>
+    public event EventHandler ProfilesImported;
+
+    private string _oldConfigPath;
 
     public ShellExtensionPanel()
     {
@@ -46,7 +71,8 @@ public partial class ShellExtensionPanel : UserControl
             new RegistryOperations(),
             ShellExtensionConstants.NewClsid);
 
-        SetCommand(registrar, dllPath, LECommonLibrary.SystemHelper.IsAdministrator());
+        FindOldConfig = () => LegacyInstallation.FindOldGlobalConfig(new RegistryOperations(), File.Exists);
+        SetCommand(registrar, dllPath, SystemHelper.IsAdministrator());
         RefreshStatus();
     }
 
@@ -65,9 +91,12 @@ public partial class ShellExtensionPanel : UserControl
         bInstallAllUsers.IsEnabled = !auInstalled;
         bUninstallAllUsers.IsEnabled = auInstalled;
 
-        cleanupSection.Visibility = _command.HasOldRegistration()
-            ? Visibility.Visible
-            : Visibility.Collapsed;
+        var hasOld = _command.HasOldRegistration();
+        cleanupSection.Visibility = hasOld ? Visibility.Visible : Visibility.Collapsed;
+
+        _oldConfigPath = hasOld ? FindOldConfig() : null;
+        importOldSection.Visibility = _oldConfigPath != null ? Visibility.Visible : Visibility.Collapsed;
+        tOldConfigPath.Text = _oldConfigPath ?? string.Empty;
     }
 
     private async void bInstallCurrentUser_Click(object sender, RoutedEventArgs e)
@@ -84,6 +113,19 @@ public partial class ShellExtensionPanel : UserControl
 
     private async void bCleanupOld_Click(object sender, RoutedEventArgs e)
     {
+        // Import first: the cleanup deletes the registration that tells where the old folder is.
+        // It runs in this (non-elevated) process because it writes this installation's LEConfig.xml.
+        string importMessage = null;
+        if (_oldConfigPath != null && cbImportOld.IsChecked == true)
+        {
+            var result = ImportProfiles(_oldConfigPath);
+            if (result.Imported > 0)
+                ProfilesImported?.Invoke(this, EventArgs.Empty);
+            importMessage = result.Imported + result.Skipped > 0
+                ? FormatMessage("ImportProfilesResult", [result.Imported, result.Skipped])
+                : FormatMessage("ImportProfilesNone", [_oldConfigPath]);
+        }
+
         if (_isAdmin)
         {
             TryInProcess(() => _command?.CleanupOldRegistration());
@@ -93,6 +135,9 @@ public partial class ShellExtensionPanel : UserControl
             await RunElevatedAsync(ShellExtCliCommand.VerbCleanupOld, null);
         }
         RefreshStatus();
+
+        if (importMessage != null)
+            ShowMessage(importMessage);
     }
 
     private async Task HandleInstallAsync(ShellExtensionRegistrar.InstallMode mode)

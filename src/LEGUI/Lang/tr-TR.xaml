@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">Bu dizine yazılamıyor.&#x0A;Lütfen genel profili kullanın.&#x0A;Geçerli dizin: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Kurulum dizinine yazılamıyor.&#x0A;Lütfen LE'yi başka bir konuma taşıyıp tekrar deneyin.&#x0A;Kurulum dizini: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GENEL</system:String>
+    <system:String x:Key="ImportProfiles">İçe Aktar ...</system:String>
+    <system:String x:Key="ImportProfilesNone">Şurada profil bulunamadı:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">{0} profil içe aktarıldı. Zaten var olan {1} profil atlandı (aynı isim veya GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Yükle (Tüm kullanıcılar)</system:String>
     <system:String x:Key="InstallCurrentUser">Yükle (Geçerli kullanıcı)</system:String>
     <system:String x:Key="Installed">Yüklü</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Tüm kullanıcılar &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Eski kaydı temizle</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Geçerli kullanıcı</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">Eski sürümün profillerini de şuradan içe aktar:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Eski sürüm kalıntısı algılandı</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension işlemi başarısız oldu: {0}</system:String>
     <system:String x:Key="Shortcut">Kısayol ekle</system:String>

@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">디렉터리에 쓸 수 없습니다.&#x0A;대신 전역 프로필을 사용하세요.&#x0A;현재 디렉터리: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">설치 디렉터리에 쓸 수 없습니다.&#x0A;LE를 다른 위치로 이동한 후 다시 시도하세요.&#x0A;설치 디렉터리: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI 전역 설정</system:String>
+    <system:String x:Key="ImportProfiles">가져오기...</system:String>
+    <system:String x:Key="ImportProfilesNone">프로필을 찾을 수 없습니다:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">프로필 {0}개를 가져왔습니다. 이미 있는 {1}개(이름 또는 GUID가 같음)는 건너뛰었습니다.</system:String>
     <system:String x:Key="InstallAllUsers">설치 (모든 사용자)</system:String>
     <system:String x:Key="InstallCurrentUser">설치 (현재 사용자)</system:String>
     <system:String x:Key="Installed">설치됨</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">모든 사용자 &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">이전 등록 정리</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">현재 사용자</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">이전 버전의 프로필도 가져오기:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; 이전 버전 잔여물 감지됨</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension 작업 실패: {0}</system:String>
     <system:String x:Key="Shortcut">바로가기 생성</system:String>

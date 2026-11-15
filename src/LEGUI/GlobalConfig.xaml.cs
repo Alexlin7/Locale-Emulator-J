@@ -31,7 +31,41 @@ public partial class GlobalConfig
             _statusClearTimer.Stop();
         };
 
+        shellExtPanel.ProfilesImported += (_, _) => ReloadProfiles();
         shellExtPanel.InitializeForThisInstallation();
+    }
+
+    /// <summary>Re-reads LEConfig.xml after profiles were imported, keeping the selection.</summary>
+    private void ReloadProfiles()
+    {
+        var selected = cbGlobalProfiles.SelectedIndex;
+        _profiles.Clear();
+        _profiles.AddRange(LEConfig.GetProfiles());
+        cbGlobalProfiles.ItemsSource = _profiles.Select(p => p.Name);
+        if (_profiles.Count > 0)
+            cbGlobalProfiles.SelectedIndex = Math.Clamp(selected, 0, _profiles.Count - 1);
+    }
+
+    private void bImportProfiles_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = I18n.GetString("ImportProfiles").TrimEnd('.', '…', ' '),
+            Filter = "LEConfig.xml|LEConfig.xml|XML (*.xml)|*.xml",
+            CheckFileExists = true
+        };
+        if (dialog.ShowDialog(this) != true)
+            return;
+
+        var result = LEConfig.ImportGlobalProfiles(dialog.FileName);
+        if (result.Imported > 0)
+            ReloadProfiles();
+
+        MessageBox.Show(this,
+                        result.Imported + result.Skipped > 0
+                            ? I18n.Format("ImportProfilesResult", result.Imported, result.Skipped)
+                            : I18n.Format("ImportProfilesNone", dialog.FileName),
+                        I18n.AppName);
     }
 
     private void ShowSavedStatus()

@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">The directory is not writable.&#x0A;Please use global profile instead.&#x0A;Current Directory: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Installation directory is not writable.&#x0A;Please move LE to another location and try again.&#x0A;Installation directory: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportProfiles">Import ...</system:String>
+    <system:String x:Key="ImportProfilesNone">No profiles were found in:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">Imported {0} profile(s). Skipped {1} that already exist (same name or GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Install (All Users)</system:String>
     <system:String x:Key="InstallCurrentUser">Install (Current User)</system:String>
     <system:String x:Key="Installed">Installed</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">All Users &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Clean up old registration</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Current User</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">Also import the profiles of the old version from:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Old version residue detected</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension operation failed: {0}</system:String>
     <system:String x:Key="Shortcut">Create shortcut</system:String>

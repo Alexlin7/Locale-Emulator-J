@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">ไม่สามารถเขียนลงในไดเรกทอรีนี้ได้&#x0A;กรุณาใช้โปรไฟล์ทั่วไปแทน&#x0A;ไดเรกทอรีปัจจุบัน: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">ไม่สามารถเขียนลงในไดเรกทอรีการติดตั้งได้&#x0A;กรุณาย้าย LE ไปยังตำแหน่งอื่นแล้วลองใหม่&#x0A;ไดเรกทอรีการติดตั้ง: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportProfiles">นำเข้า ...</system:String>
+    <system:String x:Key="ImportProfilesNone">ไม่พบโปรไฟล์ใน:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">นำเข้าโปรไฟล์ {0} รายการ ข้าม {1} รายการที่มีอยู่แล้ว (ชื่อหรือ GUID ซ้ำ)</system:String>
     <system:String x:Key="InstallAllUsers">ติดตั้ง (ผู้ใช้ทั้งหมด)</system:String>
     <system:String x:Key="InstallCurrentUser">ติดตั้ง (ผู้ใช้ปัจจุบัน)</system:String>
     <system:String x:Key="Installed">ติดตั้งแล้ว</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">ผู้ใช้ทั้งหมด &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">ล้างการลงทะเบียนเวอร์ชันเก่า</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">ผู้ใช้ปัจจุบัน</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">นำเข้าโปรไฟล์ของเวอร์ชันเก่าด้วย จาก:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; ตรวจพบข้อมูลตกค้างจากเวอร์ชันเก่า</system:String>
     <system:String x:Key="ShellExtOperationFailed">การดำเนินการ Shell Extension ล้มเหลว: {0}</system:String>
     <system:String x:Key="Shortcut">สร้างทางลัด</system:String>
