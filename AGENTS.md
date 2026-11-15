@@ -28,7 +28,7 @@ Core/LocaleEmulator（C++，x86）      ← 在目標程序內 hook Windows API
     ↓
 目標程序                              ← 以為自己跑在目標地區
 
-LEInstaller（C++，x86，靜態 CRT）    ← 發佈 zip 根目錄：檢查 / 安裝 .NET runtime，再開 LEGUI --installer
+LEInstaller（C++，x86，靜態 CRT）    ← 檢查 / 安裝 .NET runtime，再開同資料夾的 LEGUI --installer
 LEGUI（.NET 10，AnyCPU）             ← Profile 管理介面 + Shell Extension 安裝（含匯入原版 LE 的設定）
 LECommonLibrary（.NET 10，AnyCPU）   ← 共用：LEConfig、LEProfile、RegionSupport、SystemHelper
 ```
@@ -102,9 +102,9 @@ dotnet test tests/LEProc.Tests/ --arch x86     # LEProc 是 x86，需要 x86 tes
 | Smoke test | PowerShell + LocaleTestApp | `tests/SmokeTest/` |
 | 靜態分析 | CodeQL（`security-extended` + 自訂查詢） | `.github/workflows/codeql.yml`、`.github/codeql/` |
 
-CI（`.github/workflows/ci.yml`，`workflow_dispatch` 觸發）用 `dotnet build` 建 .NET、用 `msbuild` 逐一建 C++ vcxproj（每個 msbuild 後都檢查結束碼），組出 `Build/Release/x86/` 後跑 C++ 測試與 smoke test；時機實驗（D7，僅供參考）只在手動觸發並勾選 `timing_experiment` 時才跑。操作說明見 `docs/guides/github-actions-ci.md`。
+CI（`.github/workflows/ci.yml`，`workflow_dispatch` 觸發）用 `dotnet build` 建 .NET、用 `msbuild` 逐一建 C++ vcxproj（每個 msbuild 後都檢查結束碼），組出 `Build/Release/x86/`（單一資料夾的完整產品，含從 `x64/` 複製的 `ShellExtension64.dll`）並檢查必要檔案都在，再跑 C++ 測試與 smoke test；時機實驗（D7，僅供參考）只在手動觸發並勾選 `timing_experiment` 時才跑。操作說明見 `docs/guides/github-actions-ci.md`。
 
-Release（`.github/workflows/release.yml`，只能在 `master` 手動觸發）會先呼叫 `ci.yml` 跑完整測試，再把產品目錄（`LEInstaller.exe` + `x86/` + `x64/ShellExtension.dll`，不含 `LEConfig.xml` 與測試程式）打包成 zip，另附含 Core 等 pdb 的 symbols zip、建立**草稿** Release，由維護者檢查後手動 Publish。說明見 `docs/guides/release.md`。
+Release（`.github/workflows/release.yml`，只能在 `master` 手動觸發）會先呼叫 `ci.yml` 跑完整測試，再把產品資料夾（單一資料夾，不含 `LEConfig.xml` 與測試程式）打包成 zip，另附含 Core 等 pdb 的 symbols zip、建立**草稿** Release，由維護者檢查後手動 Publish。說明見 `docs/guides/release.md`。
 
 CodeQL（`.github/workflows/codeql.yml`）分析 C#（不建置）與 C/C++（Core x86、ShellExtension x64），結果在 GitHub 的 Security → Code scanning 與 PR 上；`ml.h` / `ml.cpp`、`pugixml` 的結果會被濾掉。另有專案自訂查詢（`.github/codeql/le-queries/`），把鐵則寫成自動檢查。說明見 `docs/guides/codeql.md`。
 
@@ -114,10 +114,12 @@ SonarQube Cloud 以自動分析掃描 repo，PR 上會有 Quality Gate 摘要留
 
 ```
 Build/Release/
-  LEInstaller.exe
-  x86/   LEProc.exe、LECommonLibrary.dll、LEGUI.exe、LoaderDll.dll、LocaleEmulator.dll、ShellExtension.dll、Lang/
-  x64/   ShellExtension.dll
+  x86/   產品資料夾：LEInstaller.exe、LEProc.exe、LEGUI.exe、LECommonLibrary.dll、LoaderDll.dll、LocaleEmulator.dll、
+         ShellExtension.dll（x86）、ShellExtension64.dll（x64，CI 從 x64/ 複製）、Lang/（*.xaml + *.xml）
+  x64/   ShellExtension64.dll、x64 的 C++ 測試
 ```
+
+**產品是單一資料夾**（與原版 LE 相同）：每個元件都在自己的資料夾找其他檔案，x64 的檔案以 `64` 後綴並列（`ShellExtension64.dll`；x64 Core 規劃的 `LoaderDll64.dll` 等同理）。不要再拆成 `x86\` / `x64\` 子資料夾：v3.0.0-beta.2 就因此右鍵選單完全不能用。設計見 `docs/superpowers/specs/2026-11-16-flat-product-layout.md`。
 
 **C++ 專案的建置組態：**
 

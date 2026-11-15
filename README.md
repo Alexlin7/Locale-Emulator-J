@@ -41,11 +41,12 @@ The native hooking core (`src/Core/`) originates from [Locale-Emulator-Core](htt
 
 ## Install
 
-1. Extract the release zip to a folder you can write to. Keep `LEInstaller.exe` and the `x86` and `x64` folders together.
-2. Run `LEInstaller.exe`. It checks for the .NET 10 Desktop Runtime (x86 and x64) and, if one is missing, can download Microsoft's official installer and run it (administrator permission required) or open the download page.
-3. In the Shell Extension window it opens, choose **Install (Current User)** or **Install (All Users)**, then restart Explorer or sign out and in.
+1. **Before extracting**, right-click the downloaded zip → **Properties** → check **Unblock** → **OK**. Otherwise every program extracted from it is marked as coming from the Internet, and Microsoft Defender runs a cloud security scan the first time each one starts (the binaries are not code-signed).
+2. Extract all files to one folder you can write to, for example `D:\Tools\LocaleEmulator-J\`.
+3. Run `LEInstaller.exe`. It checks for the .NET 10 Desktop Runtime (x86 and x64) and, if one is missing, can download Microsoft's official installer and run it (administrator permission required) or open the download page.
+4. In the Shell Extension window it opens, choose **Install (Current User)** or **Install (All Users)**, then restart Explorer or sign out and in.
 
-**Coming from the original Locale Emulator 2.x?** While its context menu is still registered, the same window offers to import its global profiles (`LEConfig.xml`) when you click **Clean up old registration**. If it was already removed, use **Import...** next to the profile list in `x86\LEGUI.exe` and pick the old `LEConfig.xml`. Per-application `.le.config` files keep working as they are.
+**Coming from the original Locale Emulator 2.x?** While its context menu is still registered, the same window offers to import its global profiles (`LEConfig.xml`) when you click **Clean up old registration**. If it was already removed, use **Import...** in the same window (or next to the profile list in `LEGUI.exe`) and pick the old `LEConfig.xml`. Per-application `.le.config` files keep working as they are.
 
 ## System Requirements
 
@@ -98,9 +99,8 @@ dotnet test tests/LEProc.Tests/ --arch x86    # needs Windows Desktop Runtime x8
 
 ### Build Output
 
-- `Build/Release/LEInstaller.exe` -- installer (native, static CRT)
-- `Build/Release/x86/` -- LEProc, LEGUI, Core DLLs, ShellExtension (x86)
-- `Build/Release/x64/` -- ShellExtension (x64 only)
+- `Build/Release/x86/` -- the complete product folder after the CI "Assemble" step: LEInstaller, LEProc, LEGUI, Core DLLs, `ShellExtension.dll` (x86), `ShellExtension64.dll` (x64, copied from `Build/Release/x64/`), `Lang/`
+- `Build/Release/x64/` -- `ShellExtension64.dll` and the x64 C++ tests
 
 ## Translate
 

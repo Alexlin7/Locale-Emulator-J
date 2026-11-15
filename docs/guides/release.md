@@ -25,11 +25,12 @@
 
 | 檔案 | 內容 |
 |---|---|
-| `LocaleEmulator-J-v<版本>.zip` | `LEInstaller.exe`、`x86/`（LEProc、LEGUI、LECommonLibrary、LoaderDll、LocaleEmulator、ShellExtension、`Lang/`）、`x64/ShellExtension.dll`、README 與授權 |
-| `LocaleEmulator-J-v<版本>-symbols.zip` | LEInstaller、LEProc、LEGUI、LECommonLibrary、LoaderDll、LocaleEmulator、ShellExtension（x86 / x64）的 `.pdb`，查 dump 用；符號必須與同一次建置的檔案對應，事後重建的 pdb 通常對不上 |
+| `LocaleEmulator-J-v<版本>.zip` | 單一資料夾：`LEInstaller.exe`、LEProc、LEGUI、LECommonLibrary、LoaderDll、LocaleEmulator、`ShellExtension.dll`（x86）、`ShellExtension64.dll`（x64）、`Lang/`（LEGUI 的 `.xaml` 與右鍵選單的 `.xml`）、README 與授權 |
+| `LocaleEmulator-J-v<版本>-symbols.zip` | LEInstaller、LEProc、LEGUI、LECommonLibrary、LoaderDll、LocaleEmulator、ShellExtension、ShellExtension64 的 `.pdb`，查 dump 用；符號必須與同一次建置的檔案對應，事後重建的 pdb 通常對不上 |
 | `SHA256SUMS.txt` | 兩個 zip 的 SHA-256 |
 
-- **目錄結構必須是 `x86/` 與 `x64/` 並列**：LEGUI 以 `LEGUI.exe` 的上兩層找 `x64\ShellExtension.dll`（`ShellExtensionRegistrar.GetBuildOutputRoot`）。
+- **產品是單一資料夾**（`docs/superpowers/specs/2026-11-16-flat-product-layout.md`）：每個元件都在自己的資料夾找其他檔案，`ShellExtension*.dll` 找 `LEProc.exe`、`LEConfig.xml`、`Lang\`。v3.0.0-beta.2 曾把 x64 DLL 放在 `x64\` 子資料夾，右鍵選單因此找不到任何東西。
+- **CI 的「Verify product folder」**先確認必要檔案都在 `Build/Release/x86`（含 `Lang\*.xml`），缺檔時 PR 就會失敗。
 - **不放 `LEConfig.xml`**：使用者的全域 profile 在這個檔，解壓覆蓋舊版時才不會被蓋掉。smoke test 會在 `Build/Release/x86/` 產生它，所以打包時是挑檔案複製，而不是整個目錄複製。
 - 不放測試程式（`*Tests*.exe`、`LocaleTestApp.exe`）與 `.ilk` / `.exp` / `.lib`。
 - Release 說明 = `.github/release-notes.md`（安裝、升級、限制）+ GitHub 自動產生的變更清單。安裝步驟或限制改變時一起更新。
