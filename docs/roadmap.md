@@ -21,7 +21,7 @@
 | 項目 | 狀態 |
 |---|---|
 | x86 Core | 正式使用；smoke test 6 個地區、每個地區 32 個 `CHECK_*` 加時區全綠 |
-| 已知有問題的遊戲 | ExHIBIT 遊戲在系統 ACP 65001 下的亂碼：修正在 `fix/acp-utf8-leak`，**尚未合併進 master**（見 TODO「優先」）。維護者原本的安裝是從該分支建的，所以沒有亂碼 |
+| 已知有問題的遊戲 | 無。ExHIBIT 遊戲在系統 ACP 65001 下的亂碼修正已合併（#16），v3.0.0-beta.3 起的發佈版都包含 |
 | x64 Core | **暫緩**。能編譯（`LoaderDll64.dll` / `LocaleEmulator64.dll`），不安裝 hook、不發佈 |
 | D7 兩段式 Core | **不做**（2026-11-12）。時機實驗 E1、E2 在 smoke test 範圍內全 PASS；E2 實測 5 款遊戲沒有任何一款比 E0 好或差。CI 的實驗步驟改為手動勾選才跑 |
 | C++ 標準 | Core C++17（加 `/Zc:alignedNew-`）；ShellExtension 與 C++ 測試 C++23 |
@@ -33,7 +33,6 @@
 
 ### 優先：影響遊戲能不能玩
 
-- [ ] **把 `fix/acp-utf8-leak` 合併進 master**（2026-11-16 發現從未合併）：`CheckDBCSEnabledExt` hook、ntdll `NlsAnsiCodePage` / `NlsMbCodePageTag`、`LeRtlUpcaseUnicodeStringToAnsiString` 長度修正與對應的 smoke test 檢查共 7 個 commit。master 建的 Core 在維護者主機（ACP 65001）上 PROBE `USER32_CHARNEXT_A` 於 ja / zh / ko 失敗，分支版通過。v3.0.0-beta.2 以前的發佈版都沒有這個修正。rebase 到 master 後在維護者主機跑 smoke test 再合併，之後才發下一版
 - [ ] **新遊戲出問題時**：照 65001 那次的做法，先在 LocaleTestApp 加能重現的 `PROBE_*` / `CHECK_*`，CI 測不到的環境用 `Invoke-LocalProbe.ps1` 在使用者主機上跑，找到漏攔的 API 再修。
 
 ### 其次：幫忙查出遊戲為什麼不正常
@@ -68,6 +67,7 @@
 
 ### 已完成（最近）
 
+- [x] **合併 ACP 65001 的 DBCS 修正（#16）**：`fix/acp-utf8-leak` 的 `CheckDBCSEnabledExt` hook、ntdll `NlsAnsiCodePage` / `NlsMbCodePageTag`、`LeRtlUpcaseUnicodeStringToAnsiString` 長度修正與 smoke test 檢查，2026-11-16 才發現從未合併，以 cherry-pick 重新套到 master。維護者主機（build 26300、ACP 65001）smoke test：ja / zh / ko PROBE 32/32，`CHECK_USER32_CHARNEXTA_DBCS` 與 `CHECK_RTL_UPCASE_*` 都通過
 - [x] **產品改為單一資料夾**（`docs/superpowers/specs/2026-11-16-flat-product-layout.md`）：v3.0.0-beta.2 的右鍵選單完全不能用，因為 `x64\ShellExtension.dll` 在自己的資料夾找不到 `Lang\`、`LEConfig.xml`、`LEProc.exe`，而且右鍵選單的語系檔從未被複製到建置輸出（vcxproj 的 `PostBuildEvent` 寫在 `PropertyGroup`，MSBuild 不執行）。改為 `ShellExtension.dll` / `ShellExtension64.dll` 與其他檔案同一層；ShellExtension 改用靜態 CRT（原本依賴 VC++ 可轉散發套件，沒裝時 Explorer 安靜地載入失敗）；CI 新增「Verify product folder」；安裝視窗加「設定 → 匯入...」
 - [x] **獨立安裝程式 `LEInstaller.exe`**（原生 C++、靜態 CRT）：檢查 x86 / x64 的 .NET 10 Desktop Runtime，缺的話可從微軟官方連結下載、驗證 Authenticode 簽章後安裝，再開啟 `LEGUI.exe --installer`。設計見 `docs/superpowers/specs/2026-11-15-leinstaller-design.md`。實際安裝 runtime（UAC）與下載進度畫面只能手動驗證
 - [x] **匯入原版 LE 2.x 的全域設定**：從舊版右鍵選單註冊的 `CodeBase` 找出舊 `LEConfig.xml`，按「清理舊版註冊」時先匯入再清除；全域設定可從檔案匯入。保留 Guid，同名或同 Guid 略過
