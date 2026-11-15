@@ -1,0 +1,138 @@
+# ============================================================
+# Locale Emulator - Release Workflow
+# ============================================================
+# 手動觸發（只能在 master 上跑）：
+#   gh workflow run Release --ref master -f version=3.0.0-beta.1
+#
+# 1. prepare：檢查版本號格式、與 csproj 的 <Version> 一致、tag 尚未存在
+# 2. ci：呼叫 ci.yml（建置、.NET / C++ 測試、smoke test），全綠才繼續
+# 3. release：從 ci 的 build-output artifact 打包 zip，建立「草稿」Release
+#    （版本號含 '-' 時標成 pre-release）。在 GitHub 上看過再按 Publish，
+#    tag 會在 Publish 時才建立。
+# 說明見 docs/guides/release.md
+# ============================================================
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本號（不含 v），例如 3.0.0-beta.1；主版本部分必須等於 csproj 的 <Version>'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Validate version
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+      prerelease: ${{ steps.check.outputs.prerelease }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Check ref, version and tag
+        id: check
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF" != "refs/heads/master" ]; then
+            echo "::error::Release 只能從 master 發佈（目前是 $GITHUB_REF）"; exit 1
+          fi
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::版本號格式不對：$VERSION（例如 3.0.0 或 3.0.0-beta.1，不要加 v）"; exit 1
+          fi
+          core="${VERSION%%-*}"
+          for proj in src/LEProc/LEProc.csproj src/LEGUI/LEGUI.csproj src/LECommonLibrary/LECommonLibrary.csproj; do
+            v=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$proj" | head -1)
+            if [ "$v" != "$core" ]; then
+              echo "::error::$proj 的 <Version> 是 $v，與輸入的 $core 不同；先改 csproj 再發佈"; exit 1
+            fi
+          done
+          tag="v$VERSION"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $tag 已存在（含草稿）"; exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "::error::tag $tag 已存在"; exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-* ]]; then echo "prerelease=true" >> "$GITHUB_OUTPUT"; else echo "prerelease=false" >> "$GITHUB_OUTPUT"; fi
+
+  ci:
+    name: CI
+    needs: prepare
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      pull-requests: write
+
+  release:
+    name: Package & draft release
+    needs: [ prepare, ci ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.prepare.outputs.tag }}
+      PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Download build output
+        uses: actions/download-artifact@v7
+        with:
+          name: build-output
+          path: build-output
+
+      # 產品目錄的結構必須是 <root>/x86 與 <root>/x64：LEGUI 以 LEGUI.exe 的上兩層
+      # 找 x64\ShellExtension.dll（ShellExtensionRegistrar.GetBuildOutputRoot）。
+      # 不放 LEConfig.xml（使用者的全域 profile 在這個檔，解壓覆蓋時才不會被蓋掉），
+      # 也不放測試程式、.pdb、.ilk、.exp、.lib。
+      - name: Package
+        run: |
+          set -euo pipefail
+          name="LocaleEmulator-J-$TAG"
+          pkg="dist/$name"
+          sym="dist/$name-symbols"
+          mkdir -p "$pkg/x86" "$pkg/x64" "$sym/x86" "$sym/x64"
+
+          ls -R build-output | head -80
+
+          src86=build-output/x86
+          src64=build-output/x64
+          for f in LEProc.exe LEProc.dll LEProc.deps.json LEProc.runtimeconfig.json \
+                   LEGUI.exe LEGUI.dll LEGUI.deps.json LEGUI.runtimeconfig.json \
+                   LECommonLibrary.dll LoaderDll.dll LocaleEmulator.dll ShellExtension.dll; do
+            cp "$src86/$f" "$pkg/x86/"
+          done
+          cp -r "$src86/Lang" "$pkg/x86/"
+          cp "$src64/ShellExtension.dll" "$pkg/x64/"
+          cp README.md COPYING COPYING.LESSER "$pkg/"
+
+          for f in LEProc.pdb LEGUI.pdb LECommonLibrary.pdb ShellExtension.pdb; do
+            cp "$src86/$f" "$sym/x86/" || echo "::warning::$f 不在 x86 輸出裡"
+          done
+          cp "$src64/ShellExtension.pdb" "$sym/x64/" || echo "::warning::x64 ShellExtension.pdb 不在輸出裡"
+
+          (cd dist && zip -r -9 "$name.zip" "$name" && zip -r -9 "$name-symbols.zip" "$name-symbols")
+          (cd dist && sha256sum "$name.zip" "$name-symbols.zip" > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          echo "Package contents:"; unzip -l "dist/$name.zip"
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          flags=(--draft --target "$GITHUB_SHA" --title "$TAG" --generate-notes --notes-file .github/release-notes.md)
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" "${flags[@]}" dist/*.zip dist/SHA256SUMS.txt
+          echo "草稿已建立：$(gh release view "$TAG" --json url -q .url)" | tee -a "$GITHUB_STEP_SUMMARY"
