@@ -163,13 +163,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         shell: pwsh
 
-      # ---- Assemble runtime directory ----
-      # Build/Release/x86/ = complete product directory per README/CLAUDE.md:
+      # ---- Assemble the product folder ----
+      # Build/Release/x86/ = the complete, single-folder product
+      # (docs/superpowers/specs/2026-11-16-flat-product-layout.md):
       #   LEProc.exe, LEGUI.exe, LECommonLibrary.dll (.NET)
       #   LoaderDll.dll, LocaleEmulator.dll (Core native)
-      #   ShellExtension.dll (C++, already here via vcxproj OutDir)
-      #   LocaleTestApp.exe (C++ test app, already here via vcxproj OutDir)
-      # Build/Release/LEInstaller.exe sits next to x86/ and x64/ (vcxproj OutDir).
+      #   ShellExtension.dll + Lang\*.xml, LEInstaller.exe (already here via vcxproj OutDir)
+      #   ShellExtension64.dll (copied from Build/Release/x64/ below)
+      #   LocaleTestApp.exe, *Tests*.exe (tests; not packaged by release.yml)
 
       - name: Assemble runtime directory
         run: |
@@ -180,8 +181,29 @@ jobs:
           # Symbols for crash dumps (published in the release's -symbols.zip)
           Copy-Item src/Core/LoaderDll/Release/LoaderDll.pdb Build/Release/x86/ -Force
           Copy-Item src/Core/LocaleEmulator/Release/LocaleEmulator.pdb Build/Release/x86/ -Force
+          # The x64 Explorer loads ShellExtension64.dll from the same folder as LEProc.exe
+          Copy-Item Build/Release/x64/ShellExtension64.dll Build/Release/x86/ -Force
+          Copy-Item Build/Release/x64/ShellExtension64.pdb Build/Release/x86/ -Force
           Write-Host "Assembled files:" -ForegroundColor Cyan
           Get-ChildItem Build/Release/x86/ -Name | ForEach-Object { Write-Host "  $_" }
+        shell: pwsh
+
+      # Everything the release zip needs must be in the one product folder. A missing
+      # file here (e.g. Lang\*.xml, which never reached the output before) breaks the
+      # context menu for every user, so stop the build instead of finding out after release.
+      - name: Verify product folder
+        run: |
+          $dir = 'Build/Release/x86'
+          $required = 'LEInstaller.exe', 'LEProc.exe', 'LEProc.dll', 'LEGUI.exe', 'LEGUI.dll',
+                      'LECommonLibrary.dll', 'LoaderDll.dll', 'LocaleEmulator.dll',
+                      'ShellExtension.dll', 'ShellExtension64.dll',
+                      'Lang/DefaultLanguage.xml', 'Lang/zh-TW.xml', 'Lang/zh-TW.xaml'
+          $missing = $required | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
+          if ($missing) {
+            $missing | ForEach-Object { Write-Host "::error::Missing from the product folder: $_" }
+            exit 1
+          }
+          Write-Host "Product folder has all $($required.Count) required files." -ForegroundColor Green
         shell: pwsh
 
       # ---- C++ Tests ----
@@ -287,8 +309,6 @@ jobs:
           path: |
             Build/Release/x86/
             Build/Release/x64/
-            Build/Release/LEInstaller.exe
-            Build/Release/LEInstaller.pdb
           retention-days: 7
 
       - name: Upload launch stress report
