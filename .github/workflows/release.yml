@@ -93,9 +93,10 @@ jobs:
           name: build-output
           path: build-output
 
-      # 產品目錄的結構必須是 <root>/x86 與 <root>/x64：LEGUI 以 LEGUI.exe 的上兩層
-      # 找 x64\ShellExtension.dll（ShellExtensionRegistrar.GetBuildOutputRoot）。
-      # LEInstaller.exe 放在 <root>，它開啟 x86\LEGUI.exe --installer。
+      # 產品是單一資料夾（docs/superpowers/specs/2026-11-16-flat-product-layout.md）：
+      # 每個元件都在自己的資料夾找其他檔案（ShellExtension*.dll 找 LEProc.exe、
+      # LEConfig.xml、Lang\；LEGUI 找 ShellExtension*.dll；LEInstaller 找 LEGUI.exe）。
+      # CI 的「Verify product folder」已確認必要檔案都在 build-output/x86。
       # 不放 LEConfig.xml（使用者的全域 profile 在這個檔，解壓覆蓋時才不會被蓋掉），
       # 也不放測試程式、.pdb、.ilk、.exp、.lib。
       - name: Package
@@ -104,27 +105,24 @@ jobs:
           name="LocaleEmulator-J-$TAG"
           pkg="dist/$name"
           sym="dist/$name-symbols"
-          mkdir -p "$pkg/x86" "$pkg/x64" "$sym/x86" "$sym/x64"
+          mkdir -p "$pkg/Lang" "$sym"
 
-          ls -R build-output | head -80
-
-          src86=build-output/x86
-          src64=build-output/x64
-          for f in LEProc.exe LEProc.dll LEProc.deps.json LEProc.runtimeconfig.json \
+          src=build-output/x86
+          for f in LEInstaller.exe \
+                   LEProc.exe LEProc.dll LEProc.deps.json LEProc.runtimeconfig.json \
                    LEGUI.exe LEGUI.dll LEGUI.deps.json LEGUI.runtimeconfig.json \
-                   LECommonLibrary.dll LoaderDll.dll LocaleEmulator.dll ShellExtension.dll; do
-            cp "$src86/$f" "$pkg/x86/"
+                   LECommonLibrary.dll LoaderDll.dll LocaleEmulator.dll \
+                   ShellExtension.dll ShellExtension64.dll; do
+            cp "$src/$f" "$pkg/"
           done
-          cp -r "$src86/Lang" "$pkg/x86/"
-          cp "$src64/ShellExtension.dll" "$pkg/x64/"
-          cp build-output/LEInstaller.exe "$pkg/"
+          # LEGUI (*.xaml) and the context menu (*.xml) share Lang\
+          cp "$src"/Lang/*.xaml "$src"/Lang/*.xml "$pkg/Lang/"
           cp README.md COPYING COPYING.LESSER "$pkg/"
 
-          cp build-output/LEInstaller.pdb "$sym/" || echo "::warning::LEInstaller.pdb 不在輸出裡"
-          for f in LEProc.pdb LEGUI.pdb LECommonLibrary.pdb ShellExtension.pdb LoaderDll.pdb LocaleEmulator.pdb; do
-            cp "$src86/$f" "$sym/x86/" || echo "::warning::$f 不在 x86 輸出裡"
+          for f in LEInstaller.pdb LEProc.pdb LEGUI.pdb LECommonLibrary.pdb LoaderDll.pdb LocaleEmulator.pdb \
+                   ShellExtension.pdb ShellExtension64.pdb; do
+            cp "$src/$f" "$sym/" || echo "::warning::$f 不在輸出裡"
           done
-          cp "$src64/ShellExtension.pdb" "$sym/x64/" || echo "::warning::x64 ShellExtension.pdb 不在輸出裡"
 
           (cd dist && zip -r -9 "$name.zip" "$name" && zip -r -9 "$name-symbols.zip" "$name-symbols")
           (cd dist && sha256sum "$name.zip" "$name-symbols.zip" > SHA256SUMS.txt && cat SHA256SUMS.txt)
