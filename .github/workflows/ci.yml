@@ -24,6 +24,15 @@ on:
         description: 'LEProc 連續啟動壓力測試的次數（0 = 不跑；查偶發當機用）'
         type: string
         default: '0'
+  # 由 release.yml 呼叫：同一套建置與測試，通過後才打包發佈
+  workflow_call:
+    inputs:
+      timing_experiment:
+        type: boolean
+        default: false
+      launch_stress:
+        type: string
+        default: '0'
 
 permissions:
   contents: read
