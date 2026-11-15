@@ -60,13 +60,13 @@ public partial class ShellExtensionPanel : UserControl
     }
 
     /// <summary>
-    /// Wires the panel to the real registry and the ShellExtension.dll of this LE folder
+    /// Wires the panel to the real registry and the ShellExtension DLL of this LE folder
     /// (shared by the global config window and the installer window).
     /// </summary>
     public void InitializeForThisInstallation()
     {
-        var dllPath = ShellExtensionRegistrar.AutoDetectDllPath(
-            ShellExtensionRegistrar.GetBuildOutputRoot());
+        var dllPath = ShellExtensionRegistrar.GetShellExtensionDllPath(
+            ShellExtensionRegistrar.GetInstallDirectory());
         var registrar = new ShellExtensionRegistrar(
             new RegistryOperations(),
             ShellExtensionConstants.NewClsid);

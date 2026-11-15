@@ -159,35 +159,22 @@ public sealed class ShellExtensionRegistrar : IShellExtensionCommand
     }
 
     /// <summary>
-    /// Resolve the Shell Extension build output root (the parent directory of the
-    /// x86/x64 sub-folders). Uses the current process's parent-of-parent directory
-    /// (e.g. Build/Release/x86/LEGUI.exe → Build/Release/), falling back to
-    /// AppContext.BaseDirectory when ProcessPath is unavailable or shallower than
-    /// two levels deep.
+    /// The LE folder: LEGUI.exe, LEProc.exe, ShellExtension*.dll, Lang\ and LEConfig.xml
+    /// all live in this one folder (docs/superpowers/specs/2026-11-16-flat-product-layout.md).
+    /// The Shell Extension finds LEProc.exe, LEConfig.xml and Lang\ next to itself.
     /// </summary>
-    public static string GetBuildOutputRoot()
-    {
-        var processPath = Environment.ProcessPath;
-        if (!string.IsNullOrEmpty(processPath))
-        {
-            var parent = Path.GetDirectoryName(Path.GetDirectoryName(processPath));
-            if (!string.IsNullOrEmpty(parent))
-                return parent;
-        }
-        return AppContext.BaseDirectory;
-    }
+    public static string GetInstallDirectory() => AppContext.BaseDirectory;
 
     /// <summary>
-    /// Auto-detect DLL path based on OS bitness.
+    /// The Shell Extension DLL matching the Explorer of this OS: ShellExtension64.dll on
+    /// 64-bit Windows, ShellExtension.dll (x86) on 32-bit Windows.
     /// </summary>
-    /// <param name="basePath">Build output root directory.</param>
+    /// <param name="installDir">The LE folder (<see cref="GetInstallDirectory" />).</param>
     /// <param name="is64BitOs">Whether this is a 64-bit OS (defaults to auto-detect).</param>
-    /// <returns>Full path to ShellExtension.dll.</returns>
-    public static string AutoDetectDllPath(string basePath, bool? is64BitOs = null)
+    public static string GetShellExtensionDllPath(string installDir, bool? is64BitOs = null)
     {
         var is64 = is64BitOs ?? Environment.Is64BitOperatingSystem;
-        var subDir = is64 ? "x64" : "x86";
-        return Path.Combine(basePath, subDir, "ShellExtension.dll");
+        return Path.Combine(installDir, is64 ? "ShellExtension64.dll" : "ShellExtension.dll");
     }
 
     /// <summary>

@@ -129,8 +129,8 @@ public partial class App : Application
     {
         try
         {
-            var dllPath = ShellExtensionRegistrar.AutoDetectDllPath(
-                ShellExtensionRegistrar.GetBuildOutputRoot());
+            var dllPath = ShellExtensionRegistrar.GetShellExtensionDllPath(
+            ShellExtensionRegistrar.GetInstallDirectory());
             var registrar = new ShellExtensionRegistrar(
                 new RegistryOperations(),
                 ShellExtensionConstants.NewClsid);
