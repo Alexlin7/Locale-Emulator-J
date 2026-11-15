@@ -21,7 +21,7 @@
 | 項目 | 狀態 |
 |---|---|
 | x86 Core | 正式使用；smoke test 6 個地區、每個地區 32 個 `CHECK_*` 加時區全綠 |
-| 已知有問題的遊戲 | 無（ExHIBIT 遊戲在 65001 下的亂碼已確認由目前的 fork 版修好） |
+| 已知有問題的遊戲 | ExHIBIT 遊戲在系統 ACP 65001 下的亂碼：修正在 `fix/acp-utf8-leak`，**尚未合併進 master**（見 TODO「優先」）。維護者原本的安裝是從該分支建的，所以沒有亂碼 |
 | x64 Core | **暫緩**。能編譯（`LoaderDll64.dll` / `LocaleEmulator64.dll`），不安裝 hook、不發佈 |
 | D7 兩段式 Core | **不做**（2026-11-12）。時機實驗 E1、E2 在 smoke test 範圍內全 PASS；E2 實測 5 款遊戲沒有任何一款比 E0 好或差。CI 的實驗步驟改為手動勾選才跑 |
 | C++ 標準 | Core C++17（加 `/Zc:alignedNew-`）；ShellExtension 與 C++ 測試 C++23 |
@@ -33,6 +33,7 @@
 
 ### 優先：影響遊戲能不能玩
 
+- [ ] **把 `fix/acp-utf8-leak` 合併進 master**（2026-11-16 發現從未合併）：`CheckDBCSEnabledExt` hook、ntdll `NlsAnsiCodePage` / `NlsMbCodePageTag`、`LeRtlUpcaseUnicodeStringToAnsiString` 長度修正與對應的 smoke test 檢查共 7 個 commit。master 建的 Core 在維護者主機（ACP 65001）上 PROBE `USER32_CHARNEXT_A` 於 ja / zh / ko 失敗，分支版通過。v3.0.0-beta.2 以前的發佈版都沒有這個修正。rebase 到 master 後在維護者主機跑 smoke test 再合併，之後才發下一版
 - [ ] **新遊戲出問題時**：照 65001 那次的做法，先在 LocaleTestApp 加能重現的 `PROBE_*` / `CHECK_*`，CI 測不到的環境用 `Invoke-LocalProbe.ps1` 在使用者主機上跑，找到漏攔的 API 再修。
 
 ### 其次：幫忙查出遊戲為什麼不正常
@@ -42,6 +43,7 @@
 
 ### 順手或成本很低時再做
 
+- [ ] **評估程式碼簽章**：exe / dll 沒有簽章，從網路下載後 Microsoft Defender 會在每個程式第一次執行時做雲端掃描，SmartScreen 也會警告。候選：Azure Trusted Signing（付費）、SignPath Foundation（開源專案免費，需審核）。在那之前 README / Release 說明請使用者解壓前先「解除封鎖」zip
 - [ ] **`CharNextA` 在英文系統上沒有照模擬的 code page 判斷雙位元組字元**（低優先）：`PROBE_USER32_CHARNEXT_A` 在 CI（en-US、ACP 1252）的 ja / zh / ko 都失敗（例如 cp=932 預期 35 步、實際 50 步），但在使用者的中文系統（ACP 65001）上經 fork 版通過。推測 user32 在非雙位元組的系統上直接逐位元組前進、不查 code page（未驗證）。只影響在英文系統上用 LE 的人，對維護者自己玩遊戲沒有影響。
 - [ ] **全域 profile 名稱不能重複**：「另存為」目前接受與現有 profile 相同的名稱，右鍵選單會出現兩個同名項目、分不出來。要新增錯誤訊息字串，需處理 22 種語系。
 - [ ] **LEGUI 也檢查 `.le.config` 所在目錄是否存在**：直接開 LEGUI 或把不存在的路徑拖進去時，仍會因目錄不存在而判定不可寫、觸發 UAC 後顯示「目錄無寫入權限」。要新增訊息字串，需處理 22 種語系。
@@ -66,6 +68,7 @@
 
 ### 已完成（最近）
 
+- [x] **產品改為單一資料夾**（`docs/superpowers/specs/2026-11-16-flat-product-layout.md`）：v3.0.0-beta.2 的右鍵選單完全不能用，因為 `x64\ShellExtension.dll` 在自己的資料夾找不到 `Lang\`、`LEConfig.xml`、`LEProc.exe`，而且右鍵選單的語系檔從未被複製到建置輸出（vcxproj 的 `PostBuildEvent` 寫在 `PropertyGroup`，MSBuild 不執行）。改為 `ShellExtension.dll` / `ShellExtension64.dll` 與其他檔案同一層；ShellExtension 改用靜態 CRT（原本依賴 VC++ 可轉散發套件，沒裝時 Explorer 安靜地載入失敗）；CI 新增「Verify product folder」；安裝視窗加「設定 → 匯入...」
 - [x] **獨立安裝程式 `LEInstaller.exe`**（原生 C++、靜態 CRT）：檢查 x86 / x64 的 .NET 10 Desktop Runtime，缺的話可從微軟官方連結下載、驗證 Authenticode 簽章後安裝，再開啟 `LEGUI.exe --installer`。設計見 `docs/superpowers/specs/2026-11-15-leinstaller-design.md`。實際安裝 runtime（UAC）與下載進度畫面只能手動驗證
 - [x] **匯入原版 LE 2.x 的全域設定**：從舊版右鍵選單註冊的 `CodeBase` 找出舊 `LEConfig.xml`，按「清理舊版註冊」時先匯入再清除；全域設定可從檔案匯入。保留 Guid，同名或同 Guid 略過
 - [x] LEGUI 的「另存為」對話框修正切字、套用 `UIFont`、Enter / Esc、空白名稱不能儲存

@@ -213,7 +213,7 @@ jobs:
     Copy-Item src/Core/LocaleEmulator/Release/LocaleEmulator.dll Build/Release/x86/ -Force
 ```
 
-`Build/Release/x86/` 就是完整的產品目錄（LEProc、LEGUI、LECommonLibrary、Core 的兩個 DLL、ShellExtension、LocaleTestApp），smoke test 直接在這裡跑。
+`Build/Release/x86/` 就是完整的產品資料夾（LEInstaller、LEProc、LEGUI、LECommonLibrary、Core 的兩個 DLL、`ShellExtension.dll`、從 `x64/` 複製的 `ShellExtension64.dll`、`Lang/`，另有測試用的 LocaleTestApp），smoke test 直接在這裡跑。接著「Verify product folder」檢查發佈需要的檔案都在，缺一就失敗。
 
 ### 3.7 C++ 測試
 
