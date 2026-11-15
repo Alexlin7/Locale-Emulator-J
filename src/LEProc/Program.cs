@@ -201,8 +201,34 @@ internal static class Program
         return false;
     }
 
+    /// <summary>
+    ///     Shows an error and returns false when the target is not a 32-bit application.
+    ///     The x86 LoaderDll cannot inject into a 64-bit process; without this check a failed
+    ///     LeCreateProcess is presumably treated as a permission problem (UAC prompt, then an
+    ///     error code), which tells the user nothing.
+    /// </summary>
+    private static bool EnsureSupportedArchitecture(string absPath)
+    {
+        var message = LaunchPreconditions.GetUnsupportedArchitectureMessage(
+            absPath,
+            LaunchPreconditions.GetTargetArchitecture(absPath),
+            Environment.Is64BitOperatingSystem);
+        if (message == null)
+            return true;
+
+        MessageBox.Show(
+            message,
+            "Locale Emulator Version " + GlobalHelper.GetVersionString(),
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+        return false;
+    }
+
     private static void DoRunWithLEProfile(string absPath, int argumentsStart, LEProfile profile)
     {
+        if (!EnsureSupportedArchitecture(absPath))
+            return;
+
         try
         {
             if (profile.RunAsAdmin && !SystemHelper.IsAdministrator())

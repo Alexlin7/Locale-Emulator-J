@@ -41,7 +41,7 @@ The native hooking core (`src/Core/`) originates from [Locale-Emulator-Core](htt
 
 - **Minimum OS**: Windows 10 version 1607 or later
 - **Runtime**: .NET 10 (framework-dependent deployment)
-- **Target applications**: x86 (32-bit) executables only (Core hooking engine limitation)
+- **Target applications**: x86 (32-bit) executables only (Core hooking engine limitation). Launching a 64-bit application (including an AnyCPU .NET Framework application, which runs as 64-bit) shows a message instead.
 
 ## Build
 
