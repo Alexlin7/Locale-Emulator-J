@@ -1,7 +1,7 @@
 # LEInstaller 設計
 
 > 日期：2026-11-15
-> 狀態：設計中（等待確認）
+> 狀態：已實作（2026-11-16）。另外加入「匯入原版 LE 2.x 的全域設定」（見 `src/LEGUI/AGENTS.md`、`src/LECommonLibrary/AGENTS.md`）
 
 ## 背景
 

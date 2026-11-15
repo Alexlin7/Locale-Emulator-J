@@ -12,7 +12,7 @@ Locale Emulator lets you run Windows applications under a different locale witho
 
 ## Download & Security Notice
 
-Only download Locale Emulator builds from the [Releases page of this repository](https://github.com/Alexlin7/Locale-Emulator-J/releases). No prebuilt release has been published yet; until then, build from source (see [Build](#build)).
+Only download Locale Emulator builds from the [Releases page of this repository](https://github.com/Alexlin7/Locale-Emulator-J/releases), or build from source (see [Build](#build)).
 
 The original author's website (`pooi.moe`) is **no longer an official source** — it now shows a parked "domain for sale" page, and such pages may redirect visitors to ads or scams. Do not download anything from it, and do not trust third-party mirrors that claim to host Locale Emulator.
 
@@ -29,18 +29,29 @@ The native hooking core (`src/Core/`) originates from [Locale-Emulator-Core](htt
 - Integrated Locale-Emulator-Core source code directly into repository
 - Added CI/CD with GitHub Actions (build, test, code coverage)
 - LEUpdater removed (will be redesigned)
-- LEInstaller merged into LEGUI
+- LEInstaller rewritten as a small native program (see [Install](#install))
 
 ### Changes in this fork
 
 - Core builds with the standard MSVC v145 toolset and Windows SDK; the bundled VS2015 compilers, WDK and prebuilt libraries were removed. Core still uses no C runtime and statically imports only `ntdll.dll`.
 - Fixed code page emulation on recent Windows builds, where ntdll's NLS table swap no longer takes effect: ntdll ANSI/OEM conversion functions are now hooked directly.
 - .NET globalization uses NLS instead of ICU, so the region list again offers emulatable regions such as `zh-CN` / `zh-TW` / `zh-HK`; profiles saved with ICU names (e.g. `zh-Hans-CN`) are resolved automatically, and unsupported regions show an error instead of failing silently.
+- Fixed an intermittent LEProc crash ("nothing happens, click again") caused by reading past the end of a buffer while copying the launch settings.
+- `LEInstaller.exe` checks for the .NET runtime (and can install it) before opening the context menu installer; global profiles of the original LE 2.x can be imported.
+
+## Install
+
+1. Extract the release zip to a folder you can write to. Keep `LEInstaller.exe` and the `x86` and `x64` folders together.
+2. Run `LEInstaller.exe`. It checks for the .NET 10 Desktop Runtime (x86 and x64) and, if one is missing, can download Microsoft's official installer and run it (administrator permission required) or open the download page.
+3. In the Shell Extension window it opens, choose **Install (Current User)** or **Install (All Users)**, then restart Explorer or sign out and in.
+
+**Coming from the original Locale Emulator 2.x?** While its context menu is still registered, the same window offers to import its global profiles (`LEConfig.xml`) when you click **Clean up old registration**. If it was already removed, use **Import...** next to the profile list in `x86\LEGUI.exe` and pick the old `LEConfig.xml`. Per-application `.le.config` files keep working as they are.
 
 ## System Requirements
 
 - **Minimum OS**: Windows 10 version 1607 or later
-- **Runtime**: .NET 10 (framework-dependent deployment)
+- **Windows**: 64-bit (LEGUI runs as x64)
+- **Runtime**: .NET 10 Desktop Runtime, both x86 and x64 (framework-dependent deployment; `LEInstaller.exe` checks and can install it)
 - **Target applications**: x86 (32-bit) executables only (Core hooking engine limitation). Launching a 64-bit application (including an AnyCPU .NET Framework application, which runs as 64-bit) shows a message instead.
 
 ## Troubleshooting: diagnostic log
@@ -87,6 +98,7 @@ dotnet test tests/LEProc.Tests/ --arch x86    # needs Windows Desktop Runtime x8
 
 ### Build Output
 
+- `Build/Release/LEInstaller.exe` -- installer (native, static CRT)
 - `Build/Release/x86/` -- LEProc, LEGUI, Core DLLs, ShellExtension (x86)
 - `Build/Release/x64/` -- ShellExtension (x64 only)
 

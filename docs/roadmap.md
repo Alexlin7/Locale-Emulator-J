@@ -1,7 +1,7 @@
 # Roadmap：待辦、取捨與風險
 
 > **活文件**：每完成一項、做了新的取捨或發現新的風險，就更新這份文件（改勾選狀態或增刪項目，不必保留歷史；歷史在 git 與 `docs/superpowers/`）。
-> **最後整理**：2026-11-12（依「目標」重新排序：x64 暫緩、D7 不做）
+> **最後整理**：2026-11-16（準備第一個公開 pre-release：Release workflow、LEInstaller、匯入原版設定）
 > **相關文件**：[`AGENTS.md`](../AGENTS.md)、[Core 模組化與 x64 設計](superpowers/specs/2026-11-11-core-modularization-and-x64-design.md)、[Phase 2 計畫](superpowers/plans/2026-11-11-core-phase2-hook-engine.md)
 
 ## 0. 目標
@@ -66,6 +66,10 @@
 
 ### 已完成（最近）
 
+- [x] **獨立安裝程式 `LEInstaller.exe`**（原生 C++、靜態 CRT）：檢查 x86 / x64 的 .NET 10 Desktop Runtime，缺的話可從微軟官方連結下載、驗證 Authenticode 簽章後安裝，再開啟 `LEGUI.exe --installer`。設計見 `docs/superpowers/specs/2026-11-15-leinstaller-design.md`。實際安裝 runtime（UAC）與下載進度畫面只能手動驗證
+- [x] **匯入原版 LE 2.x 的全域設定**：從舊版右鍵選單註冊的 `CodeBase` 找出舊 `LEConfig.xml`，按「清理舊版註冊」時先匯入再清除；全域設定可從檔案匯入。保留 Guid，同名或同 Guid 略過
+- [x] LEGUI 的「另存為」對話框修正切字、套用 `UIFont`、Enter / Esc、空白名稱不能儲存
+- [x] **Release workflow**（`.github/workflows/release.yml`）：呼叫 CI 後打包 zip 與 symbols zip（含 Core 的 pdb），建立草稿 Release。說明見 `docs/guides/release.md`
 - [x] **64 位元目標的提示**：LEProc 啟動前讀目標的 PE 標頭（`LaunchPreconditions.GetTargetArchitecture`），x64 / ARM64 / 在 64 位元 Windows 上的 AnyCPU .NET Framework 程式顯示「只支援 32 位元」後結束，不再進到 LoaderDll。單元測試 `TargetArchitectureTests`；本機以 64 位元的 `7z.exe` 確認訊息、smoke test 6 個地區全綠
 - [x] **LEProc 偶發當機（「按了沒反應、要多按幾次」）**：原因是 `LoaderDll` 的 `LeCreateProcess` 把 LEB 複製進 LePeb 時長度重複計算了標頭與 registry 轉向項目，多讀呼叫端緩衝區結尾之後數百 bytes；LEProc 的 `AllocHGlobal` 緩衝區剛好在分頁結尾時就存取違規（事件記錄顯示 coreclr 是因為例外經 CLR 的處理常式回報）。只在有 registry 轉向項目時發生（預設開啟）。修正前 CI 壓力測試 200 次中 3 次當機（run 43274267214、43275813726，dump 都停在 `LoaderDll!my_memcpy_inline`），修正後 400 次 0 次、smoke test 全綠（run 43277547131）。壓力測試：`tests/SmokeTest/Invoke-LaunchStress.ps1`，CI 以 `launch_stress` 輸入手動觸發。紀錄見 `docs/superpowers/plans/2026-11-12-leproc-intermittent-crash.md`
 - [x] **系統 ACP 65001（UTF-8 beta）下的亂碼**：一款 ExHIBIT 引擎的遊戲在原版 LE 2.5.0.1 與較早的 fork 版下劇本呈「縺ゅ」型亂碼，**目前的 fork 版（3.0.0.0）正常**（使用者實測）。原因由使用者主機上的 `Invoke-LocalProbe.ps1`（OS build 26300、ACP 65001）確認：原版經 LE 後 `GetACP()` 回報 932，但 ntdll `Rtl*` 轉換仍用 UTF-8（「日」轉成 `E697A5` 而非 `93FA`），27 項 CHECK / PROBE 失敗，集中在 `Rtl*`、ANSI 檔案 API、user32 視窗文字、環境變數與目前目錄；fork 版同一組參數 0 項失敗。即 `src/Core/AGENTS.md` 鐵則 4 的 NLS 表替換失效，由 `LeRtl*` hook 修正。

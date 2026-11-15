@@ -28,7 +28,8 @@ Core/LocaleEmulator（C++，x86）      ← 在目標程序內 hook Windows API
     ↓
 目標程序                              ← 以為自己跑在目標地區
 
-LEGUI（.NET 10，AnyCPU）             ← Profile 管理介面 + Shell Extension 安裝
+LEInstaller（C++，x86，靜態 CRT）    ← 發佈 zip 根目錄：檢查 / 安裝 .NET runtime，再開 LEGUI --installer
+LEGUI（.NET 10，AnyCPU）             ← Profile 管理介面 + Shell Extension 安裝（含匯入原版 LE 的設定）
 LECommonLibrary（.NET 10，AnyCPU）   ← 共用：LEConfig、LEProfile、RegionSupport、SystemHelper
 ```
 
@@ -41,6 +42,7 @@ LECommonLibrary（.NET 10，AnyCPU）   ← 共用：LEConfig、LEProfile、Regi
 | `src/LECommonLibrary/` | C#，AnyCPU | 設定檔、Profile、`RegionSupport` | [`src/LECommonLibrary/AGENTS.md`](src/LECommonLibrary/AGENTS.md) |
 | `src/LEGUI/` | C#（WPF），AnyCPU | Profile 管理、Shell Extension 安裝 | [`src/LEGUI/AGENTS.md`](src/LEGUI/AGENTS.md) |
 | `src/ShellExtension/` | C++，x86 + x64 | 右鍵選單 | [`src/ShellExtension/AGENTS.md`](src/ShellExtension/AGENTS.md) |
+| `src/LEInstaller/` | C++，x86，靜態 CRT | 獨立安裝程式：.NET runtime 檢查與安裝、開啟 LEGUI 安裝視窗 | [`src/LEInstaller/AGENTS.md`](src/LEInstaller/AGENTS.md) |
 | `tests/SmokeTest/` | PowerShell + C++ | 端對端驗證 hook 是否生效 | [`tests/SmokeTest/AGENTS.md`](tests/SmokeTest/AGENTS.md) |
 
 每個模組的 `CLAUDE.md` 只負責匯入同目錄的 `AGENTS.md`，不另外寫內容。其他測試專案（`tests/*.Tests`）的說明併在對應模組的檔案裡。
@@ -96,13 +98,13 @@ dotnet test tests/LEProc.Tests/ --arch x86     # LEProc 是 x86，需要 x86 tes
 | 層級 | 框架 | 位置 |
 |---|---|---|
 | .NET 單元測試 | xUnit + NSubstitute | `tests/LECommonLibrary.Tests/`、`tests/LEGUI.Tests/`、`tests/LEProc.Tests/` |
-| C++ 測試 | 獨立 exe（無框架） | `tests/Core.Tests/`（結構佈局，x86 + x64）、`tests/ShellExtension.Tests/`（COM，x64） |
+| C++ 測試 | 獨立 exe（無框架） | `tests/Core.Tests/`（結構佈局，x86 + x64）、`tests/ShellExtension.Tests/`（COM，x64）、`tests/LEInstaller.Tests/`（runtime 偵測、字串、簽章，x86） |
 | Smoke test | PowerShell + LocaleTestApp | `tests/SmokeTest/` |
 | 靜態分析 | CodeQL（`security-extended` + 自訂查詢） | `.github/workflows/codeql.yml`、`.github/codeql/` |
 
 CI（`.github/workflows/ci.yml`，`workflow_dispatch` 觸發）用 `dotnet build` 建 .NET、用 `msbuild` 逐一建 C++ vcxproj（每個 msbuild 後都檢查結束碼），組出 `Build/Release/x86/` 後跑 C++ 測試與 smoke test；時機實驗（D7，僅供參考）只在手動觸發並勾選 `timing_experiment` 時才跑。操作說明見 `docs/guides/github-actions-ci.md`。
 
-Release（`.github/workflows/release.yml`，只能在 `master` 手動觸發）會先呼叫 `ci.yml` 跑完整測試，再把產品目錄（`x86/` + `x64/ShellExtension.dll`，不含 `LEConfig.xml` 與測試程式）打包成 zip、建立**草稿** Release，由維護者檢查後手動 Publish。說明見 `docs/guides/release.md`。
+Release（`.github/workflows/release.yml`，只能在 `master` 手動觸發）會先呼叫 `ci.yml` 跑完整測試，再把產品目錄（`LEInstaller.exe` + `x86/` + `x64/ShellExtension.dll`，不含 `LEConfig.xml` 與測試程式）打包成 zip，另附含 Core 等 pdb 的 symbols zip、建立**草稿** Release，由維護者檢查後手動 Publish。說明見 `docs/guides/release.md`。
 
 CodeQL（`.github/workflows/codeql.yml`）分析 C#（不建置）與 C/C++（Core x86、ShellExtension x64），結果在 GitHub 的 Security → Code scanning 與 PR 上；`ml.h` / `ml.cpp`、`pugixml` 的結果會被濾掉。另有專案自訂查詢（`.github/codeql/le-queries/`），把鐵則寫成自動檢查。說明見 `docs/guides/codeql.md`。
 
@@ -110,6 +112,7 @@ CodeQL（`.github/workflows/codeql.yml`）分析 C#（不建置）與 C/C++（Co
 
 ```
 Build/Release/
+  LEInstaller.exe
   x86/   LEProc.exe、LECommonLibrary.dll、LEGUI.exe、LoaderDll.dll、LocaleEmulator.dll、ShellExtension.dll、Lang/
   x64/   ShellExtension.dll
 ```
@@ -123,6 +126,8 @@ Build/Release/
 | Core/Loader | - | ✓ | - | - |
 | ShellExtension | ✓ | ✓ | ✓ | ✓ |
 | LocaleTestApp | ✓ | ✓ | - | - |
+| LEInstaller | ✓ | ✓ | - | - |
+| LEInstaller.Tests | ✓ | ✓ | - | - |
 | Core.Tests | ✓ | ✓ | - | ✓ |
 | ShellExtension.Tests | - | - | ✓ | ✓ |
 
