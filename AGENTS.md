@@ -102,6 +102,8 @@ dotnet test tests/LEProc.Tests/ --arch x86     # LEProc 是 x86，需要 x86 tes
 
 CI（`.github/workflows/ci.yml`，`workflow_dispatch` 觸發）用 `dotnet build` 建 .NET、用 `msbuild` 逐一建 C++ vcxproj（每個 msbuild 後都檢查結束碼），組出 `Build/Release/x86/` 後跑 C++ 測試與 smoke test；時機實驗（D7，僅供參考）只在手動觸發並勾選 `timing_experiment` 時才跑。操作說明見 `docs/guides/github-actions-ci.md`。
 
+Release（`.github/workflows/release.yml`，只能在 `master` 手動觸發）會先呼叫 `ci.yml` 跑完整測試，再把產品目錄（`x86/` + `x64/ShellExtension.dll`，不含 `LEConfig.xml` 與測試程式）打包成 zip、建立**草稿** Release，由維護者檢查後手動 Publish。說明見 `docs/guides/release.md`。
+
 CodeQL（`.github/workflows/codeql.yml`）分析 C#（不建置）與 C/C++（Core x86、ShellExtension x64），結果在 GitHub 的 Security → Code scanning 與 PR 上；`ml.h` / `ml.cpp`、`pugixml` 的結果會被濾掉。另有專案自訂查詢（`.github/codeql/le-queries/`），把鐵則寫成自動檢查。說明見 `docs/guides/codeql.md`。
 
 **建置產出：**
