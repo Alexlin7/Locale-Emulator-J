@@ -5,6 +5,15 @@
         SizeToContent="Height" Width="420"
         WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize">
     <!-- Installer mode (LEGUI.exe with the installer switch, started by LEInstaller.exe):
-         only the Shell Extension panel. -->
-    <legui:ShellExtensionPanel x:Name="shellExtPanel" Margin="12" />
+         the Shell Extension panel, plus importing an old LEConfig.xml. -->
+    <StackPanel Margin="12" TextElement.FontFamily="{DynamicResource UIFont}">
+        <legui:ShellExtensionPanel x:Name="shellExtPanel" />
+        <!-- Always available, also when the original LE's registration is already gone
+             (then the panel shows no cleanup / import section). -->
+        <GroupBox Header="{DynamicResource TabProfile}" Margin="8,4">
+            <Button x:Name="bImportProfiles" Content="{DynamicResource ImportProfiles}"
+                    HorizontalAlignment="Left" MinWidth="120" Margin="8"
+                    Click="bImportProfiles_Click" />
+        </GroupBox>
+    </StackPanel>
 </Window>
