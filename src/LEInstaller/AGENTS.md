@@ -1,6 +1,6 @@
 # src/LEInstaller/AGENTS.md
 
-LEInstaller.exe（C++23，**x86，靜態 CRT**）放在發佈 zip 的根目錄，給習慣原版「解壓 → 執行 LEInstaller」的使用者：先確認 x86 與 x64 的 .NET 10 Desktop Runtime 都已安裝（缺的話引導下載安裝），再開啟 `x86\LEGUI.exe --installer` 註冊右鍵選單。設計見 `docs/superpowers/specs/2026-11-15-leinstaller-design.md`。
+LEInstaller.exe（C++23，**x86，靜態 CRT**）放在發佈 zip 的根目錄，給習慣原版「解壓 → 執行 LEInstaller」的使用者：先確認 x86 與 x64 的 .NET 10 Desktop Runtime 都已安裝（缺的話引導下載安裝），再開啟同資料夾的 `LEGUI.exe --installer` 註冊右鍵選單。設計見 `docs/superpowers/specs/2026-11-15-leinstaller-design.md`。
 
 跨模組鐵則見根目錄 [`AGENTS.md`](../../AGENTS.md)。
 
@@ -16,14 +16,14 @@ LEInstaller.exe（C++23，**x86，靜態 CRT**）放在發佈 zip 的根目錄�
 
 | 檔案 | 內容 |
 |---|---|
-| `main.cpp` | 流程：32 位元 Windows / 找不到 `x86\LEGUI.exe` 的錯誤 → 檢查 runtime → TaskDialog 詢問（自動下載安裝 / 開啟下載頁 / 取消）→ 下載、驗章、`/install /passive /norestart` → 重新檢查 → 開 LEGUI |
+| `main.cpp` | 流程：32 位元 Windows / 找不到同資料夾 `LEGUI.exe` 的錯誤 → 檢查 runtime → TaskDialog 詢問（自動下載安裝 / 開啟下載頁 / 取消）→ 下載、驗章、`/install /passive /norestart` → 重新檢查 → 開 LEGUI |
 | `RuntimeCheck.*` | Desktop Runtime 偵測：registry 的 `InstallLocation`（32 位元 view）→ 預設資料夾 → 版本資料夾 |
 | `Download.*` | `URLDownloadToFileW`（跟隨轉址、不用快取、可取消、回報進度） |
 | `Signature.*` | `WinVerifyTrust` + 簽署憑證的組織名稱 |
 | `Strings.*` | 四種語言的字串與 `PickLanguage`（依 `GetUserDefaultUILanguage`） |
 | `LEInstaller.manifest`、`LEInstaller.rc` | Common Controls 6（TaskDialog）、Per-Monitor V2 DPI；圖示沿用 LEGUI；版本資訊 |
 
-輸出到 `Build\<組態>\LEInstaller.exe`（產品根目錄，與 `x86\`、`x64\` 並列）。
+輸出到 `Build\<組態>\x86\LEInstaller.exe`（產品資料夾，與 `LEGUI.exe` 等同一層；`docs/superpowers/specs/2026-11-16-flat-product-layout.md`）。
 
 ## 測試
 
@@ -39,4 +39,4 @@ $env:LE_INSTALLER_NETWORK_TEST = "1"; Build\Release\x86\LEInstaller.Tests.exe   
 - 簽章：`dotnet.exe`（微軟）通過；Git for Windows 的 `git.exe`（有效但非微軟）、未簽章 exe、非 PE 檔、不存在的檔案都拒絕
 - 網路測試（預設跳過）：下載、進度到 100%、檔案大於 10 MB、微軟簽章、取消會回傳 `E_ABORT` 並刪檔
 
-UI 流程（TaskDialog、UAC、實際安裝）沒有自動測試，改動後手動確認：runtime 齊全時直接開 LEGUI、在空資料夾執行顯示「找不到 x86\LEGUI.exe」。
+UI 流程（TaskDialog、UAC、實際安裝）沒有自動測試，改動後手動確認：runtime 齊全時直接開 LEGUI、在空資料夾執行顯示「找不到 LEGUI.exe」。
