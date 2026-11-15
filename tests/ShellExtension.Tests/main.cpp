@@ -57,14 +57,30 @@ int wmain()
 
     wchar_t dllPath[MAX_PATH] = {};
 
-    // ShellExtension.dll should be in the same directory as this test exe
-    // (both vcxproj use $(SolutionDir)Build\$(Configuration)\x64\ as OutDir)
-    _snwprintf_s(dllPath, _TRUNCATE, L"%sShellExtension.dll", exeDir);
+    // The x64 build is ShellExtension64.dll, in the same directory as this test exe
+    // (both vcxproj use $(SolutionDir)Build\$(Configuration)\x64\ as OutDir). In the
+    // product folder it sits next to the x86 ShellExtension.dll
+    // (docs/superpowers/specs/2026-11-16-flat-product-layout.md).
+    _snwprintf_s(dllPath, _TRUNCATE, L"%sShellExtension64.dll", exeDir);
     if (!FileExists(dllPath))
     {
-        wprintf(L"FAIL: Cannot find ShellExtension.dll\n");
+        wprintf(L"FAIL: Cannot find ShellExtension64.dll\n");
         wprintf(L"  Expected: %s\n", dllPath);
         return 1;
+    }
+
+    // The DLL reads its menu text from Lang\ next to itself (I18n::GetLangDirectory).
+    // Without the language files the menu shows string keys such as "Submenu".
+    wchar_t langPath[MAX_PATH] = {};
+    _snwprintf_s(langPath, _TRUNCATE, L"%sLang\\DefaultLanguage.xml", exeDir);
+    if (!FileExists(langPath))
+    {
+        wprintf(L"FAIL: Language file missing next to the DLL: %s\n", langPath);
+        ++failures;
+    }
+    else
+    {
+        wprintf(L"PASS: Lang\\DefaultLanguage.xml is next to the DLL\n");
     }
 
     wprintf(L"INFO: Loading %s\n", dllPath);
@@ -105,7 +121,7 @@ int wmain()
 
     if (failures > 0)
     {
-        wprintf(L"\nRESULT: %d export check(s) FAILED\n", failures);
+        wprintf(L"\nRESULT: %d DLL check(s) FAILED\n", failures);
         return 1;
     }
 
@@ -118,9 +134,9 @@ int wmain()
     // Registration test (DllRegisterServer / DllUnregisterServer round-trip)
     // is intentionally NOT automated. It modifies HKCR and could interfere
     // with an existing Shell Extension installation. Use manual testing:
-    //   regsvr32 ShellExtension.dll
-    //   regsvr32 /u ShellExtension.dll
+    //   regsvr32 ShellExtension64.dll
+    //   regsvr32 /u ShellExtension64.dll
 
-    wprintf(L"\nRESULT: all export and ConfigReader checks passed\n");
+    wprintf(L"\nRESULT: all DLL and ConfigReader checks passed\n");
     return 0;
 }
