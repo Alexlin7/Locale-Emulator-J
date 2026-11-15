@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Arch\LayoutAsserts.cpp" />
+    <ClCompile Include="DiagLog.cpp" />
     <ClCompile Include="HandleTable.cpp" />
     <ClCompile Include="HookPort.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
@@ -30,6 +31,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Arch\LeArch.h" />
+    <ClInclude Include="DiagLog.h" />
     <ClInclude Include="HandleTable.h" />
     <ClInclude Include="HookPort.h" />
     <ClInclude Include="Hooks\Gdi32Hook.h" />

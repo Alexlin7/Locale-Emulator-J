@@ -44,7 +44,11 @@ Loader/                    命令列啟動器（只有 x86）
 - **x86 與 x64 的差異**：修飾名不同（`/EXPORT` 要依架構寫，見 `LocaleEmulator.cpp`）、`.def` 各一份、TEB 走 `fs` / `gs`（`__readfsdword` 只能在 x86 用）、`GWL_*` 要改用 `GWLP_*`。新程式碼用 `#if defined(_M_IX86)` / `#elif defined(_M_X64)` 分段，不要假設指標是 4 bytes。
 - **ml 的 x64 路徑從未在上游使用過**，有已知錯誤（例如 x64 的 `OpPush` 編碼已停用）。用到 ml 的 x64 功能前先確認。
 - **vcxproj 的輸出路徑**：LocaleEmulator 的 Win32 組態已改用 `$(OutDir)` / `$(IntDir)`；LoaderDll、Loader 仍把 `.\Release\` 寫死，要另外建一份時 `/p:OutDir` 對它們無效。
-- **`WriteLog` 目前不輸出任何東西**，Core 沒有診斷 log。
+- **診斷 log（`WriteLog`，`LocaleEmulator/DiagLog.*`）以環境變數 `LE_DIAG_LOG` 在執行期開關**，預設關閉（設計見 `docs/superpowers/plans/2026-11-13-diagnostic-log.md`）。只用 ntdll 的 `NtCreateFile` / `NtWriteFile` / `_vsnwprintf`，可以在 kernel32 載入前、syscall filter 與 DLL 載入通知裡呼叫。規則：
+  - **格式字串不能用窄字串（`%S`、`%hs`、`%Z`）**：轉換會經過 LE 自己 hook 的 `RtlMultiByteToUnicodeN`。`UNICODE_STRING` 用 `%wZ`（不保證以 null 結尾）。
+  - **不要在 `LeRtl*` 轉換 hook 裡呼叫 `WriteLog`**（會遞迴）。
+  - NTSTATUS 一律寫成 `status=0x%08X`，smoke test 用這個字樣比對。
+  - 每個呼叫點在 log 關閉時只多一次全域變數判斷；不要在頻繁呼叫的 hook 裡加會格式化大量資料的 log。
 - **LoaderDll 讀的是 LEProc 配置、大小剛好的緩衝區**（LEB + registry 轉向資料）。複製長度算錯會讀超過結尾，只有緩衝區剛好在分頁結尾時才當機，平常測不出來（曾造成 LEProc 偶發 `0xC0000005`，見 `docs/roadmap.md` 已完成項目）。改 `LoaderDll.cpp` 的 LEB 處理後，除了 smoke test，也用 CI 的 `launch_stress` 跑一次壓力測試（例如 200 次）。
 - **HookPort 的 filter 是靠堆疊位置拿參數的**：filter 宣告成 `HPARGS` 加上 syscall 本身的參數，但 `HpServiceDispatcherInternal` 只用兩個 FASTCALL 暫存器參數呼叫它，其餘參數由 filter 直接從堆疊頂端讀，也就是迴圈裡 `_alloca` 複製出來的那份。看起來沒被讀的 `LocalArguments` 不是死碼，`_alloca` 也必須留在迴圈內（FASTCALL 由被呼叫端清堆疊，每個 filter 都會彈掉自己那份）。曾經誤刪過，結果所有被 hook 的程式都起不來（CI run 43233800178）。
 

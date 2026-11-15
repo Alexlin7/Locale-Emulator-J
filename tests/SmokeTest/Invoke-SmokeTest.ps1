@@ -195,6 +195,16 @@ $probeFailures = @()
 Write-Host ""
 Write-Host "Running locale smoke tests..." -ForegroundColor White
 
+# 診斷 log（LE_DIAG_LOG）預設關閉：主測試期間把 TEMP / TMP 指到空目錄、清掉 LE_DIAG_LOG，
+# 跑完後檢查這個目錄沒有產生 log（見 Test-DiagLog）。
+$savedEnv = @{ TEMP = $env:TEMP; TMP = $env:TMP; LE_DIAG_LOG = $env:LE_DIAG_LOG }
+$diagRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("LeDiagSmoke_" + [guid]::NewGuid().ToString('N'))
+$offTemp = Join-Path $diagRoot "off-temp"
+New-Item -ItemType Directory -Path $offTemp -Force | Out-Null
+$env:TEMP = $offTemp
+$env:TMP = $offTemp
+Remove-Item Env:LE_DIAG_LOG -ErrorAction SilentlyContinue
+
 foreach ($test in $TestMatrix) {
     Write-Host ""
     Write-Host "--- $($test.Name) ---" -ForegroundColor Cyan
@@ -337,6 +347,121 @@ foreach ($test in $TestMatrix) {
         $failedTests++
         Write-TestResult -TestName $test.Name -Passed $false -Detail "Exception: $_"
     }
+}
+
+# ============================================================
+# 診斷 log（LE_DIAG_LOG）
+# ============================================================
+# 以 ja-JP 再跑兩次：LE_DIAG_LOG=1（預設目錄 %TEMP%\LocaleEmulator）與 LE_DIAG_LOG=<絕對路徑>，
+# 檢查 LEProc（loader）與 LocaleTestApp（target）各有一份 log、內容含初始化與注入結果。
+# 另外檢查上面 6 個地區（未設定 LE_DIAG_LOG）沒有產生任何 log。
+
+function Invoke-DiagLogRun {
+    param([string]$LogDir)
+
+    $tempConfigPath = $testAppPath + ".le.config"
+    $resultFile = Join-Path (Split-Path $testAppPath) "locale_result.txt"
+    @"
+<?xml version="1.0" encoding="utf-8"?>
+<LEConfig>
+  <Profiles>
+    <Profile Name="SmokeTest_DiagLog" Guid="{$(New-Guid)}" MainMenu="false">
+      <Parameter></Parameter>
+      <Region>ja-JP</Region>
+      <Timezone>Tokyo Standard Time</Timezone>
+      <RunAsAdmin>false</RunAsAdmin>
+      <RedirectRegistry>true</RedirectRegistry>
+      <IsAdvancedRedirection>false</IsAdvancedRedirection>
+      <RunWithSuspend>false</RunWithSuspend>
+    </Profile>
+  </Profiles>
+</LEConfig>
+"@ | Out-File -FilePath $tempConfigPath -Encoding UTF8
+    if (Test-Path $resultFile) { Remove-Item $resultFile -Force }
+
+    try {
+        & $leProcPath -run $testAppPath 2>&1 | Out-Null
+        # LEProc 會等目標結束；保險起見再等 LocaleTestApp 結束，讓 log 寫完、關檔
+        Get-Process LocaleTestApp -ErrorAction SilentlyContinue | Wait-Process -Timeout 15 -ErrorAction SilentlyContinue
+    } finally {
+        if (Test-Path $tempConfigPath) { Remove-Item $tempConfigPath -Force }
+        if (Test-Path $resultFile) { Remove-Item $resultFile -Force }
+    }
+
+    $problems = @()
+    $targetLogs = @(Get-ChildItem -Path $LogDir -Filter "LocaleTestApp.exe.*.log" -ErrorAction SilentlyContinue)
+    $loaderLogs = @(Get-ChildItem -Path $LogDir -Filter "LEProc.exe.*.log" -ErrorAction SilentlyContinue)
+    if ($targetLogs.Count -ne 1) { $problems += "expected 1 LocaleTestApp log in $LogDir, found $($targetLogs.Count)" }
+    if ($loaderLogs.Count -ne 1) { $problems += "expected 1 LEProc log in $LogDir, found $($loaderLogs.Count)" }
+
+    $expect = @()
+    if ($targetLogs.Count -eq 1) {
+        $text = Get-Content $targetLogs[0].FullName -Raw -Encoding Unicode
+        Write-Verbose "---- $($targetLogs[0].Name) ----`n$text"
+        $expect += @(
+            @{ Log = $targetLogs[0].Name; Text = $text; Pattern = 'mode: target' },
+            @{ Log = $targetLogs[0].Name; Text = $text; Pattern = 'leb: from launcher' },
+            @{ Log = $targetLogs[0].Name; Text = $text; Pattern = 'emulate: ACP=932 OEMCP=932 LCID=0x0411' },
+            @{ Log = $targetLogs[0].Name; Text = $text; Pattern = 'InstallHookPort: status=0x00000000' },
+            @{ Log = $targetLogs[0].Name; Text = $text; Pattern = 'init ok' },
+            @{ Log = $targetLogs[0].Name; Text = $text; Pattern = 'hook (?i:USER32\.dll): status=0x00000000' },
+            @{ Log = $targetLogs[0].Name; Text = $text; Pattern = 'dll load (?i:user32\.dll)' }
+        )
+    }
+    if ($loaderLogs.Count -eq 1) {
+        $text = Get-Content $loaderLogs[0].FullName -Raw -Encoding Unicode
+        Write-Verbose "---- $($loaderLogs[0].Name) ----`n$text"
+        $expect += @(
+            @{ Log = $loaderLogs[0].Name; Text = $text; Pattern = 'mode: loader' },
+            @{ Log = $loaderLogs[0].Name; Text = $text; Pattern = 'create process: .*LocaleTestApp\.exe' },
+            @{ Log = $loaderLogs[0].Name; Text = $text; Pattern = 'inject: pid=\d+ status=0x00000000' }
+        )
+    }
+    foreach ($e in $expect) {
+        if ($e.Text -notmatch $e.Pattern) { $problems += "$($e.Log): missing /$($e.Pattern)/" }
+    }
+    return $problems
+}
+
+Write-Host ""
+Write-Host "--- Diagnostic log (LE_DIAG_LOG) ---" -ForegroundColor Cyan
+$totalTests++
+try {
+    $problems = @()
+
+    # 1. 預設關閉：上面的地區測試沒有在 TEMP 底下產生任何東西
+    $leaked = @(Get-ChildItem -Path $offTemp -Recurse -Filter "*.log" -ErrorAction SilentlyContinue)
+    if ($leaked.Count -ne 0) { $problems += "LE_DIAG_LOG unset but logs were written: $($leaked.Name -join ', ')" }
+
+    # 2. LE_DIAG_LOG=1 → %TEMP%\LocaleEmulator
+    $onTemp = Join-Path $diagRoot "on-temp"
+    New-Item -ItemType Directory -Path $onTemp -Force | Out-Null
+    $env:TEMP = $onTemp
+    $env:TMP = $onTemp
+    $env:LE_DIAG_LOG = "1"
+    $problems += @(Invoke-DiagLogRun -LogDir (Join-Path $onTemp "LocaleEmulator") | ForEach-Object { "[LE_DIAG_LOG=1] $_" })
+
+    # 3. LE_DIAG_LOG=<絕對路徑>
+    $explicitDir = Join-Path $diagRoot "explicit"
+    $env:LE_DIAG_LOG = $explicitDir
+    $problems += @(Invoke-DiagLogRun -LogDir $explicitDir | ForEach-Object { "[LE_DIAG_LOG=<dir>] $_" })
+
+    if ($problems.Count -eq 0) {
+        $passedTests++
+        Write-TestResult -TestName "Diagnostic log" -Passed $true
+    } else {
+        $failedTests++
+        Write-TestResult -TestName "Diagnostic log" -Passed $false -Detail ($problems -join "; ")
+    }
+} catch {
+    $failedTests++
+    Write-TestResult -TestName "Diagnostic log" -Passed $false -Detail "Exception: $_"
+} finally {
+    foreach ($name in $savedEnv.Keys) {
+        if ($null -eq $savedEnv[$name]) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
+        else { Set-Item "Env:$name" $savedEnv[$name] }
+    }
+    Remove-Item $diagRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 # ============================================================

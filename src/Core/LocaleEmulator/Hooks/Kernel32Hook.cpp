@@ -180,13 +180,13 @@ NTSTATUS LeSetupAnsiOemCodeHashNodes() {
     if (pKernelBaseDllInitialize == nullptr)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    WriteLog(L"KernelBaseDllInitialize: %p\n", pKernelBaseDllInitialize);
+    WriteLog(L"kernelbase KernelBaseDllInitialize at %p", pKernelBaseDllInitialize);
 
     void* pKernelBaseBaseDllInitialize = GetKthCallTarget(pKernelBaseDllInitialize, 0x20, 2);
     if (pKernelBaseBaseDllInitialize == nullptr)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    WriteLog(L"KernelBaseBaseDllInitialize: %p\n", pKernelBaseBaseDllInitialize);
+    WriteLog(L"kernelbase KernelBaseBaseDllInitialize at %p", pKernelBaseBaseDllInitialize);
 
     void* pBaseNlsDllInitialize = nullptr;
     void* _;
@@ -205,19 +205,19 @@ NTSTATUS LeSetupAnsiOemCodeHashNodes() {
     if (pBaseNlsDllInitialize == nullptr)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    WriteLog(L"BaseNlsDllInitialize: %p\n", pBaseNlsDllInitialize);
+    WriteLog(L"kernelbase BaseNlsDllInitialize at %p", pBaseNlsDllInitialize);
 
     void* pNlsProcessInitialize = GetKthCallTarget(pBaseNlsDllInitialize, 0x30, 1);
     if (pNlsProcessInitialize == nullptr)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    WriteLog(L"NlsProcessInitialize: %p\n", pNlsProcessInitialize);
+    WriteLog(L"kernelbase NlsProcessInitialize at %p", pNlsProcessInitialize);
 
     auto the_func = (pSetupAnsiOemCodeHashNodes)GetKthCallTarget(pNlsProcessInitialize, 0x30, 3);
     if (the_func == nullptr)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    WriteLog(L"SetupAnsiOemCodeHashNodes: %p\n", the_func);
+    WriteLog(L"kernelbase SetupAnsiOemCodeHashNodes at %p", the_func);
 
     the_func();
 
@@ -255,7 +255,7 @@ NTSTATUS LeGlobalData::HookKernel32Routines(PVOID Kernel32)
 
     Status = this->HackAnsiOemCodeHashNodes();
 
-    WriteLog(L"hook k32: %p", Status);
+    WriteLog(L"HookKernel32Routines: status=0x%08X", Status);
 
     return Status;
 }

@@ -43,6 +43,20 @@ The native hooking core (`src/Core/`) originates from [Locale-Emulator-Core](htt
 - **Runtime**: .NET 10 (framework-dependent deployment)
 - **Target applications**: x86 (32-bit) executables only (Core hooking engine limitation)
 
+## Troubleshooting: diagnostic log
+
+If an application does not behave as expected under Locale Emulator, you can turn on a diagnostic log. Set the environment variable `LE_DIAG_LOG` before launching:
+
+```bat
+set LE_DIAG_LOG=1
+LEProc.exe -run "C:\path\to\app.exe"
+```
+
+- `1` (or any value that is not an absolute path) writes to `%TEMP%\LocaleEmulator\`; an absolute path such as `D:\LeLogs` writes there instead. `0`, `off` or unset turns it off (the default).
+- Each process gets its own file, `<exe name>.<PID>.log` (UTF-16): one for LEProc and one for the application (and for each child process it starts). It records the emulated code page / locale / time zone, each initialization step with its status code, loaded DLLs, which hooks were installed, and child process injection.
+- To use it with the right-click menu, set it as a user environment variable (`setx LE_DIAG_LOG 1`, then restart Explorer or sign out and in), and run `setx LE_DIAG_LOG 0` afterwards.
+- Log files are not deleted automatically. They contain full file paths (which usually include your Windows user name); review them before sharing.
+
 ## Build
 
 ### Prerequisites
