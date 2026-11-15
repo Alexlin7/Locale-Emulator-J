@@ -108,6 +108,8 @@ Release（`.github/workflows/release.yml`，只能在 `master` 手動觸發）�
 
 CodeQL（`.github/workflows/codeql.yml`）分析 C#（不建置）與 C/C++（Core x86、ShellExtension x64），結果在 GitHub 的 Security → Code scanning 與 PR 上；`ml.h` / `ml.cpp`、`pugixml` 的結果會被濾掉。另有專案自訂查詢（`.github/codeql/le-queries/`），把鐵則寫成自動檢查。說明見 `docs/guides/codeql.md`。
 
+SonarQube Cloud 以自動分析掃描 repo，PR 上會有 Quality Gate 摘要留言、檢查項目與新問題的行內標註；排除清單在 `.sonarcloud.properties`（與 CodeQL 相同：`ml.h` / `ml.cpp`、`pugixml`，路徑逐一列出，不用萬用字元）。全部 issues 可用公開 API 讀取：`https://sonarcloud.io/api/issues/search?componentKeys=Alexlin7_Locale-Emulator-J&resolved=false`。
+
 **建置產出：**
 
 ```
