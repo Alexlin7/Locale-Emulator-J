@@ -1,12 +1,14 @@
 #nullable disable
 
 using System.Windows;
-using System.Windows.Input;
+using System.Windows.Controls;
 
 namespace LEGUI;
 
 /// <summary>
-///     Interaction logic for InputBox.xaml
+///     Single-line text prompt (e.g. the name of a new global profile).
+///     Enter confirms (<see cref="Button.IsDefault" />), Esc cancels (<see cref="Button.IsCancel" />),
+///     and the confirm button stays disabled while the text is blank.
 /// </summary>
 public partial class InputBox : Window
 {
@@ -14,18 +16,20 @@ public partial class InputBox : Window
     {
         InitializeComponent();
 
-        tbText.Focus();
+        // Set here rather than with an ElementName binding, which only resolves once shown.
+        lText.Target = tbText;
     }
 
     public string Instruction
     {
-        get { return lText.Content.ToString(); }
+        get { return lText.Content?.ToString(); }
         set { lText.Content = value; }
     }
 
+    /// <summary>The entered text without leading or trailing white space.</summary>
     public string Text
     {
-        get { return tbText.Text; }
+        get { return tbText.Text.Trim(); }
         set { tbText.Text = value; }
     }
 
@@ -41,22 +45,19 @@ public partial class InputBox : Window
         set { bCancel.Content = value; }
     }
 
+    private void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        tbText.Focus();
+        tbText.SelectAll();
+    }
+
+    private void tbText_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        bOk.IsEnabled = !string.IsNullOrWhiteSpace(tbText.Text);
+    }
+
     private void bOk_Click(object sender, RoutedEventArgs e)
     {
         DialogResult = true;
-    }
-
-    private void bCancel_Click(object sender, RoutedEventArgs e)
-    {
-        DialogResult = false;
-    }
-
-    private void tbText_PreviewKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter)
-        {
-            e.Handled = true;
-            DialogResult = true;
-        }
     }
 }

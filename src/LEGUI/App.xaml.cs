@@ -42,6 +42,16 @@ public partial class App : Application
             return;
         }
 
+        // LEInstaller.exe opens only the Shell Extension panel. It touches neither
+        // LEConfig.xml nor profiles, so the directory permission check below is skipped;
+        // HKLM writes elevate through the --shell-ext sub-process as in the main window.
+        if (ShellExtCliCommand.IsInstallerMode(e.Args))
+        {
+            I18n.LoadLanguage();
+            Current.StartupUri = new Uri("InstallerWindow.xaml", UriKind.RelativeOrAbsolute);
+            return;
+        }
+
         if (e.Args.Length != 0)
         {
             StandaloneFilePath = SystemHelper.EnsureAbsolutePath(e.Args[0]);
