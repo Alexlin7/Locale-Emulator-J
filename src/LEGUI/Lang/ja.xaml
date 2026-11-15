@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">ディレクトリに書き込み権限がありません。&#x0A;代わりにグローバルプロファイルを使用してください。&#x0A;現在のディレクトリ：{0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">インストールディレクトリに書き込み権限がありません。&#x0A;LE を別の場所に移動してから再試行してください。&#x0A;インストールディレクトリ：{0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI グローバル</system:String>
+    <system:String x:Key="ImportProfiles">インポート...</system:String>
+    <system:String x:Key="ImportProfilesNone">プロファイルが見つかりませんでした：&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">{0} 個のプロファイルをインポートしました。既に存在する {1} 個（名前または GUID が同じ）はスキップしました。</system:String>
     <system:String x:Key="InstallAllUsers">インストール（すべてのユーザー）</system:String>
     <system:String x:Key="InstallCurrentUser">インストール（現在のユーザー）</system:String>
     <system:String x:Key="Installed">インストール済み</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">すべてのユーザー &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">旧登録をクリーンアップ</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">現在のユーザー</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">旧バージョンのプロファイルもインポートする：</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; 旧バージョンの残存を検出</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension の操作に失敗しました：{0}</system:String>
     <system:String x:Key="Shortcut">ショートカットを作成</system:String>

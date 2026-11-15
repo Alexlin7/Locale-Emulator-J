@@ -32,6 +32,15 @@
         </GroupBox>
         <StackPanel x:Name="cleanupSection" Visibility="Collapsed" Margin="0,8">
             <TextBlock Text="{DynamicResource ShellExtOldResidueDetected}" Foreground="DarkRed" />
+            <!-- Shown when the old version's LEConfig.xml was found: import it before the
+                 cleanup removes the registration that points to it. -->
+            <StackPanel x:Name="importOldSection" Visibility="Collapsed" Margin="0,4,0,0">
+                <CheckBox x:Name="cbImportOld" IsChecked="True">
+                    <TextBlock Text="{DynamicResource ShellExtImportOldProfiles}" TextWrapping="Wrap" />
+                </CheckBox>
+                <TextBlock x:Name="tOldConfigPath" Margin="20,2,0,0" Foreground="DimGray"
+                           TextWrapping="Wrap" FontSize="11" />
+            </StackPanel>
             <Button x:Name="bCleanupOld" Content="{DynamicResource ShellExtCleanupOld}" MinWidth="180"
                     HorizontalAlignment="Left" Margin="0,4,0,0" Click="bCleanupOld_Click" />
         </StackPanel>

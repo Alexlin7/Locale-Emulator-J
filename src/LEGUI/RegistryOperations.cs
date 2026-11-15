@@ -34,6 +34,20 @@ internal sealed class RegistryOperations : IRegistryOperations
         using var key = baseKey.OpenSubKey(subKey, false);
         return key != null;
     }
+
+    public string? GetStringValue(RegistryHive hive, string subKey, RegistryView view, string? name)
+    {
+        using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+        using var key = baseKey.OpenSubKey(subKey, false);
+        return key?.GetValue(name) as string;
+    }
+
+    public string[] GetSubKeyNames(RegistryHive hive, string subKey, RegistryView view)
+    {
+        using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+        using var key = baseKey.OpenSubKey(subKey, false);
+        return key?.GetSubKeyNames() ?? [];
+    }
 }
 
 internal sealed class RegistryKeyWrapper : IRegistryKeyWrapper

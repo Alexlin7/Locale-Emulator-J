@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">Das Verzeichnis ist nicht beschreibbar.&#x0A;Bitte verwenden Sie stattdessen ein globales Profil.&#x0A;Aktuelles Verzeichnis: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Das Installationsverzeichnis ist nicht beschreibbar.&#x0A;Bitte verschieben Sie LE an einen anderen Ort und versuchen Sie es erneut.&#x0A;Installationsverzeichnis: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportProfiles">Importieren...</system:String>
+    <system:String x:Key="ImportProfilesNone">Keine Profile gefunden in:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">{0} Profil(e) importiert. {1} bereits vorhandene übersprungen (gleicher Name oder GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Installieren (Alle Benutzer)</system:String>
     <system:String x:Key="InstallCurrentUser">Installieren (Aktueller Benutzer)</system:String>
     <system:String x:Key="Installed">Installiert</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Alle Benutzer &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Alte Registrierung bereinigen</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Aktueller Benutzer</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">Auch die Profile der alten Version importieren aus:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Rückstände einer alten Version erkannt</system:String>
     <system:String x:Key="ShellExtOperationFailed">Vorgang der Shell Extension fehlgeschlagen: {0}</system:String>
     <system:String x:Key="Shortcut">Verknüpfung anlegen</system:String>

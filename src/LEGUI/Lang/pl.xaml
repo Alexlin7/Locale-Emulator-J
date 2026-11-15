@@ -23,6 +23,9 @@
     <system:String x:Key="ErrorDirNotWritable">Katalog nie ma uprawnień do zapisu.&#x0A;Użyj profilu globalnego.&#x0A;Bieżący katalog: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Katalog instalacji nie ma uprawnień do zapisu.&#x0A;Przenieś LE w inne miejsce i spróbuj ponownie.&#x0A;Katalog instalacji: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBALNY</system:String>
+    <system:String x:Key="ImportProfiles">Importuj ...</system:String>
+    <system:String x:Key="ImportProfilesNone">Nie znaleziono profili w:&#x0A;{0}</system:String>
+    <system:String x:Key="ImportProfilesResult">Zaimportowano profile: {0}. Pominięto już istniejące (ta sama nazwa lub GUID): {1}.</system:String>
     <system:String x:Key="InstallAllUsers">Zainstaluj (wszyscy użytkownicy)</system:String>
     <system:String x:Key="InstallCurrentUser">Zainstaluj (bieżący użytkownik)</system:String>
     <system:String x:Key="Installed">Zainstalowano</system:String>
@@ -45,6 +48,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Wszyscy użytkownicy &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Wyczyść starą rejestrację</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Bieżący użytkownik</system:String>
+    <system:String x:Key="ShellExtImportOldProfiles">Zaimportuj także profile starej wersji z:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Wykryto pozostałości starej wersji</system:String>
     <system:String x:Key="ShellExtOperationFailed">Operacja Shell Extension nie powiodła się: {0}</system:String>
     <system:String x:Key="Shortcut">Utwórz skrót</system:String>
