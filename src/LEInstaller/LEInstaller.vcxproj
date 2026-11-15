@@ -48,9 +48,9 @@
 
   <PropertyGroup Label="UserMacros" />
 
-  <!-- LEInstaller.exe sits at the product root, next to the x86\ and x64\ folders. -->
+  <!-- LEInstaller.exe sits in the product folder with LEGUI.exe (Build\<config>\x86\). -->
   <PropertyGroup>
-    <OutDir>$(SolutionDir)Build\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)Build\$(Configuration)\x86\</OutDir>
     <IntDir>$(SolutionDir)Build\Intermediate\LEInstaller\$(Configuration)\Win32\</IntDir>
     <TargetName>LEInstaller</TargetName>
   </PropertyGroup>

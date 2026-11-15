@@ -22,7 +22,7 @@ constexpr Strings kEnglish{
     L"The downloaded file is not signed by Microsoft. It was deleted and not run.\nOpen the download page and install it yourself.",
     L"The installer ended with error code {}.\nOpen the download page and install it yourself.",
     L"This version of Locale Emulator requires 64-bit Windows.",
-    L"x86\\LEGUI.exe was not found next to LEInstaller.exe.\nExtract the whole zip file, keeping the x86 and x64 folders, then run LEInstaller.exe again.",
+    L"LEGUI.exe was not found next to LEInstaller.exe.\nExtract all files of the zip into one folder, then run LEInstaller.exe again.",
     L"LEGUI could not be started ({}).",
 };
 
@@ -41,7 +41,7 @@ constexpr Strings kTraditionalChinese{
     L"下載的檔案沒有微軟的數位簽章，已刪除且沒有執行。\n請開啟下載頁自行安裝。",
     L"安裝程式結束時回傳錯誤碼 {}。\n請開啟下載頁自行安裝。",
     L"這個版本的 Locale Emulator 需要 64 位元的 Windows。",
-    L"在 LEInstaller.exe 旁邊找不到 x86\\LEGUI.exe。\n請把 zip 完整解壓縮（保留 x86 和 x64 資料夾），再執行一次 LEInstaller.exe。",
+    L"在 LEInstaller.exe 旁邊找不到 LEGUI.exe。\n請把 zip 的所有檔案解壓縮到同一個資料夾，再執行一次 LEInstaller.exe。",
     L"無法啟動 LEGUI（{}）。",
 };
 
@@ -60,7 +60,7 @@ constexpr Strings kSimplifiedChinese{
     L"下载的文件没有微软的数字签名，已删除且未运行。\n请打开下载页面自行安装。",
     L"安装程序结束时返回错误代码 {}。\n请打开下载页面自行安装。",
     L"此版本的 Locale Emulator 需要 64 位 Windows。",
-    L"在 LEInstaller.exe 旁边找不到 x86\\LEGUI.exe。\n请完整解压 zip 文件（保留 x86 和 x64 文件夹），再运行一次 LEInstaller.exe。",
+    L"在 LEInstaller.exe 旁边找不到 LEGUI.exe。\n请把 zip 中的所有文件解压到同一个文件夹，再运行一次 LEInstaller.exe。",
     L"无法启动 LEGUI（{}）。",
 };
 
@@ -79,7 +79,7 @@ constexpr Strings kJapanese{
     L"ダウンロードしたファイルに Microsoft のデジタル署名がないため、削除して実行しませんでした。\nダウンロード ページを開いてご自身でインストールしてください。",
     L"インストーラーがエラー コード {} で終了しました。\nダウンロード ページを開いてご自身でインストールしてください。",
     L"このバージョンの Locale Emulator には 64 ビット版の Windows が必要です。",
-    L"LEInstaller.exe と同じ場所に x86\\LEGUI.exe が見つかりません。\nzip ファイルを x86 と x64 フォルダーごとすべて展開してから、もう一度 LEInstaller.exe を実行してください。",
+    L"LEInstaller.exe と同じ場所に LEGUI.exe が見つかりません。\nzip ファイルのすべてのファイルを同じフォルダーに展開してから、もう一度 LEInstaller.exe を実行してください。",
     L"LEGUI を起動できませんでした（{}）。",
 };
 

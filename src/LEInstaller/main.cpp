@@ -1,6 +1,6 @@
 // src/LEInstaller/main.cpp
 // LEInstaller.exe: makes sure the .NET 10 Desktop Runtime (x86 + x64) is installed,
-// then opens LEGUI's installer window (x86\LEGUI.exe --installer), which registers the
+// then opens LEGUI's installer window (LEGUI.exe --installer, same folder), which registers the
 // context menu. Native and statically linked so that it runs before .NET is installed.
 // Design: docs/superpowers/specs/2026-11-15-leinstaller-design.md
 
@@ -314,7 +314,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     const HRESULT co = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
     int exitCode = 0;
-    const fs::path legui = ExeDirectory() / L"x86" / L"LEGUI.exe";
+    // Single product folder (docs/superpowers/specs/2026-11-16-flat-product-layout.md).
+    const fs::path legui = ExeDirectory() / L"LEGUI.exe";
 
     if (!Is64BitWindows())
     {
