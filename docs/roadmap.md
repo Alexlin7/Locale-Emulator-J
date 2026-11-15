@@ -65,6 +65,7 @@
 
 ### 已完成（最近）
 
+- [x] **64 位元目標的提示**：LEProc 啟動前讀目標的 PE 標頭（`LaunchPreconditions.GetTargetArchitecture`），x64 / ARM64 / 在 64 位元 Windows 上的 AnyCPU .NET Framework 程式顯示「只支援 32 位元」後結束，不再進到 LoaderDll。單元測試 `TargetArchitectureTests`；本機以 64 位元的 `7z.exe` 確認訊息、smoke test 6 個地區全綠
 - [x] **LEProc 偶發當機（「按了沒反應、要多按幾次」）**：原因是 `LoaderDll` 的 `LeCreateProcess` 把 LEB 複製進 LePeb 時長度重複計算了標頭與 registry 轉向項目，多讀呼叫端緩衝區結尾之後數百 bytes；LEProc 的 `AllocHGlobal` 緩衝區剛好在分頁結尾時就存取違規（事件記錄顯示 coreclr 是因為例外經 CLR 的處理常式回報）。只在有 registry 轉向項目時發生（預設開啟）。修正前 CI 壓力測試 200 次中 3 次當機（run 43274267214、43275813726，dump 都停在 `LoaderDll!my_memcpy_inline`），修正後 400 次 0 次、smoke test 全綠（run 43277547131）。壓力測試：`tests/SmokeTest/Invoke-LaunchStress.ps1`，CI 以 `launch_stress` 輸入手動觸發。紀錄見 `docs/superpowers/plans/2026-11-12-leproc-intermittent-crash.md`
 - [x] **系統 ACP 65001（UTF-8 beta）下的亂碼**：一款 ExHIBIT 引擎的遊戲在原版 LE 2.5.0.1 與較早的 fork 版下劇本呈「縺ゅ」型亂碼，**目前的 fork 版（3.0.0.0）正常**（使用者實測）。原因由使用者主機上的 `Invoke-LocalProbe.ps1`（OS build 26300、ACP 65001）確認：原版經 LE 後 `GetACP()` 回報 932，但 ntdll `Rtl*` 轉換仍用 UTF-8（「日」轉成 `E697A5` 而非 `93FA`），27 項 CHECK / PROBE 失敗，集中在 `Rtl*`、ANSI 檔案 API、user32 視窗文字、環境變數與目前目錄；fork 版同一組參數 0 項失敗。即 `src/Core/AGENTS.md` 鐵則 4 的 NLS 表替換失效，由 `LeRtl*` hook 修正。
 - [x] smoke test 輸出 OS 版本（`INFO_OS_VERSION`）
