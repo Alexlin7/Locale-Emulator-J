@@ -141,7 +141,7 @@ public partial class App : Application
                     registrar.Register(cli.Mode, dllPath);
                     // Elevated, so this also works for a folder only administrators can write
                     // (e.g. Program Files). See DownloadMark.
-                    DownloadMark.RemoveFromDirectory(installDir);
+                    DownloadMark.RemoveFromProductFiles(installDir);
                     break;
                 case ShellExtCliCommand.Verb.Uninstall:
                     registrar.Unregister(cli.Mode);
