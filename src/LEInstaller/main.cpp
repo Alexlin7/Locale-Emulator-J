@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "Download.h"
+#include "InstallSteps.h"
 #include "RuntimeCheck.h"
 #include "Signature.h"
 #include "Strings.h"
@@ -202,13 +203,6 @@ HRESULT DownloadWithProgress(Arch arch, const fs::path& file)
 
 // ---- Install one runtime ----
 
-enum class StepResult
-{
-    Installed,
-    Cancelled,
-    Failed
-};
-
 StepResult DownloadAndInstall(Arch arch)
 {
     wchar_t temp[MAX_PATH] = {};
@@ -281,6 +275,9 @@ bool LaunchLegui(const fs::path& legui)
 
     SHELLEXECUTEINFOW sei{};
     sei.cbSize = sizeof(sei);
+    // The user already chose to run LEInstaller from this folder: no second
+    // "Open File - Security Warning" for LEGUI.exe when the zip was not unblocked.
+    sei.fMask = SEE_MASK_NOZONECHECKS;
     sei.lpVerb = L"open";
     sei.lpFile = legui.c_str();
     sei.lpParameters = L"--installer";
@@ -349,12 +346,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 break;
             }
 
-            bool failed = false;
-            if (!status.hasX86)
-                failed = DownloadAndInstall(Arch::X86) == StepResult::Failed;
-            if (!failed && status.NeedsX64())
-                failed = DownloadAndInstall(Arch::X64) == StepResult::Failed;
-            if (failed)
+            if (InstallMissingRuntimes(status, DownloadAndInstall) == StepResult::Failed)
             {
                 exitCode = 1;
                 break;

@@ -109,6 +109,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Download.h" />
+    <ClInclude Include="InstallSteps.h" />
     <ClInclude Include="RuntimeCheck.h" />
     <ClInclude Include="Signature.h" />
     <ClInclude Include="Strings.h" />

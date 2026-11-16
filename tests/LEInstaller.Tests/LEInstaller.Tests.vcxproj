@@ -109,6 +109,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\LEInstaller\Download.h" />
+    <ClInclude Include="..\..\src\LEInstaller\InstallSteps.h" />
     <ClInclude Include="..\..\src\LEInstaller\RuntimeCheck.h" />
     <ClInclude Include="..\..\src\LEInstaller\Signature.h" />
     <ClInclude Include="..\..\src\LEInstaller\Strings.h" />
