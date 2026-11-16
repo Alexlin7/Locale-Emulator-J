@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">De map is niet beschrijfbaar.&#x0A;Gebruik in plaats daarvan het globale profiel.&#x0A;Huidige map: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Installatiemap is niet beschrijfbaar.&#x0A;Verplaats LE naar een andere locatie en probeer het opnieuw.&#x0A;Installatiemap: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAAL</system:String>
+    <system:String x:Key="ImportConflict">Er bestaat al een profiel met de naam "{0}" met andere instellingen.&#x0A;&#x0A;Ja: vervangen door de geïmporteerde instellingen&#x0A;Nee: het geïmporteerde profiel onder een nieuwe naam opslaan&#x0A;Annuleren: overslaan</system:String>
     <system:String x:Key="ImportProfiles">Importeren ...</system:String>
+    <system:String x:Key="ImportProfilesFailed">De profielen konden niet worden geïmporteerd. Er is niets gewijzigd.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">Geen profielen gevonden in:&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">{0} profiel(en) geïmporteerd. {1} overgeslagen die al bestaan (zelfde naam of GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Installeren (alle gebruikers)</system:String>
     <system:String x:Key="InstallCurrentUser">Installeren (huidige gebruiker)</system:String>
     <system:String x:Key="Installed">Geïnstalleerd</system:String>
+    <system:String x:Key="InstalledElsewhere">Geïnstalleerd (andere map)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">Status:</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension succesvol geïnstalleerd. Herstart Explorer of log uit om de wijzigingen toe te passen.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">Diversen</system:String>
     <system:String x:Key="NotInstalled">Niet geïnstalleerd</system:String>
     <system:String x:Key="Ok">OK</system:String>
+    <system:String x:Key="ProfileNameExists">Er bestaat al een profiel met de naam "{0}". Kies een andere naam.</system:String>
     <system:String x:Key="RedirectRegistry">Nep-register</system:String>
     <system:String x:Key="RedirectRegistryTip">Onderschept Register-leesacties voor locale-gerelateerde sleutels en geeft de geëmuleerde locale terug in plaats van die van het systeem.</system:String>
     <system:String x:Key="Region">Regio</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Alle gebruikers &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Oude registratie opschonen</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Huidige gebruiker</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">De profielen van de oude versie konden niet worden geïmporteerd, daarom is de registratie niet opgeruimd. U kunt het opnieuw proberen.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">Ook de profielen van de oude versie importeren uit:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Resten van oude versie gedetecteerd</system:String>
     <system:String x:Key="ShellExtOperationFailed">Bewerking Shell Extension mislukt: {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">Tijdzone instellingen</system:String>
     <system:String x:Key="Uninstall">Verwijderen</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension succesvol verwijderd. Herstart Explorer of log uit om de wijzigingen toe te passen.</system:String>
+    <system:String x:Key="UpdateToThisFolder">Bijwerken naar deze map</system:String>
     <system:String x:Key="WithCreateSuspended">Proces onderbroken starten (voor foutopsporing)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">Maak het doelproces in onderbroken toestand aan (geavanceerde foutopsporingsoptie).</system:String>
 </ResourceDictionary>

@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">Mappen kan ikke skrives til.&#x0A;Bruk global profil i stedet.&#x0A;Gjeldende mappe: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Installasjonsmappen kan ikke skrives til.&#x0A;Flytt LE til et annet sted og prøv igjen.&#x0A;Installasjonsmappe: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportConflict">En profil med navnet «{0}» finnes allerede med andre innstillinger.&#x0A;&#x0A;Ja: erstatt den med de importerte innstillingene&#x0A;Nei: lagre den importerte profilen med et nytt navn&#x0A;Avbryt: hopp over</system:String>
     <system:String x:Key="ImportProfiles">Importer ...</system:String>
+    <system:String x:Key="ImportProfilesFailed">Profilene kunne ikke importeres. Ingenting ble endret.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">Fant ingen profiler i:&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">Importerte {0} profil(er). Hoppet over {1} som allerede finnes (samme navn eller GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Installer (alle brukere)</system:String>
     <system:String x:Key="InstallCurrentUser">Installer (gjeldende bruker)</system:String>
     <system:String x:Key="Installed">Installert</system:String>
+    <system:String x:Key="InstalledElsewhere">Installert (annen mappe)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">Status:</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension ble installert. Start Explorer på nytt eller logg av for at endringene skal tre i kraft.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">Diverse</system:String>
     <system:String x:Key="NotInstalled">Ikke installert</system:String>
     <system:String x:Key="Ok">OK</system:String>
+    <system:String x:Key="ProfileNameExists">En profil med navnet «{0}» finnes allerede. Velg et annet navn.</system:String>
     <system:String x:Key="RedirectRegistry">Imiter et systemregister</system:String>
     <system:String x:Key="RedirectRegistryTip">Fang opp registerlesinger for språkrelaterte nøkler, og returner den emulerte lokaliteten i stedet for systemets.</system:String>
     <system:String x:Key="Region">Region</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Alle brukere &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Rydd opp i gammel registrering</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Gjeldende bruker</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">Profilene fra den gamle versjonen kunne ikke importeres, så registreringen ble ikke ryddet opp. Du kan prøve igjen.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">Importer også profilene fra den gamle versjonen fra:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Rester fra gammel versjon oppdaget</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension-operasjon mislyktes: {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">Tidssoneinnstillinger</system:String>
     <system:String x:Key="Uninstall">Avinstaller</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension ble avinstallert. Start Explorer på nytt eller logg av for at endringene skal tre i kraft.</system:String>
+    <system:String x:Key="UpdateToThisFolder">Oppdater til denne mappen</system:String>
     <system:String x:Key="WithCreateSuspended">Start prosessen i pausetilstand (for feilsøking)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">Opprett målprosessen i pausetilstand (avansert feilsøkingsalternativ).</system:String>
 </ResourceDictionary>

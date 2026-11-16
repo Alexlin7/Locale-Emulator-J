@@ -34,15 +34,11 @@ public partial class ShellExtensionPanel : UserControl
     internal Func<string, object[], string> FormatMessage = I18n.Format;
 
     /// <summary>
-    /// Imports a config file into this installation's global profiles. Replaceable in tests.
-    /// LEConfig.xml is created with the default profiles first: in the installer window it
-    /// may not exist yet, and the import would otherwise leave only the imported profiles.
+    /// Imports a config file into this installation's global profiles, asking about profiles
+    /// whose name is already used (see <see cref="ProfileImportDialog.ImportIntoGlobalConfig" />).
+    /// Throws when the import could not be saved. Replaceable in tests.
     /// </summary>
-    internal Func<string, LEConfig.ImportResult> ImportProfiles = path =>
-    {
-        LEConfig.CheckGlobalConfigFile(true);
-        return LEConfig.ImportGlobalProfiles(path);
-    };
+    internal Func<string, LEConfig.ImportResult> ImportProfiles;
 
     /// <summary>
     /// Removes the Mark of the Web from this LE folder after a successful install
@@ -61,6 +57,7 @@ public partial class ShellExtensionPanel : UserControl
     public ShellExtensionPanel()
     {
         InitializeComponent();
+        ImportProfiles = path => ProfileImportDialog.ImportIntoGlobalConfig(path, Window.GetWindow(this));
     }
 
     /// <summary>Wire up install/uninstall actions. AllUsers mode when !isAdmin is routed
@@ -84,7 +81,7 @@ public partial class ShellExtensionPanel : UserControl
             new RegistryOperations(),
             ShellExtensionConstants.NewClsid);
 
-        RemoveDownloadMark = () => DownloadMark.RemoveFromDirectory(installDir);
+        RemoveDownloadMark = () => DownloadMark.RemoveFromProductFiles(installDir);
         FindOldConfig = () => LegacyInstallation.FindOldGlobalConfig(new RegistryOperations(), File.Exists);
         SetCommand(registrar, dllPath, SystemHelper.IsAdministrator());
         RefreshStatus();
@@ -94,16 +91,10 @@ public partial class ShellExtensionPanel : UserControl
     {
         if (_command == null) return;
 
-        var cuInstalled = _command.IsInstalled(ShellExtensionRegistrar.InstallMode.CurrentUser);
-        var auInstalled = _command.IsInstalled(ShellExtensionRegistrar.InstallMode.AllUsers);
-
-        tStatusCurrentUser.Text = " " + I18n.GetString(cuInstalled ? "Installed" : "NotInstalled");
-        tStatusAllUsers.Text = " " + I18n.GetString(auInstalled ? "Installed" : "NotInstalled");
-
-        bInstallCurrentUser.IsEnabled = !cuInstalled;
-        bUninstallCurrentUser.IsEnabled = cuInstalled;
-        bInstallAllUsers.IsEnabled = !auInstalled;
-        bUninstallAllUsers.IsEnabled = auInstalled;
+        ShowModeStatus(ShellExtensionRegistrar.InstallMode.CurrentUser,
+                       tStatusCurrentUser, tPathCurrentUser, bInstallCurrentUser, bUninstallCurrentUser);
+        ShowModeStatus(ShellExtensionRegistrar.InstallMode.AllUsers,
+                       tStatusAllUsers, tPathAllUsers, bInstallAllUsers, bUninstallAllUsers);
 
         var hasOld = _command.HasOldRegistration();
         cleanupSection.Visibility = hasOld ? Visibility.Visible : Visibility.Collapsed;
@@ -111,6 +102,53 @@ public partial class ShellExtensionPanel : UserControl
         _oldConfigPath = hasOld ? FindOldConfig() : null;
         importOldSection.Visibility = _oldConfigPath != null ? Visibility.Visible : Visibility.Collapsed;
         tOldConfigPath.Text = _oldConfigPath ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Installed here, not installed, or installed for another folder (LE moved, or a newer
+    /// version extracted elsewhere): then the old path is shown and the install button
+    /// becomes "Update to this folder", which registers this folder's DLL over it.
+    /// </summary>
+    private void ShowModeStatus(ShellExtensionRegistrar.InstallMode mode,
+                                System.Windows.Documents.Run status,
+                                TextBlock path,
+                                Button install,
+                                Button uninstall)
+    {
+        var installed = _command.IsInstalled(mode);
+        var registered = installed ? _command.GetRegisteredDllPath(mode) : null;
+        var elsewhere = registered != null && !IsSamePath(registered, _dllPath);
+
+        string statusKey;
+        if (!installed)
+            statusKey = "NotInstalled";
+        else if (elsewhere)
+            statusKey = "InstalledElsewhere";
+        else
+            statusKey = "Installed";
+        status.Text = " " + I18n.GetString(statusKey);
+
+        path.Text = elsewhere ? registered : string.Empty;
+        path.Visibility = elsewhere ? Visibility.Visible : Visibility.Collapsed;
+
+        var installKey = mode == ShellExtensionRegistrar.InstallMode.AllUsers ? "InstallAllUsers" : "InstallCurrentUser";
+        install.SetResourceReference(ContentControl.ContentProperty, elsewhere ? "UpdateToThisFolder" : installKey);
+        install.IsEnabled = !installed || elsewhere;
+        uninstall.IsEnabled = installed;
+    }
+
+    internal static bool IsSamePath(string a, string b)
+    {
+        if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b))
+            return string.IsNullOrEmpty(a) && string.IsNullOrEmpty(b);
+        try
+        {
+            return string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private async void bInstallCurrentUser_Click(object sender, RoutedEventArgs e)
@@ -127,12 +165,23 @@ public partial class ShellExtensionPanel : UserControl
 
     private async void bCleanupOld_Click(object sender, RoutedEventArgs e)
     {
-        // Import first: the cleanup deletes the registration that tells where the old folder is.
-        // It runs in this (non-elevated) process because it writes this installation's LEConfig.xml.
+        // Import first: the cleanup deletes the registration that tells where the old folder is,
+        // so it only runs once the import was saved. The import runs in this (non-elevated)
+        // process because it writes this installation's LEConfig.xml.
         string importMessage = null;
         if (_oldConfigPath != null && cbImportOld.IsChecked == true)
         {
-            var result = ImportProfiles(_oldConfigPath);
+            LEConfig.ImportResult result;
+            try
+            {
+                result = ImportProfiles(_oldConfigPath);
+            }
+            catch (Exception ex)
+            {
+                // Not saved: keep the old registration, the only record of where the old folder is.
+                ShowMessage(FormatMessage("ShellExtImportFailedOldKept", [ex.Message]));
+                return;
+            }
             if (result.Imported > 0)
                 ProfilesImported?.Invoke(this, EventArgs.Empty);
             importMessage = result.Imported + result.Skipped > 0

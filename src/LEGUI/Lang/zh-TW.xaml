@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">目錄無寫入權限。&#x0A;請改用全域設定。&#x0A;目前目錄：{0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">安裝目錄無寫入權限。&#x0A;請將 LE 移至其他位置後重試。&#x0A;安裝目錄：{0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI 全域設定</system:String>
+    <system:String x:Key="ImportConflict">已經有名為「{0}」的設定，但內容不同。&#x0A;&#x0A;是：以匯入的設定取代&#x0A;否：以新名稱另存匯入的設定&#x0A;取消：略過這個設定</system:String>
     <system:String x:Key="ImportProfiles">匯入...</system:String>
+    <system:String x:Key="ImportProfilesFailed">無法匯入設定，沒有做任何變更。&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">在下列檔案中找不到設定：&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">已匯入 {0} 個設定，略過 {1} 個已存在的設定（名稱或 GUID 相同）。</system:String>
     <system:String x:Key="InstallAllUsers">安裝（所有使用者）</system:String>
     <system:String x:Key="InstallCurrentUser">安裝（目前使用者）</system:String>
     <system:String x:Key="Installed">已安裝</system:String>
+    <system:String x:Key="InstalledElsewhere">已安裝（其他資料夾）</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">狀態：</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension 安裝成功。請重新啟動檔案總管或登出以套用變更。</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">其他</system:String>
     <system:String x:Key="NotInstalled">未安裝</system:String>
     <system:String x:Key="Ok">確定</system:String>
+    <system:String x:Key="ProfileNameExists">已經有名為「{0}」的設定，請換一個名稱。</system:String>
     <system:String x:Key="RedirectRegistry">偽造登錄檔中語言相關選項</system:String>
     <system:String x:Key="RedirectRegistryTip">攔截目標程序對 locale 相關登錄檔機碼的讀取，回傳模擬的 locale 而非系統實際值。</system:String>
     <system:String x:Key="Region">地區</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">所有使用者 &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">清理舊版註冊</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">目前使用者</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">無法匯入舊版的設定，因此沒有清理舊版註冊，可以修正後再試一次。&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">同時匯入舊版的設定：</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; 偵測到舊版殘留</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension 操作失敗：{0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">時區設定</system:String>
     <system:String x:Key="Uninstall">解除安裝</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension 已解除安裝。請重新啟動檔案總管或登出以套用變更。</system:String>
+    <system:String x:Key="UpdateToThisFolder">更新到此資料夾</system:String>
     <system:String x:Key="WithCreateSuspended">暫停啟動程序（除錯用）</system:String>
     <system:String x:Key="WithCreateSuspendedTip">以暫停狀態建立目標程序（進階除錯選項）。</system:String>
 </ResourceDictionary>

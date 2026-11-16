@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">Direktori tidak dapat ditulis.&#x0A;Silakan gunakan profil global sebagai gantinya.&#x0A;Direktori saat ini: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Direktori instalasi tidak dapat ditulis.&#x0A;Silakan pindahkan LE ke lokasi lain dan coba lagi.&#x0A;Direktori instalasi: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportConflict">Profil bernama "{0}" sudah ada dengan pengaturan yang berbeda.&#x0A;&#x0A;Ya: ganti dengan pengaturan yang diimpor&#x0A;Tidak: simpan profil yang diimpor dengan nama baru&#x0A;Batal: lewati</system:String>
     <system:String x:Key="ImportProfiles">Impor ...</system:String>
+    <system:String x:Key="ImportProfilesFailed">Profil tidak dapat diimpor. Tidak ada yang diubah.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">Tidak ada profil yang ditemukan di:&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">{0} profil diimpor. {1} profil dilewati karena sudah ada (nama atau GUID sama).</system:String>
     <system:String x:Key="InstallAllUsers">Pasang (Semua pengguna)</system:String>
     <system:String x:Key="InstallCurrentUser">Pasang (Pengguna saat ini)</system:String>
     <system:String x:Key="Installed">Terpasang</system:String>
+    <system:String x:Key="InstalledElsewhere">Terpasang (folder lain)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">Status:</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension berhasil dipasang. Silakan mulai ulang Explorer atau keluar akun untuk menerapkan perubahan.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">Lain-Lain</system:String>
     <system:String x:Key="NotInstalled">Belum terpasang</system:String>
     <system:String x:Key="Ok">OK</system:String>
+    <system:String x:Key="ProfileNameExists">Profil bernama "{0}" sudah ada. Silakan pilih nama lain.</system:String>
     <system:String x:Key="RedirectRegistry">Palsukan bahasa di Registry</system:String>
     <system:String x:Key="RedirectRegistryTip">Cegat pembacaan Registry untuk kunci terkait locale, kembalikan locale yang diemulasikan alih-alih nilai sistem.</system:String>
     <system:String x:Key="Region">Wilayah</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Semua pengguna &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Bersihkan pendaftaran versi lama</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Pengguna saat ini</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">Profil versi lama tidak dapat diimpor, sehingga pendaftarannya tidak dibersihkan. Anda dapat mencoba lagi.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">Impor juga profil versi lama dari:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Sisa versi lama terdeteksi</system:String>
     <system:String x:Key="ShellExtOperationFailed">Operasi Shell Extension gagal: {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">Pengaturan Zona waktu</system:String>
     <system:String x:Key="Uninstall">Copot</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension berhasil dicopot. Silakan mulai ulang Explorer atau keluar akun untuk menerapkan perubahan.</system:String>
+    <system:String x:Key="UpdateToThisFolder">Perbarui ke folder ini</system:String>
     <system:String x:Key="WithCreateSuspended">Mulai proses dalam keadaan ditangguhkan (untuk debugging)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">Buat proses target dalam keadaan ditangguhkan (opsi debugging tingkat lanjut).</system:String>
 </ResourceDictionary>

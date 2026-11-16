@@ -92,4 +92,65 @@ public class ShellExtensionPanelTests
 
         Assert.Equal(0, removed);
     }
+
+    private const string ThisDll = @"D:\LE-new\ShellExtension64.dll";
+
+    private static (ShellExtensionPanel panel, IShellExtensionCommand command) CreateInstalledPanel(string? registeredPath)
+    {
+        var panel = new ShellExtensionPanel();
+        panel.ShowMessage = _ => { };
+        var command = Substitute.For<IShellExtensionCommand>();
+        command.IsInstalled(ShellExtensionRegistrar.InstallMode.CurrentUser).Returns(true);
+        command.IsInstalled(ShellExtensionRegistrar.InstallMode.AllUsers).Returns(false);
+        command.GetRegisteredDllPath(ShellExtensionRegistrar.InstallMode.CurrentUser).Returns(registeredPath);
+        command.HasOldRegistration().Returns(false);
+
+        panel.SetCommand(command, dllPath: ThisDll, isAdmin: true);
+        panel.RefreshStatus();
+        return (panel, command);
+    }
+
+    [WpfFact]
+    public void RefreshStatus_RegisteredToThisFolder_IsInstalled_WithoutPath()
+    {
+        var (panel, _) = CreateInstalledPanel(@"d:\le-new\.\SHELLEXTENSION64.dll");
+
+        Assert.False(panel.bInstallCurrentUser.IsEnabled);
+        Assert.True(panel.bUninstallCurrentUser.IsEnabled);
+        Assert.Equal(System.Windows.Visibility.Collapsed, panel.tPathCurrentUser.Visibility);
+    }
+
+    [WpfFact]
+    public void RefreshStatus_RegisteredToAnotherFolder_ShowsThatPath_AndOffersUpdate()
+    {
+        // A newer version extracted to another folder: the menu still runs the old copy.
+        var (panel, _) = CreateInstalledPanel(@"D:\LE-old\ShellExtension64.dll");
+
+        Assert.True(panel.bInstallCurrentUser.IsEnabled);
+        Assert.True(panel.bUninstallCurrentUser.IsEnabled);
+        Assert.Equal(System.Windows.Visibility.Visible, panel.tPathCurrentUser.Visibility);
+        Assert.Equal(@"D:\LE-old\ShellExtension64.dll", panel.tPathCurrentUser.Text);
+        Assert.Equal(System.Windows.Visibility.Collapsed, panel.tPathAllUsers.Visibility);
+    }
+
+    [WpfFact]
+    public void UpdateToThisFolder_RegistersThisFoldersDll()
+    {
+        var (panel, command) = CreateInstalledPanel(@"D:\LE-old\ShellExtension64.dll");
+
+        panel.bInstallCurrentUser.RaiseEvent(
+            new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+
+        command.Received().Register(ShellExtensionRegistrar.InstallMode.CurrentUser, ThisDll);
+    }
+
+    [Theory]
+    [InlineData(@"C:\LE\ShellExtension.dll", @"c:\le\shellextension.dll", true)]
+    [InlineData(@"C:\LE\ShellExtension.dll", @"C:\LE\sub\..\ShellExtension.dll", true)]
+    [InlineData(@"C:\LE\ShellExtension.dll", @"C:\LE2\ShellExtension.dll", false)]
+    [InlineData(@"C:\LE\ShellExtension.dll", "", false)]
+    public void IsSamePath(string a, string b, bool expected)
+    {
+        Assert.Equal(expected, ShellExtensionPanel.IsSamePath(a, b));
+    }
 }

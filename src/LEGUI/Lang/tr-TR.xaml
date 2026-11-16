@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">Bu dizine yazılamıyor.&#x0A;Lütfen genel profili kullanın.&#x0A;Geçerli dizin: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Kurulum dizinine yazılamıyor.&#x0A;Lütfen LE'yi başka bir konuma taşıyıp tekrar deneyin.&#x0A;Kurulum dizini: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GENEL</system:String>
+    <system:String x:Key="ImportConflict">"{0}" adlı bir profil farklı ayarlarla zaten var.&#x0A;&#x0A;Evet: içe aktarılan ayarlarla değiştir&#x0A;Hayır: içe aktarılan profili yeni bir adla kaydet&#x0A;İptal: atla</system:String>
     <system:String x:Key="ImportProfiles">İçe Aktar ...</system:String>
+    <system:String x:Key="ImportProfilesFailed">Profiller içe aktarılamadı. Hiçbir şey değiştirilmedi.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">Şurada profil bulunamadı:&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">{0} profil içe aktarıldı. Zaten var olan {1} profil atlandı (aynı isim veya GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Yükle (Tüm kullanıcılar)</system:String>
     <system:String x:Key="InstallCurrentUser">Yükle (Geçerli kullanıcı)</system:String>
     <system:String x:Key="Installed">Yüklü</system:String>
+    <system:String x:Key="InstalledElsewhere">Yüklü (başka klasör)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">Durum:</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension başarıyla yüklendi. Değişikliklerin geçerli olması için Explorer'ı yeniden başlatın veya oturumu kapatın.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">Çeşitli</system:String>
     <system:String x:Key="NotInstalled">Yüklü değil</system:String>
     <system:String x:Key="Ok">Tamam</system:String>
+    <system:String x:Key="ProfileNameExists">"{0}" adlı bir profil zaten var. Lütfen başka bir ad seçin.</system:String>
     <system:String x:Key="RedirectRegistry">Kayıt Defterinde dil bağlantılı sahte anahtarlar</system:String>
     <system:String x:Key="RedirectRegistryTip">Yerel ayarla ilgili Kayıt Defteri okumalarını yakalar ve sistem değeri yerine öykünülmüş yerel ayarı döndürür.</system:String>
     <system:String x:Key="Region">Bölge</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Tüm kullanıcılar &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Eski kaydı temizle</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Geçerli kullanıcı</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">Eski sürümün profilleri içe aktarılamadığı için kaydı temizlenmedi. Tekrar deneyebilirsiniz.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">Eski sürümün profillerini de şuradan içe aktar:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Eski sürüm kalıntısı algılandı</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension işlemi başarısız oldu: {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">Saat Dilimi Ayarları</system:String>
     <system:String x:Key="Uninstall">Kaldır</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension başarıyla kaldırıldı. Değişikliklerin geçerli olması için Explorer'ı yeniden başlatın veya oturumu kapatın.</system:String>
+    <system:String x:Key="UpdateToThisFolder">Bu klasöre güncelle</system:String>
     <system:String x:Key="WithCreateSuspended">İşlemi askıya alınmış olarak başlat (hata ayıklama için)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">Hedef işlemi askıya alınmış durumda oluştur (gelişmiş hata ayıklama seçeneği).</system:String>
 </ResourceDictionary>

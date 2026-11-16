@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">La directory non è scrivibile.&#x0A;Utilizza invece il profilo globale.&#x0A;Directory corrente: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">La directory di installazione non è scrivibile.&#x0A;Sposta LE in un'altra posizione e riprova.&#x0A;Directory di installazione: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBALE</system:String>
+    <system:String x:Key="ImportConflict">Esiste già un profilo denominato "{0}" con impostazioni diverse.&#x0A;&#x0A;Sì: sostituiscilo con le impostazioni importate&#x0A;No: salva il profilo importato con un nuovo nome&#x0A;Annulla: ignoralo</system:String>
     <system:String x:Key="ImportProfiles">Importa ...</system:String>
+    <system:String x:Key="ImportProfilesFailed">Impossibile importare i profili. Non è stato modificato nulla.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">Nessun profilo trovato in:&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">Importati {0} profili. Saltati {1} già esistenti (stesso nome o GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Installa (tutti gli utenti)</system:String>
     <system:String x:Key="InstallCurrentUser">Installa (utente corrente)</system:String>
     <system:String x:Key="Installed">Installata</system:String>
+    <system:String x:Key="InstalledElsewhere">Installato (altra cartella)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">Stato:</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension installata correttamente. Riavvia Explorer o disconnettiti per applicare le modifiche.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">Varie</system:String>
     <system:String x:Key="NotInstalled">Non installata</system:String>
     <system:String x:Key="Ok">OK</system:String>
+    <system:String x:Key="ProfileNameExists">Esiste già un profilo denominato "{0}". Scegli un altro nome.</system:String>
     <system:String x:Key="RedirectRegistry">Falsifica le chiavi del Registro relative alla lingua</system:String>
     <system:String x:Key="RedirectRegistryTip">Intercetta le letture del Registro per le chiavi relative al locale, restituendo il locale emulato invece di quello di sistema.</system:String>
     <system:String x:Key="Region">Paese</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Tutti gli utenti &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Rimuovi registrazione precedente</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Utente corrente</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">Impossibile importare i profili della versione precedente, quindi la sua registrazione non è stata rimossa. Puoi riprovare.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">Importa anche i profili della versione precedente da:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Rilevati residui di versione precedente</system:String>
     <system:String x:Key="ShellExtOperationFailed">Operazione Shell Extension non riuscita: {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">Impostazioni fuso orario</system:String>
     <system:String x:Key="Uninstall">Disinstalla</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension disinstallata correttamente. Riavvia Explorer o disconnettiti per applicare le modifiche.</system:String>
+    <system:String x:Key="UpdateToThisFolder">Aggiorna a questa cartella</system:String>
     <system:String x:Key="WithCreateSuspended">Avvia il processo sospeso (per il debug)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">Crea il processo di destinazione in stato sospeso (opzione avanzata di debug).</system:String>
 </ResourceDictionary>
