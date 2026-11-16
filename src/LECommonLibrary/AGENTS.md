@@ -34,7 +34,7 @@ LECommonLibrary（.NET 10，AnyCPU）是 LEProc 與 LEGUI 共用的程式庫：�
 
 | 檔案 | 內容 |
 |---|---|
-| `LEConfig.cs`、`LEProfile.cs` | 設定檔讀寫與 Profile 模型；`MergeProfiles` / `ImportProfiles` 從其他設定檔（例如原版 LE 2.x 的 `LEConfig.xml`）匯入全域 profile：保留 Guid，Guid（不分大小寫）或名稱已存在就略過，沒有新增時不改寫目標檔 |
+| `LEConfig.cs`、`LEProfile.cs` | 設定檔讀寫與 Profile 模型；`MergeProfiles` / `ImportProfiles` 從其他設定檔（例如原版 LE 2.x 的 `LEConfig.xml`）匯入全域 profile：保留 Guid。同名且設定相同就略過；同名但設定不同交給 `ImportConflictResolver`（取代 = 保留既有名稱與 Guid、換成匯入的設定；另存 = 新名稱，Guid 重複就換新；沒有 resolver 就略過）；同 Guid 不同名、設定不同時以新 Guid 加入。目標檔不存在時只寫入匯入的 profile（不先建預設值）。沒有新增時不改寫目標檔。**匯入失敗會丟例外**（目標檔無法解析、寫入失敗、寫入後讀回不符），不像 `SaveGlobalConfigFile` 吞掉 |
 | `RegionSupport.cs` | 可模擬地區判斷 |
 | `PEFileReader.cs` | 讀 PE header：`GetPEType` 回傳 `X32` / `X64` / `Unknown`，x64 分派（Phase 5）可以從這裡延伸 |
 | `AssociationReader.cs` | 檔案關聯（非 exe 檔案用關聯程式啟動） |
