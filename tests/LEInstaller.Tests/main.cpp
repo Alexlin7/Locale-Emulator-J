@@ -9,7 +9,9 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
+#include "InstallSteps.h"
 #include "RuntimeCheck.h"
 
 namespace fs = std::filesystem;
@@ -146,6 +148,42 @@ void TestRuntimeStatus()
     Check(!s32.NeedsX64() && s32.IsComplete(), L"RuntimeStatus: 32-bit Windows needs only x86");
 }
 
+void TestInstallMissingRuntimes()
+{
+    RuntimeStatus both;  // 64-bit Windows, nothing installed
+    both.is64BitWindows = true;
+
+    std::vector<Arch> calls;
+    auto installWith = [&calls](StepResult x86Result) {
+        return [&calls, x86Result](Arch arch) {
+            calls.push_back(arch);
+            return arch == Arch::X86 ? x86Result : StepResult::Installed;
+        };
+    };
+
+    calls.clear();
+    Check(InstallMissingRuntimes(both, installWith(StepResult::Installed)) == StepResult::Installed &&
+              calls == std::vector<Arch>{Arch::X86, Arch::X64},
+          L"InstallMissingRuntimes: installs x86, then x64");
+
+    calls.clear();
+    Check(InstallMissingRuntimes(both, installWith(StepResult::Cancelled)) == StepResult::Cancelled &&
+              calls == std::vector<Arch>{Arch::X86},
+          L"InstallMissingRuntimes: cancelling x86 does not start x64");
+
+    calls.clear();
+    Check(InstallMissingRuntimes(both, installWith(StepResult::Failed)) == StepResult::Failed &&
+              calls == std::vector<Arch>{Arch::X86},
+          L"InstallMissingRuntimes: a failed x86 does not start x64");
+
+    RuntimeStatus onlyX64 = both;
+    onlyX64.hasX86 = true;
+    calls.clear();
+    Check(InstallMissingRuntimes(onlyX64, installWith(StepResult::Failed)) == StepResult::Installed &&
+              calls == std::vector<Arch>{Arch::X64},
+          L"InstallMissingRuntimes: only the missing x64");
+}
+
 void TestDefaultDotnetRoot()
 {
     Check(DefaultDotnetRoot(Arch::X86).filename() == L"dotnet", L"DefaultDotnetRoot: x86 ends with dotnet");
@@ -173,6 +211,7 @@ int wmain()
     TestIsReleasedVersionOf();
     TestHasDesktopRuntime();
     TestRuntimeStatus();
+    TestInstallMissingRuntimes();
     TestDefaultDotnetRoot();
     RunStringsAndSignatureTests();
     PrintMachineInfo();

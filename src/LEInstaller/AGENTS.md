@@ -16,7 +16,8 @@ LEInstaller.exe（C++23，**x86，靜態 CRT**）放在發佈 zip 的根目錄�
 
 | 檔案 | 內容 |
 |---|---|
-| `main.cpp` | 流程：32 位元 Windows / 找不到同資料夾 `LEGUI.exe` 的錯誤 → 檢查 runtime → TaskDialog 詢問（自動下載安裝 / 開啟下載頁 / 取消）→ 下載、驗章、`/install /passive /norestart` → 重新檢查 → 開 LEGUI |
+| `main.cpp` | 流程：32 位元 Windows / 找不到同資料夾 `LEGUI.exe` 的錯誤 → 檢查 runtime → TaskDialog 詢問（自動下載安裝 / 開啟下載頁 / 取消）→ 下載、驗章、`/install /passive /norestart` → 重新檢查 → 開 LEGUI（`SEE_MASK_NOZONECHECKS`，未解除封鎖時不再對 LEGUI 跳第二次安全性警告） |
+| `InstallSteps.h` | 缺少的 runtime 依序安裝（x86 → x64）；任一步取消或失敗就停，取消會回到詢問畫面，不會接著跳下一個下載與 UAC |
 | `RuntimeCheck.*` | Desktop Runtime 偵測：registry 的 `InstallLocation`（32 位元 view）→ 預設資料夾 → 版本資料夾 |
 | `Download.*` | `URLDownloadToFileW`（跟隨轉址、不用快取、可取消、回報進度） |
 | `Signature.*` | `WinVerifyTrust` + 簽署憑證的組織名稱 |
@@ -35,6 +36,7 @@ $env:LE_INSTALLER_NETWORK_TEST = "1"; Build\Release\x86\LEInstaller.Tests.exe   
 ```
 
 - 版本資料夾名稱、模擬的 dotnet 資料夾結構、狀態判斷、預設路徑
+- 安裝順序：x86 取消或失敗時不會開始 x64
 - 語言選擇、四種語言字串齊全且佔位符一致
 - 簽章：`dotnet.exe`（微軟）通過；Git for Windows 的 `git.exe`（有效但非微軟）、未簽章 exe、非 PE 檔、不存在的檔案都拒絕
 - 網路測試（預設跳過）：下載、進度到 100%、檔案大於 10 MB、微軟簽章、取消會回傳 `E_ABORT` 並刪檔
