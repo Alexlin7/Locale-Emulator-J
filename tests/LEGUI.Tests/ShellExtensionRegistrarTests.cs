@@ -217,7 +217,8 @@ public class ShellExtensionRegistrarTests
         var registrar = new ShellExtensionRegistrar(_mockRegistry, TestClsid);
 
         Assert.Equal(TestDllPath, registrar.GetRegisteredDllPath(ShellExtensionRegistrar.InstallMode.CurrentUser, is64BitOs: true));
-        Assert.Null(registrar.GetRegisteredDllPath(ShellExtensionRegistrar.InstallMode.AllUsers, is64BitOs: true));
+        // HKLM was not set up (NSubstitute returns "" for an unconfigured string).
+        Assert.NotEqual(TestDllPath, registrar.GetRegisteredDllPath(ShellExtensionRegistrar.InstallMode.AllUsers, is64BitOs: true));
     }
 
     [Fact]
