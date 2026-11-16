@@ -15,7 +15,7 @@ public class ShellExtensionPanelImportTests
     private const string OldConfig = @"D:\OldLE\LEConfig.xml";
 
     private static (ShellExtensionPanel panel, IShellExtensionCommand command, List<string> calls, List<string> messages)
-        CreatePanel(string? oldConfig, LEConfig.ImportResult importResult = default)
+        CreatePanel(string? oldConfig, LEConfig.ImportResult importResult = default, Exception? importError = null)
     {
         var calls = new List<string>();
         var messages = new List<string>();
@@ -26,6 +26,8 @@ public class ShellExtensionPanelImportTests
         panel.ImportProfiles = path =>
         {
             calls.Add("import " + path);
+            if (importError != null)
+                throw importError;
             return importResult;
         };
 
@@ -98,5 +100,22 @@ public class ShellExtensionPanelImportTests
         Assert.Equal(new[] { "import " + OldConfig, "cleanup" }, calls);
         Assert.Equal(0, raised);
         Assert.Equal(new[] { "ImportProfilesNone:" + OldConfig }, messages);
+    }
+
+    [WpfFact]
+    public void Cleanup_ImportCannotBeSaved_KeepsOldRegistration_AndSaysWhy()
+    {
+        // The registration is the only record of where the old LEConfig.xml is.
+        var (panel, _, calls, messages) =
+            CreatePanel(OldConfig, importError: new UnauthorizedAccessException("access denied"));
+        var raised = 0;
+        panel.ProfilesImported += (_, _) => raised++;
+
+        ClickCleanup(panel);
+
+        Assert.Equal(new[] { "import " + OldConfig }, calls);
+        Assert.Equal(0, raised);
+        Assert.Equal(new[] { "ShellExtImportFailedOldKept:access denied" }, messages);
+        Assert.Equal(System.Windows.Visibility.Visible, panel.cleanupSection.Visibility);
     }
 }
