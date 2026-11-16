@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">The directory is not writable.&#x0A;Please use global profile instead.&#x0A;Current Directory: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Installation directory is not writable.&#x0A;Please move LE to another location and try again.&#x0A;Installation directory: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportConflict">A profile named "{0}" already exists with different settings.&#x0A;&#x0A;Yes: replace it with the imported settings&#x0A;No: save the imported profile under a new name&#x0A;Cancel: skip it</system:String>
     <system:String x:Key="ImportProfiles">Import ...</system:String>
+    <system:String x:Key="ImportProfilesFailed">The profiles could not be imported. Nothing was changed.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">No profiles were found in:&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">Imported {0} profile(s). Skipped {1} that already exist (same name or GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Install (All Users)</system:String>
     <system:String x:Key="InstallCurrentUser">Install (Current User)</system:String>
     <system:String x:Key="Installed">Installed</system:String>
+    <system:String x:Key="InstalledElsewhere">Installed (another folder)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">Status:</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension installed successfully. Please restart Explorer or log out to take effect.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">Miscellaneous</system:String>
     <system:String x:Key="NotInstalled">Not Installed</system:String>
     <system:String x:Key="Ok">OK</system:String>
+    <system:String x:Key="ProfileNameExists">A profile named "{0}" already exists. Please choose another name.</system:String>
     <system:String x:Key="RedirectRegistry">Fake language-related keys in Registry</system:String>
     <system:String x:Key="RedirectRegistryTip">Intercept Registry reads for locale-related keys, returning the emulated locale instead of the system's.</system:String>
     <system:String x:Key="Region">Region</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">All Users &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Clean up old registration</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Current User</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">The profiles of the old version could not be imported, so its registration was not cleaned up. You can try again.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">Also import the profiles of the old version from:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Old version residue detected</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension operation failed: {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">Timezone Settings</system:String>
     <system:String x:Key="Uninstall">Uninstall</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension uninstalled successfully. Please restart Explorer or log out to take effect.</system:String>
+    <system:String x:Key="UpdateToThisFolder">Update to this folder</system:String>
     <system:String x:Key="WithCreateSuspended">Start process suspended (for debugging)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">Create the target process in suspended state (advanced debugging option).</system:String>
 </ResourceDictionary>

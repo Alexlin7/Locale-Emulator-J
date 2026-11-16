@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">საქაღალდეში ჩაწერა შეუძლებელია.&#x0A;გთხოვთ, ნაცვლად გამოიყენოთ გლობალური პროფილი.&#x0A;მიმდინარე საქაღალდე: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">დაყენების საქაღალდეში ჩაწერა შეუძლებელია.&#x0A;გთხოვთ, გადაიტანოთ LE სხვა ადგილას და სცადოთ თავიდან.&#x0A;დაყენების საქაღალდე: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportConflict">პროფილი სახელით „{0}“ უკვე არსებობს განსხვავებული პარამეტრებით.&#x0A;&#x0A;დიახ: ჩაანაცვლეთ იმპორტირებული პარამეტრებით&#x0A;არა: შეინახეთ იმპორტირებული პროფილი ახალი სახელით&#x0A;გაუქმება: გამოტოვება</system:String>
     <system:String x:Key="ImportProfiles">იმპორტი...</system:String>
+    <system:String x:Key="ImportProfilesFailed">პროფილების იმპორტი ვერ მოხერხდა. არაფერი შეცვლილა.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">პროფილები ვერ მოიძებნა:&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">იმპორტირებულია {0} პროფილი. გამოტოვებულია {1} უკვე არსებული (იგივე სახელი ან GUID).</system:String>
     <system:String x:Key="InstallAllUsers">დაყენება (ყველა მომხმარებელი)</system:String>
     <system:String x:Key="InstallCurrentUser">დაყენება (მიმდინარე მომხმარებელი)</system:String>
     <system:String x:Key="Installed">დაყენებული</system:String>
+    <system:String x:Key="InstalledElsewhere">დაინსტალირებულია (სხვა საქაღალდე)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">მდგომარეობა:</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension წარმატებით დაყენდა. გთხოვთ, გადატვირთოთ Explorer ან გამოხვიდეთ სისტემიდან, რომ ცვლილებები ძალაში შევიდეს.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">სხვადასხვა</system:String>
     <system:String x:Key="NotInstalled">არ არის დაყენებული</system:String>
     <system:String x:Key="Ok">კარგი</system:String>
+    <system:String x:Key="ProfileNameExists">პროფილი სახელით „{0}“ უკვე არსებობს. აირჩიეთ სხვა სახელი.</system:String>
     <system:String x:Key="RedirectRegistry">ენის ემულაცია რეგისტრში</system:String>
     <system:String x:Key="RedirectRegistryTip">რეგისტრიდან ენასთან დაკავშირებული გასაღებების წაკითხვის ჩაჭრა და სისტემური მნიშვნელობის ნაცვლად ემულირებული ენის დაბრუნება.</system:String>
     <system:String x:Key="Region">რეგიონი</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">ყველა მომხმარებელი &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">ძველი რეგისტრაციის გაწმენდა</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">მიმდინარე მომხმარებელი</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">ძველი ვერსიის პროფილების იმპორტი ვერ მოხერხდა, ამიტომ მისი რეგისტრაცია არ გასუფთავებულა. შეგიძლიათ კვლავ სცადოთ.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">ასევე ძველი ვერსიის პროფილების იმპორტი აქედან:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; აღმოჩენილია ძველი ვერსიის ნარჩენები</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension-ის ოპერაცია ვერ შესრულდა: {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">დროის სარტყელის პარამეტრები</system:String>
     <system:String x:Key="Uninstall">წაშლა</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension წარმატებით წაიშალა. გთხოვთ, გადატვირთოთ Explorer ან გამოხვიდეთ სისტემიდან, რომ ცვლილებები ძალაში შევიდეს.</system:String>
+    <system:String x:Key="UpdateToThisFolder">განახლება ამ საქაღალდეზე</system:String>
     <system:String x:Key="WithCreateSuspended">პროცესის გაშვება შეჩერებულ მდგომარეობაში (გამართვისთვის)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">სამიზნე პროცესის შექმნა შეჩერებულ მდგომარეობაში (დამატებითი გამართვის პარამეტრი).</system:String>
 </ResourceDictionary>

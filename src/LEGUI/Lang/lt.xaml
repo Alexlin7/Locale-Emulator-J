@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">Katalogas nėra įrašomas.&#x0A;Vietoj to naudokite globalų profilį.&#x0A;Dabartinis katalogas: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Diegimo katalogas nėra įrašomas.&#x0A;Perkelkite LE į kitą vietą ir bandykite dar kartą.&#x0A;Diegimo katalogas: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportConflict">Profilis pavadinimu „{0}“ jau yra, bet jo nustatymai kitokie.&#x0A;&#x0A;Taip: pakeisti importuotais nustatymais&#x0A;Ne: išsaugoti importuotą profilį nauju pavadinimu&#x0A;Atšaukti: praleisti</system:String>
     <system:String x:Key="ImportProfiles">Importuoti…</system:String>
+    <system:String x:Key="ImportProfilesFailed">Nepavyko importuoti profilių. Niekas nepakeista.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">Profilių nerasta:&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">Importuota profilių: {0}. Praleista jau esančių (tas pats pavadinimas arba GUID): {1}.</system:String>
     <system:String x:Key="InstallAllUsers">Įdiegti (visi vartotojai)</system:String>
     <system:String x:Key="InstallCurrentUser">Įdiegti (esamas vartotojas)</system:String>
     <system:String x:Key="Installed">Įdiegta</system:String>
+    <system:String x:Key="InstalledElsewhere">Įdiegta (kitas aplankas)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">Būsena:</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension sėkmingai įdiegtas. Iš naujo paleiskite Explorer arba atsijunkite, kad pakeitimai įsigaliotų.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">Kita</system:String>
     <system:String x:Key="NotInstalled">Neįdiegta</system:String>
     <system:String x:Key="Ok">Gerai</system:String>
+    <system:String x:Key="ProfileNameExists">Profilis pavadinimu „{0}“ jau yra. Pasirinkite kitą pavadinimą.</system:String>
     <system:String x:Key="RedirectRegistry">Netikras registras</system:String>
     <system:String x:Key="RedirectRegistryTip">Perimti registro skaitymo operacijas su lokale susijusiems raktams, grąžinant emuliuojamą lokalę vietoj sisteminės.</system:String>
     <system:String x:Key="Region">Regionas</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Visi vartotojai &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Išvalyti seną registraciją</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Esamas vartotojas</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">Nepavyko importuoti senosios versijos profilių, todėl jos registracija nebuvo išvalyta. Galite bandyti dar kartą.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">Taip pat importuoti senosios versijos profilius iš:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Aptikti senos versijos likučiai</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension operacija nepavyko: {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">Laiko juostos parinktys</system:String>
     <system:String x:Key="Uninstall">Pašalinti</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension sėkmingai pašalintas. Iš naujo paleiskite Explorer arba atsijunkite, kad pakeitimai įsigaliotų.</system:String>
+    <system:String x:Key="UpdateToThisFolder">Atnaujinti į šį aplanką</system:String>
     <system:String x:Key="WithCreateSuspended">Paleisti procesą sustabdytą (derinimui)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">Sukurti tikslinį procesą sustabdytoje būsenoje (sudėtingesnė derinimo parinktis).</system:String>
 </ResourceDictionary>

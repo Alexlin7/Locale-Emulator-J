@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">Katalog nie ma uprawnień do zapisu.&#x0A;Użyj profilu globalnego.&#x0A;Bieżący katalog: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Katalog instalacji nie ma uprawnień do zapisu.&#x0A;Przenieś LE w inne miejsce i spróbuj ponownie.&#x0A;Katalog instalacji: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBALNY</system:String>
+    <system:String x:Key="ImportConflict">Profil o nazwie „{0}” już istnieje i ma inne ustawienia.&#x0A;&#x0A;Tak: zastąp go zaimportowanymi ustawieniami&#x0A;Nie: zapisz zaimportowany profil pod nową nazwą&#x0A;Anuluj: pomiń</system:String>
     <system:String x:Key="ImportProfiles">Importuj ...</system:String>
+    <system:String x:Key="ImportProfilesFailed">Nie można zaimportować profili. Nic nie zostało zmienione.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">Nie znaleziono profili w:&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">Zaimportowano profile: {0}. Pominięto już istniejące (ta sama nazwa lub GUID): {1}.</system:String>
     <system:String x:Key="InstallAllUsers">Zainstaluj (wszyscy użytkownicy)</system:String>
     <system:String x:Key="InstallCurrentUser">Zainstaluj (bieżący użytkownik)</system:String>
     <system:String x:Key="Installed">Zainstalowano</system:String>
+    <system:String x:Key="InstalledElsewhere">Zainstalowano (inny folder)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">Stan:</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension zostało zainstalowane pomyślnie. Uruchom ponownie Explorer lub wyloguj się, aby zastosować zmiany.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">Różne</system:String>
     <system:String x:Key="NotInstalled">Nie zainstalowano</system:String>
     <system:String x:Key="Ok">OK</system:String>
+    <system:String x:Key="ProfileNameExists">Profil o nazwie „{0}” już istnieje. Wybierz inną nazwę.</system:String>
     <system:String x:Key="RedirectRegistry">Symuluj ustawienia języka w rejestrze</system:String>
     <system:String x:Key="RedirectRegistryTip">Przechwytuje odczyty rejestru dla kluczy związanych z ustawieniami regionalnymi, zwracając emulowane ustawienia zamiast systemowych.</system:String>
     <system:String x:Key="Region">Region</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Wszyscy użytkownicy &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Wyczyść starą rejestrację</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Bieżący użytkownik</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">Nie można zaimportować profili starej wersji, więc jej rejestracja nie została usunięta. Możesz spróbować ponownie.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">Zaimportuj także profile starej wersji z:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Wykryto pozostałości starej wersji</system:String>
     <system:String x:Key="ShellExtOperationFailed">Operacja Shell Extension nie powiodła się: {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">Ustawienia strefy czasowej</system:String>
     <system:String x:Key="Uninstall">Odinstaluj</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension zostało odinstalowane pomyślnie. Uruchom ponownie Explorer lub wyloguj się, aby zastosować zmiany.</system:String>
+    <system:String x:Key="UpdateToThisFolder">Zaktualizuj do tego folderu</system:String>
     <system:String x:Key="WithCreateSuspended">Uruchom proces wstrzymany (do debugowania)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">Tworzy proces docelowy w stanie wstrzymanym (zaawansowana opcja debugowania).</system:String>
 </ResourceDictionary>

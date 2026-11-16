@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">ディレクトリに書き込み権限がありません。&#x0A;代わりにグローバルプロファイルを使用してください。&#x0A;現在のディレクトリ：{0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">インストールディレクトリに書き込み権限がありません。&#x0A;LE を別の場所に移動してから再試行してください。&#x0A;インストールディレクトリ：{0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI グローバル</system:String>
+    <system:String x:Key="ImportConflict">「{0}」という名前のプロファイルが既にありますが、設定が異なります。&#x0A;&#x0A;はい: インポートした設定で置き換える&#x0A;いいえ: インポートしたプロファイルを新しい名前で保存する&#x0A;キャンセル: スキップする</system:String>
     <system:String x:Key="ImportProfiles">インポート...</system:String>
+    <system:String x:Key="ImportProfilesFailed">プロファイルをインポートできませんでした。何も変更されていません。&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">プロファイルが見つかりませんでした：&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">{0} 個のプロファイルをインポートしました。既に存在する {1} 個（名前または GUID が同じ）はスキップしました。</system:String>
     <system:String x:Key="InstallAllUsers">インストール（すべてのユーザー）</system:String>
     <system:String x:Key="InstallCurrentUser">インストール（現在のユーザー）</system:String>
     <system:String x:Key="Installed">インストール済み</system:String>
+    <system:String x:Key="InstalledElsewhere">インストール済み（別のフォルダー）</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">状態：</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension のインストールに成功しました。反映するには Explorer を再起動するか、サインアウトしてください。</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">その他</system:String>
     <system:String x:Key="NotInstalled">未インストール</system:String>
     <system:String x:Key="Ok">OK</system:String>
+    <system:String x:Key="ProfileNameExists">「{0}」という名前のプロファイルは既にあります。別の名前を指定してください。</system:String>
     <system:String x:Key="RedirectRegistry">言語関連のレジストリキーを偽造</system:String>
     <system:String x:Key="RedirectRegistryTip">ロケール関連のレジストリ読み取りを傍受し、システムの値ではなくエミュレートされたロケールを返します。</system:String>
     <system:String x:Key="Region">地域</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">すべてのユーザー &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">旧登録をクリーンアップ</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">現在のユーザー</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">旧バージョンのプロファイルをインポートできなかったため、旧バージョンの登録は削除していません。もう一度お試しください。&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">旧バージョンのプロファイルもインポートする：</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; 旧バージョンの残存を検出</system:String>
     <system:String x:Key="ShellExtOperationFailed">Shell Extension の操作に失敗しました：{0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">タイムゾーンを設定</system:String>
     <system:String x:Key="Uninstall">アンインストール</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension のアンインストールに成功しました。反映するには Explorer を再起動するか、サインアウトしてください。</system:String>
+    <system:String x:Key="UpdateToThisFolder">このフォルダーに更新</system:String>
     <system:String x:Key="WithCreateSuspended">プロセスを一時停止状態で起動（デバッグ用）</system:String>
     <system:String x:Key="WithCreateSuspendedTip">対象プロセスを一時停止状態で作成します（高度なデバッグオプション）。</system:String>
 </ResourceDictionary>

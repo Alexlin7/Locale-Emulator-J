@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">Das Verzeichnis ist nicht beschreibbar.&#x0A;Bitte verwenden Sie stattdessen ein globales Profil.&#x0A;Aktuelles Verzeichnis: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Das Installationsverzeichnis ist nicht beschreibbar.&#x0A;Bitte verschieben Sie LE an einen anderen Ort und versuchen Sie es erneut.&#x0A;Installationsverzeichnis: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportConflict">Ein Profil namens „{0}“ existiert bereits mit anderen Einstellungen.&#x0A;&#x0A;Ja: durch die importierten Einstellungen ersetzen&#x0A;Nein: das importierte Profil unter einem neuen Namen speichern&#x0A;Abbrechen: überspringen</system:String>
     <system:String x:Key="ImportProfiles">Importieren...</system:String>
+    <system:String x:Key="ImportProfilesFailed">Die Profile konnten nicht importiert werden. Es wurde nichts geändert.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">Keine Profile gefunden in:&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">{0} Profil(e) importiert. {1} bereits vorhandene übersprungen (gleicher Name oder GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Installieren (Alle Benutzer)</system:String>
     <system:String x:Key="InstallCurrentUser">Installieren (Aktueller Benutzer)</system:String>
     <system:String x:Key="Installed">Installiert</system:String>
+    <system:String x:Key="InstalledElsewhere">Installiert (anderer Ordner)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">Status:</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension erfolgreich installiert. Bitte Explorer neu starten oder abmelden, damit die Änderung wirksam wird.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">Sonstiges</system:String>
     <system:String x:Key="NotInstalled">Nicht installiert</system:String>
     <system:String x:Key="Ok">OK</system:String>
+    <system:String x:Key="ProfileNameExists">Ein Profil namens „{0}“ existiert bereits. Bitte wählen Sie einen anderen Namen.</system:String>
     <system:String x:Key="RedirectRegistry">Registrierungseinträge vortäuschen</system:String>
     <system:String x:Key="RedirectRegistryTip">Fängt Registry-Lesezugriffe auf Locale-bezogene Schlüssel ab und gibt statt der Systemwerte die emulierte Locale zurück.</system:String>
     <system:String x:Key="Region">Region</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Alle Benutzer &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Alte Registrierung bereinigen</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Aktueller Benutzer</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">Die Profile der alten Version konnten nicht importiert werden, daher wurde ihre Registrierung nicht entfernt. Sie können es erneut versuchen.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">Auch die Profile der alten Version importieren aus:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Rückstände einer alten Version erkannt</system:String>
     <system:String x:Key="ShellExtOperationFailed">Vorgang der Shell Extension fehlgeschlagen: {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">Zeitzone</system:String>
     <system:String x:Key="Uninstall">Deinstallieren</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension erfolgreich deinstalliert. Bitte Explorer neu starten oder abmelden, damit die Änderung wirksam wird.</system:String>
+    <system:String x:Key="UpdateToThisFolder">Auf diesen Ordner aktualisieren</system:String>
     <system:String x:Key="WithCreateSuspended">Prozess angehalten starten (zum Debuggen)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">Erstellt den Zielprozess im angehaltenen Zustand (erweiterte Debug-Option).</system:String>
 </ResourceDictionary>

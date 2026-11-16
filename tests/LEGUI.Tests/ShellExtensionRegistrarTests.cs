@@ -205,6 +205,22 @@ public class ShellExtensionRegistrarTests
     }
 
     [Fact]
+    public void GetRegisteredDllPath_ReadsInprocServer32Default_OfTheModesHive()
+    {
+        _mockRegistry.GetStringValue(
+            RegistryHive.CurrentUser,
+            $@"Software\Classes\CLSID\{TestClsid}\InprocServer32",
+            RegistryView.Registry64,
+            null)
+            .Returns(TestDllPath);
+
+        var registrar = new ShellExtensionRegistrar(_mockRegistry, TestClsid);
+
+        Assert.Equal(TestDllPath, registrar.GetRegisteredDllPath(ShellExtensionRegistrar.InstallMode.CurrentUser, is64BitOs: true));
+        Assert.Null(registrar.GetRegisteredDllPath(ShellExtensionRegistrar.InstallMode.AllUsers, is64BitOs: true));
+    }
+
+    [Fact]
     public void HasOldRegistration_ChecksBothHives()
     {
         _mockRegistry.SubKeyExists(

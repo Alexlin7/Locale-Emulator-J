@@ -140,6 +140,7 @@ public sealed class ShellExtensionRegistrar : IShellExtensionCommand
     bool IShellExtensionQuery.HasOldRegistration() => HasOldRegistration(null);
 
     // Explicit IShellExtensionCommand implementations: delegate to the public overloads.
+    string? IShellExtensionQuery.GetRegisteredDllPath(InstallMode mode) => GetRegisteredDllPath(mode);
     void IShellExtensionCommand.Register(InstallMode mode, string dllPath) => Register(mode, dllPath);
     void IShellExtensionCommand.Unregister(InstallMode mode) => Unregister(mode);
     void IShellExtensionCommand.CleanupOldRegistration() => CleanupOldRegistration();
@@ -156,6 +157,20 @@ public sealed class ShellExtensionRegistrar : IShellExtensionCommand
         var subKey = $@"Software\Classes\*\shellex\ContextMenuHandlers\{_clsid}";
 
         return _registry.SubKeyExists(hive, subKey, view);
+    }
+
+    /// <summary>
+    /// The DLL path written by <see cref="Register" /> (InprocServer32 default value); null
+    /// when it does not exist. Differs from this folder's DLL when LE was moved or a newer
+    /// version was extracted to another folder: the context menu then still runs the old copy.
+    /// </summary>
+    /// <param name="mode">Install mode.</param>
+    /// <param name="is64BitOs">Whether this is a 64-bit OS (defaults to auto-detect).</param>
+    public string? GetRegisteredDllPath(InstallMode mode, bool? is64BitOs = null)
+    {
+        var hive = GetHive(mode);
+        var view = GetView(is64BitOs ?? Environment.Is64BitOperatingSystem);
+        return _registry.GetStringValue(hive, $@"Software\Classes\CLSID\{_clsid}\InprocServer32", view, null);
     }
 
     /// <summary>

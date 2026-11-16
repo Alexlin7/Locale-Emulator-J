@@ -8,6 +8,9 @@
                     <Run Text="{DynamicResource InstallStatus}" />
                     <Run x:Name="tStatusCurrentUser" FontWeight="Bold" />
                 </TextBlock>
+                <!-- Registered to another folder: the path the context menu still uses. -->
+                <TextBlock x:Name="tPathCurrentUser" Visibility="Collapsed" Margin="0,2,0,0" Foreground="DimGray"
+                           TextWrapping="Wrap" FontSize="11" />
                 <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                     <Button x:Name="bInstallCurrentUser" Content="{DynamicResource InstallCurrentUser}"
                             MinWidth="120" Margin="0,0,8,0" Click="bInstallCurrentUser_Click" />
@@ -22,6 +25,9 @@
                     <Run Text="{DynamicResource InstallStatus}" />
                     <Run x:Name="tStatusAllUsers" FontWeight="Bold" />
                 </TextBlock>
+                <!-- Registered to another folder: the path the context menu still uses. -->
+                <TextBlock x:Name="tPathAllUsers" Visibility="Collapsed" Margin="0,2,0,0" Foreground="DimGray"
+                           TextWrapping="Wrap" FontSize="11" />
                 <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                     <Button x:Name="bInstallAllUsers" Content="{DynamicResource InstallAllUsers}"
                             MinWidth="120" Margin="0,0,8,0" Click="bInstallAllUsers_Click" />

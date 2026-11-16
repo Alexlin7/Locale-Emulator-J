@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">Le répertoire n'est pas accessible en écriture.&#x0A;Veuillez utiliser le profil global à la place.&#x0A;Répertoire actuel : {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Le répertoire d'installation n'est pas accessible en écriture.&#x0A;Veuillez déplacer LE à un autre emplacement et réessayer.&#x0A;Répertoire d'installation : {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportConflict">Un profil nommé « {0} » existe déjà avec des paramètres différents.&#x0A;&#x0A;Oui : le remplacer par les paramètres importés&#x0A;Non : enregistrer le profil importé sous un nouveau nom&#x0A;Annuler : l'ignorer</system:String>
     <system:String x:Key="ImportProfiles">Importer...</system:String>
+    <system:String x:Key="ImportProfilesFailed">Les profils n'ont pas pu être importés. Rien n'a été modifié.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">Aucun profil trouvé dans :&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">{0} profil(s) importé(s). {1} déjà existant(s) ignoré(s) (même nom ou GUID).</system:String>
     <system:String x:Key="InstallAllUsers">Installer (tous les utilisateurs)</system:String>
     <system:String x:Key="InstallCurrentUser">Installer (utilisateur actuel)</system:String>
     <system:String x:Key="Installed">Installée</system:String>
+    <system:String x:Key="InstalledElsewhere">Installé (autre dossier)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">État :</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension installée avec succès. Veuillez redémarrer l'Explorateur ou vous déconnecter pour appliquer les modifications.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">Divers</system:String>
     <system:String x:Key="NotInstalled">Non installée</system:String>
     <system:String x:Key="Ok">OK</system:String>
+    <system:String x:Key="ProfileNameExists">Un profil nommé « {0} » existe déjà. Veuillez choisir un autre nom.</system:String>
     <system:String x:Key="RedirectRegistry">Utiliser un faux registre</system:String>
     <system:String x:Key="RedirectRegistryTip">Intercepte les lectures du Registre pour les clés liées à la locale, en retournant la locale émulée au lieu de celle du système.</system:String>
     <system:String x:Key="Region">Région</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Tous les utilisateurs &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Nettoyer l'ancienne inscription</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Utilisateur actuel</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">Les profils de l'ancienne version n'ont pas pu être importés ; son enregistrement n'a donc pas été nettoyé. Vous pouvez réessayer.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">Importer aussi les profils de l'ancienne version depuis :</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Résidu d'une ancienne version détecté</system:String>
     <system:String x:Key="ShellExtOperationFailed">Échec de l'opération sur la Shell Extension : {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">Paramètres du fuseau horaire</system:String>
     <system:String x:Key="Uninstall">Désinstaller</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension désinstallée avec succès. Veuillez redémarrer l'Explorateur ou vous déconnecter pour appliquer les modifications.</system:String>
+    <system:String x:Key="UpdateToThisFolder">Mettre à jour vers ce dossier</system:String>
     <system:String x:Key="WithCreateSuspended">Démarrer le processus suspendu (pour le débogage)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">Crée le processus cible à l'état suspendu (option de débogage avancée).</system:String>
 </ResourceDictionary>

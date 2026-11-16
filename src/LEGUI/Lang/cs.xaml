@@ -23,12 +23,15 @@
     <system:String x:Key="ErrorDirNotWritable">Do adresáře nelze zapisovat.&#x0A;Použijte místo toho globální profil.&#x0A;Aktuální adresář: {0}</system:String>
     <system:String x:Key="ErrorInstallDirNotWritable">Do instalačního adresáře nelze zapisovat.&#x0A;Přesuňte LE na jiné místo a zkuste to znovu.&#x0A;Instalační adresář: {0}</system:String>
     <system:String x:Key="GlobalConfigTitle">LEGUI GLOBAL</system:String>
+    <system:String x:Key="ImportConflict">Profil s názvem „{0}“ již existuje s jiným nastavením.&#x0A;&#x0A;Ano: nahradit importovaným nastavením&#x0A;Ne: uložit importovaný profil pod novým názvem&#x0A;Storno: přeskočit</system:String>
     <system:String x:Key="ImportProfiles">Importovat...</system:String>
+    <system:String x:Key="ImportProfilesFailed">Profily nelze importovat. Nic nebylo změněno.&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesNone">Nebyly nalezeny žádné profily v:&#x0A;{0}</system:String>
     <system:String x:Key="ImportProfilesResult">Importováno profilů: {0}. Přeskočeno již existujících (stejné jméno nebo GUID): {1}.</system:String>
     <system:String x:Key="InstallAllUsers">Instalovat (všichni uživatelé)</system:String>
     <system:String x:Key="InstallCurrentUser">Instalovat (aktuální uživatel)</system:String>
     <system:String x:Key="Installed">Nainstalováno</system:String>
+    <system:String x:Key="InstalledElsewhere">Nainstalováno (jiná složka)</system:String>
     <system:String x:Key="InstallShellExtTitle">Shell Extension</system:String>
     <system:String x:Key="InstallStatus">Stav:</system:String>
     <system:String x:Key="InstallSuccess">Shell Extension bylo úspěšně nainstalováno. Restartujte Explorer nebo se odhlaste, aby se změny projevily.</system:String>
@@ -37,6 +40,7 @@
     <system:String x:Key="Miscellaneous">Ostatní</system:String>
     <system:String x:Key="NotInstalled">Nenainstalováno</system:String>
     <system:String x:Key="Ok">OK</system:String>
+    <system:String x:Key="ProfileNameExists">Profil s názvem „{0}“ již existuje. Zvolte jiný název.</system:String>
     <system:String x:Key="RedirectRegistry">Zfalšovat v registru klíče týkající se jazyka</system:String>
     <system:String x:Key="RedirectRegistryTip">Zachycuje čtení klíčů registru souvisejících s národním prostředím a vrací emulované hodnoty místo systémových.</system:String>
     <system:String x:Key="Region">Oblast</system:String>
@@ -48,6 +52,7 @@
     <system:String x:Key="ShellExtAllUsersHeader">Všichni uživatelé &#x1F6E1;</system:String>
     <system:String x:Key="ShellExtCleanupOld">Vyčistit starou registraci</system:String>
     <system:String x:Key="ShellExtCurrentUserHeader">Aktuální uživatel</system:String>
+    <system:String x:Key="ShellExtImportFailedOldKept">Profily staré verze nelze importovat, proto nebyla její registrace odstraněna. Můžete to zkusit znovu.&#x0A;{0}</system:String>
     <system:String x:Key="ShellExtImportOldProfiles">Importovat také profily staré verze z:</system:String>
     <system:String x:Key="ShellExtOldResidueDetected">&#x26A0; Zjištěny zbytky staré verze</system:String>
     <system:String x:Key="ShellExtOperationFailed">Operace Shell Extension selhala: {0}</system:String>
@@ -62,6 +67,7 @@
     <system:String x:Key="TimezoneSettings">Nastavení časové zóny</system:String>
     <system:String x:Key="Uninstall">Odinstalovat</system:String>
     <system:String x:Key="UninstallSuccess">Shell Extension bylo úspěšně odinstalováno. Restartujte Explorer nebo se odhlaste, aby se změny projevily.</system:String>
+    <system:String x:Key="UpdateToThisFolder">Aktualizovat na tuto složku</system:String>
     <system:String x:Key="WithCreateSuspended">Spustit proces pozastavený (pro ladění)</system:String>
     <system:String x:Key="WithCreateSuspendedTip">Vytvořit cílový proces v pozastaveném stavu (pokročilá volba pro ladění).</system:String>
 </ResourceDictionary>
