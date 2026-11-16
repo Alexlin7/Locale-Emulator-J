@@ -7,7 +7,8 @@ namespace LEGUI.Tests;
 ///     Files extracted from a downloaded zip carry the Mark of the Web (a Zone.Identifier
 ///     alternate data stream). Launching LEProc.exe through ShellExecute then shows the
 ///     "Open File - Security Warning" dialog every time, and Defender runs a cloud scan.
-///     Installing the Shell Extension removes the mark from the product folder.
+///     Installing the Shell Extension removes the mark from LE's own files only: the zip may
+///     have been extracted into a folder with other downloads, whose marks must stay.
 /// </summary>
 public sealed class DownloadMarkTests : IDisposable
 {
@@ -36,13 +37,13 @@ public sealed class DownloadMarkTests : IDisposable
     private static bool HasMark(string path) => File.Exists(path + DownloadMark.StreamSuffix);
 
     [Fact]
-    public void RemoveFromDirectory_RemovesMarkFromRootAndSubfolders_KeepsContent()
+    public void RemoveFromProductFiles_RemovesMarkFromProgramsAndLang_KeepsContent()
     {
         var exe = CreateFile("LEProc.exe", marked: true);
         var lang = CreateFile(Path.Combine("Lang", "zh-TW.xaml"), marked: true);
         Assert.True(HasMark(exe));
 
-        var removed = DownloadMark.RemoveFromDirectory(_dir);
+        var removed = DownloadMark.RemoveFromProductFiles(_dir);
 
         Assert.Equal(2, removed);
         Assert.False(HasMark(exe));
@@ -51,25 +52,25 @@ public sealed class DownloadMarkTests : IDisposable
     }
 
     [Fact]
-    public void RemoveFromDirectory_IgnoresUnmarkedFiles()
+    public void RemoveFromProductFiles_IgnoresUnmarkedFiles()
     {
         CreateFile("LEGUI.exe", marked: false);
         var marked = CreateFile("LoaderDll.dll", marked: true);
 
-        Assert.Equal(1, DownloadMark.RemoveFromDirectory(_dir));
+        Assert.Equal(1, DownloadMark.RemoveFromProductFiles(_dir));
         Assert.False(HasMark(marked));
     }
 
     [Fact]
-    public void RemoveFromDirectory_ContinuesWhenOneFileFails()
+    public void RemoveFromProductFiles_ContinuesWhenOneFileFails()
     {
-        var locked = CreateFile("A.dll", marked: true);
-        var other = CreateFile("B.dll", marked: true);
+        var locked = CreateFile("LEProc.exe", marked: true);
+        var other = CreateFile("LEGUI.exe", marked: true);
 
         // An open handle without delete sharing makes deleting this stream fail.
         using (new FileStream(locked + DownloadMark.StreamSuffix, FileMode.Open, FileAccess.Read, FileShare.None))
         {
-            Assert.Equal(1, DownloadMark.RemoveFromDirectory(_dir));
+            Assert.Equal(1, DownloadMark.RemoveFromProductFiles(_dir));
         }
 
         Assert.True(HasMark(locked));
@@ -77,8 +78,54 @@ public sealed class DownloadMarkTests : IDisposable
     }
 
     [Fact]
-    public void RemoveFromDirectory_MissingDirectory_ReturnsZero()
+    public void RemoveFromProductFiles_MissingDirectory_ReturnsZero()
     {
-        Assert.Equal(0, DownloadMark.RemoveFromDirectory(Path.Combine(_dir, "missing")));
+        Assert.Equal(0, DownloadMark.RemoveFromProductFiles(Path.Combine(_dir, "missing")));
+    }
+
+    [Fact]
+    public void RemoveFromProductFiles_KeepsMarksOfOtherFiles()
+    {
+        // e.g. the zip was extracted straight into the Downloads folder.
+        var ours = new[]
+        {
+            CreateFile("LEInstaller.exe", marked: true),
+            CreateFile("LEGUI.dll", marked: true),
+            CreateFile("LEProc.runtimeconfig.json", marked: true),
+            CreateFile("LECommonLibrary.dll", marked: true),
+            CreateFile("LocaleEmulator.dll", marked: true),
+            CreateFile("ShellExtension64.dll", marked: true),
+            CreateFile(Path.Combine("Lang", "DefaultLanguage.xml"), marked: true)
+        };
+        var others = new[]
+        {
+            CreateFile("setup.exe", marked: true),
+            CreateFile("LEGO.exe", marked: true),
+            CreateFile("readme.txt", marked: true),
+            CreateFile(Path.Combine("Lang", "notes.txt"), marked: true),
+            CreateFile(Path.Combine("SomeGame", "game.exe"), marked: true),
+            CreateFile(Path.Combine("SomeGame", "LEProc.exe"), marked: true)
+        };
+
+        Assert.Equal(ours.Length, DownloadMark.RemoveFromProductFiles(_dir));
+
+        Assert.All(ours, file => Assert.False(HasMark(file), file));
+        Assert.All(others, file => Assert.True(HasMark(file), file));
+    }
+
+    [Theory]
+    [InlineData("LEProc.exe", true)]
+    [InlineData("leproc.exe", true)]
+    [InlineData("LoaderDll.dll", true)]
+    [InlineData(@"Lang\ja.xaml", true)]
+    [InlineData(@"Lang\ja.xml", true)]
+    [InlineData("LEGO.exe", false)]
+    [InlineData("LEProcessor.exe", false)]
+    [InlineData(@"Lang\run.exe", false)]
+    [InlineData(@"Other\LEProc.exe", false)]
+    [InlineData(@"Lang\Sub\ja.xaml", false)]
+    public void IsProductFile(string relativePath, bool expected)
+    {
+        Assert.Equal(expected, DownloadMark.IsProductFile(relativePath));
     }
 }
