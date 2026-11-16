@@ -67,10 +67,11 @@
 
 ### 已完成（最近）
 
+- [ ] **安裝流程 review 的修正（待 CI 與 Windows 驗收）**：LEInstaller 取消 runtime 安裝就停、開 LEGUI 不再做 zone 檢查；匯入同名不同內容改問取代 / 另存 / 略過，第一次移轉不先建預設值，寫入失敗不回報成功、不清理舊註冊；下載記號只清 LE 自己的檔案；右鍵選單註冊到其他資料夾時顯示路徑並可「更新到此資料夾」；README 補安裝後的步驟。驗收：乾淨安裝、從 LE 2.x 移轉（改過預設 profile）、換資料夾升級
 - [x] **合併 ACP 65001 的 DBCS 修正（#16）**：`fix/acp-utf8-leak` 的 `CheckDBCSEnabledExt` hook、ntdll `NlsAnsiCodePage` / `NlsMbCodePageTag`、`LeRtlUpcaseUnicodeStringToAnsiString` 長度修正與 smoke test 檢查，2026-11-16 才發現從未合併，以 cherry-pick 重新套到 master。維護者主機（build 26300、ACP 65001）smoke test：ja / zh / ko PROBE 32/32，`CHECK_USER32_CHARNEXTA_DBCS` 與 `CHECK_RTL_UPCASE_*` 都通過
 - [x] **產品改為單一資料夾**（`docs/superpowers/specs/2026-11-16-flat-product-layout.md`）：v3.0.0-beta.2 的右鍵選單完全不能用，因為 `x64\ShellExtension.dll` 在自己的資料夾找不到 `Lang\`、`LEConfig.xml`、`LEProc.exe`，而且右鍵選單的語系檔從未被複製到建置輸出（vcxproj 的 `PostBuildEvent` 寫在 `PropertyGroup`，MSBuild 不執行）。改為 `ShellExtension.dll` / `ShellExtension64.dll` 與其他檔案同一層；ShellExtension 改用靜態 CRT（原本依賴 VC++ 可轉散發套件，沒裝時 Explorer 安靜地載入失敗）；CI 新增「Verify product folder」；安裝視窗加「設定 → 匯入...」
 - [x] **獨立安裝程式 `LEInstaller.exe`**（原生 C++、靜態 CRT）：檢查 x86 / x64 的 .NET 10 Desktop Runtime，缺的話可從微軟官方連結下載、驗證 Authenticode 簽章後安裝，再開啟 `LEGUI.exe --installer`。設計見 `docs/superpowers/specs/2026-11-15-leinstaller-design.md`。實際安裝 runtime（UAC）與下載進度畫面只能手動驗證
-- [x] **匯入原版 LE 2.x 的全域設定**：從舊版右鍵選單註冊的 `CodeBase` 找出舊 `LEConfig.xml`，按「清理舊版註冊」時先匯入再清除；全域設定可從檔案匯入。保留 Guid，同名或同 Guid 略過
+- [x] **匯入原版 LE 2.x 的全域設定**：從舊版右鍵選單註冊的 `CodeBase` 找出舊 `LEConfig.xml`，按「清理舊版註冊」時先匯入再清除；全域設定可從檔案匯入。保留 Guid，同名或同 Guid 略過（之後改為同名不同內容時詢問，見上方）
 - [x] LEGUI 的「另存為」對話框修正切字、套用 `UIFont`、Enter / Esc、空白名稱不能儲存
 - [x] **Release workflow**（`.github/workflows/release.yml`）：呼叫 CI 後打包 zip 與 symbols zip（含 Core 的 pdb），建立草稿 Release。說明見 `docs/guides/release.md`
 - [x] **64 位元目標的提示**：LEProc 啟動前讀目標的 PE 標頭（`LaunchPreconditions.GetTargetArchitecture`），x64 / ARM64 / 在 64 位元 Windows 上的 AnyCPU .NET Framework 程式顯示「只支援 32 位元」後結束，不再進到 LoaderDll。單元測試 `TargetArchitectureTests`；本機以 64 位元的 `7z.exe` 確認訊息、smoke test 6 個地區全綠

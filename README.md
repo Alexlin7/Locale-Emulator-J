@@ -41,12 +41,16 @@ The native hooking core (`src/Core/`) originates from [Locale-Emulator-Core](htt
 
 ## Install
 
-1. **Before extracting**, right-click the downloaded zip → **Properties** → check **Unblock** → **OK**. Otherwise every program extracted from it is marked as coming from the Internet, and Microsoft Defender runs a cloud security scan the first time each one starts (the binaries are not code-signed). If you forget, installing the context menu (step 4) removes the mark from this folder for you.
-2. Extract all files to one folder you can write to, for example `D:\Tools\LocaleEmulator-J\`.
+1. **Before extracting**, right-click the downloaded zip → **Properties** → check **Unblock** → **OK**. Otherwise every program extracted from it is marked as coming from the Internet: Windows SmartScreen warns when you start `LEInstaller.exe` (click **More info** → **Run anyway**; the binaries are not code-signed) and Microsoft Defender runs a cloud security scan the first time each program starts. If you forget, installing the context menu (step 4) removes the mark from LE's own files.
+2. Extract all files into a **new, empty folder you can write to and will keep**, for example `D:\Tools\LocaleEmulator-J\`. The context menu runs LE from this folder: if you move or delete it later, install the context menu again from the new location (step 4).
 3. Run `LEInstaller.exe`. It checks for the .NET 10 Desktop Runtime (x86 and x64) and, if one is missing, can download Microsoft's official installer and run it (administrator permission required) or open the download page.
-4. In the Shell Extension window it opens, choose **Install (Current User)** or **Install (All Users)**, then restart Explorer or sign out and in.
+4. In the window it opens, choose **Install (Current User)** — recommended, no administrator permission needed — or **Install (All Users)**. If Explorer does not show the menu yet, restart Explorer or sign out and in.
 
-**Coming from the original Locale Emulator 2.x?** While its context menu is still registered, the same window offers to import its global profiles (`LEConfig.xml`) when you click **Clean up old registration**. If it was already removed, use **Import...** in the same window (or next to the profile list in `LEGUI.exe`) and pick the old `LEConfig.xml`. Per-application `.le.config` files keep working as they are.
+**First launch:** right-click a game's `.exe` → **Locale Emulator** → **Run in Japanese**. On Windows 11 the menu is under **Show more options** (or hold **Shift** while right-clicking). To change the region or time zone, or add your own profiles, open `LEGUI.exe` from the same folder (or **Locale Emulator** → **Edit Global Profile List** in the menu). Only 32-bit programs are supported.
+
+**Updating:** extract the new version into its own folder, run `LEInstaller.exe` there, and click **Update to this folder** (shown when the context menu still points to the old folder). Then import your profiles with **Import...** and pick the old folder's `LEConfig.xml`, and delete the old folder.
+
+**Coming from the original Locale Emulator 2.x?** While its context menu is still registered, the same window offers to import its global profiles (`LEConfig.xml`) when you click **Clean up old registration**; the registration is only removed after the profiles were saved. If a profile with the same name but different settings already exists, you can replace it, save it under a new name or skip it. If the old registration was already removed, use **Import...** in the same window (or next to the profile list in `LEGUI.exe`) and pick the old `LEConfig.xml`. Per-application `.le.config` files keep working as they are.
 
 ## System Requirements
 
